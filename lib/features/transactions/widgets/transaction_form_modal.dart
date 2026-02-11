@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/services/api_client.dart';
+import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/models/account.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
@@ -40,8 +41,8 @@ class _TransactionFormDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF0F0F0F),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: AppColors.surfaceDialog,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: _TransactionForm(preselectedAccountId: preselectedAccountId),
@@ -63,8 +64,8 @@ class _TransactionFormSheet extends StatelessWidget {
       minChildSize: 0.5,
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0F0F0F),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          color: AppColors.surfaceDialog,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
         ),
         child: _TransactionForm(
           preselectedAccountId: preselectedAccountId,
@@ -216,8 +217,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Nouvelle transaction',
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
+                  const Text('Nouvelle transaction', style: AppTextStyles.title),
                   IconButton(
                     icon: const Icon(Icons.close, color: AppColors.textSecondary),
                     onPressed: () => Navigator.of(context).pop(),
@@ -235,7 +235,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                   final grouped = _groupAccounts(accounts);
                   return DropdownButtonFormField<String>(
                     initialValue: _selectedAccountId,
-                    dropdownColor: const Color(0xFF1A1A1A),
+                    dropdownColor: AppColors.surfaceElevated,
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(labelText: 'Compte'),
                     items: grouped,
@@ -249,7 +249,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               // Date
               InkWell(
                 onTap: _pickDate,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 child: InputDecorator(
                   decoration: const InputDecoration(
                     labelText: 'Date',

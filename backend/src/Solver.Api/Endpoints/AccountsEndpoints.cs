@@ -61,6 +61,17 @@ public static class AccountsEndpoints
             return Results.Ok(account);
         });
 
+        group.MapPatch("/{id:guid}/budget", async (Guid id, UpdateBudgetDto dto, SolverDbContext db, HttpContext ctx) =>
+        {
+            var userId = GetUserId(ctx);
+            var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
+            if (account is null) return Results.NotFound();
+
+            account.Budget = dto.Budget;
+            await db.SaveChangesAsync();
+            return Results.Ok(account);
+        });
+
         group.MapDelete("/{id:guid}", async (Guid id, SolverDbContext db, HttpContext ctx) =>
         {
             var userId = GetUserId(ctx);

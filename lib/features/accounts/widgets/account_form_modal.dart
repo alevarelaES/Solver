@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/services/api_client.dart';
+import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
@@ -60,8 +61,8 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFF0F0F0F),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: AppColors.surfaceDialog,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
@@ -75,8 +76,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Nouveau compte',
-                        style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
+                    const Text('Nouveau compte', style: AppTextStyles.title),
                     IconButton(
                       icon: const Icon(Icons.close, color: AppColors.textSecondary),
                       onPressed: () => Navigator.of(context).pop(),
@@ -104,7 +104,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 const SizedBox(height: 16),
 
                 // Type
-                const Text('Type', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                const Text('Type', style: AppTextStyles.label),
                 const SizedBox(height: 8),
                 Row(
                   children: [

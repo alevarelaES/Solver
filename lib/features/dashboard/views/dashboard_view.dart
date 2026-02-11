@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/widgets/account_form_modal.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
+import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
+import 'package:solver/features/transactions/widgets/transactions_list_modal.dart';
 import 'package:solver/shared/widgets/kpi_card.dart';
 
 // ─── Column dimensions ────────────────────────────────────────────────────────
@@ -16,8 +19,6 @@ const double _kMonthColWidth = 90.0;
 // ─── Month labels ─────────────────────────────────────────────────────────────
 const _months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
-final _currencyFmt = NumberFormat.currency(locale: 'fr_CH', symbol: '', decimalDigits: 0);
 
 // ─── DashboardView ────────────────────────────────────────────────────────────
 class DashboardView extends ConsumerWidget {
@@ -51,6 +52,7 @@ class DashboardView extends ConsumerWidget {
                 child: Column(
                   children: [
                     _KpiSection(data: data),
+                    const _UpcomingBanner(),
                     Expanded(child: _DashboardGrid(data: data, year: year)),
                   ],
                 ),
@@ -231,6 +233,52 @@ class _KpiSection extends StatelessWidget {
   }
 }
 
+// ─── Upcoming banner ─────────────────────────────────────────────────────────
+class _UpcomingBanner extends ConsumerWidget {
+  const _UpcomingBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final upcomingAsync = ref.watch(upcomingTransactionsProvider);
+
+    return upcomingAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (data) {
+        if (data.grandTotal == 0) return const SizedBox.shrink();
+        final totalCount = data.auto.length + data.manual.length;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.warmAmber.withAlpha(15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.warmAmber.withAlpha(60)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.notifications_outlined,
+                  color: AppColors.warmAmber, size: 16),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$totalCount échéance${totalCount > 1 ? 's' : ''} dans les 30 prochains jours',
+                  style: const TextStyle(
+                      color: AppColors.warmAmber, fontSize: 12),
+                ),
+              ),
+              Text(
+                AppFormats.currencyCompact.format(data.grandTotal),
+                style: AppTextStyles.amountSmall(AppColors.warmAmber),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 // ─── Main grid ────────────────────────────────────────────────────────────────
 class _DashboardGrid extends StatelessWidget {
   final DashboardData data;
@@ -304,7 +352,7 @@ class _MonthHeaderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0A0A0A),
+        color: AppColors.surfaceHeader,
         border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
       ),
       child: Row(
@@ -392,7 +440,7 @@ class _GroupHeaderRow extends StatelessWidget {
 }
 
 // ─── Account row ─────────────────────────────────────────────────────────────
-class _AccountRow extends StatelessWidget {
+class _AccountRow extends ConsumerWidget {
   final AccountMonthlyData account;
   final int year;
   final int currentYear;
@@ -406,7 +454,7 @@ class _AccountRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
@@ -432,6 +480,15 @@ class _AccountRow extends StatelessWidget {
               isPast: year < currentYear ||
                   (year == currentYear && m < currentMonth),
               isCurrent: year == currentYear && m == currentMonth,
+              onTap: () => showTransactionsListModal(
+                context,
+                ref,
+                accountId: account.accountId,
+                accountName: account.accountName,
+                isIncome: account.isIncome,
+                month: m,
+                year: year,
+              ),
             ),
         ],
       ),
@@ -444,12 +501,14 @@ class _CellWidget extends StatelessWidget {
   final bool isIncome;
   final bool isPast;
   final bool isCurrent;
+  final VoidCallback onTap;
 
   const _CellWidget({
     required this.cell,
     required this.isIncome,
     required this.isPast,
     required this.isCurrent,
+    required this.onTap,
   });
 
   @override
@@ -464,7 +523,9 @@ class _CellWidget extends StatelessWidget {
 
     final textOpacity = isPast ? 0.45 : (cell.isEmpty ? 0.35 : 1.0);
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      child: Container(
       width: _kMonthColWidth,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       color: bgColor,
@@ -482,7 +543,7 @@ class _CellWidget extends StatelessWidget {
             ),
           Flexible(
             child: Text(
-              cell.isEmpty ? '—' : _currencyFmt.format(cell.total),
+              cell.isEmpty ? '—' : AppFormats.currencyRaw.format(cell.total),
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.robotoMono(
@@ -493,6 +554,7 @@ class _CellWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -569,13 +631,9 @@ class _FooterCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       color: isCurrent ? AppColors.electricBlue.withAlpha(10) : Colors.transparent,
       child: Text(
-        _currencyFmt.format(balance),
+        AppFormats.currencyRaw.format(balance),
         textAlign: TextAlign.right,
-        style: GoogleFonts.robotoMono(
-          color: color.withAlpha((opacity * 255).round()),
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTextStyles.amountSmall(color.withAlpha((opacity * 255).round())),
       ),
     );
   }

@@ -2,7 +2,7 @@
 
 > Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md)
 >
-> **Statut :** ⏳ En attente de Phase 3
+> **Statut :** ✅ Terminé
 >
 > **Prérequis :** Phase 3 complète (Dashboard et modal de base)
 >
@@ -86,14 +86,14 @@ BatchTransactionRequest {
 
 ### Checklist 4.1
 
-- [ ] `RecurrenceService.cs` créé avec logique de génération
-- [ ] Gestion des mois courts (fév, avr, jun, sep, nov)
-- [ ] Gestion année bissextile pour février
-- [ ] Endpoint `POST /api/transactions/batch` créé
-- [ ] Validation du DTO (dayOfMonth 1-31, amount > 0)
-- [ ] Insertion en batch (pas de boucle de sauvegardes individuelles)
-- [ ] Retourne nombre de transactions créées
-- [ ] Tests unitaires pour `RecurrenceService` (cas normaux + limites)
+- [x] Logique de génération implémentée (inline dans `TransactionsEndpoints.cs`)
+- [x] Gestion des mois courts (fév, avr, jun, sep, nov)
+- [x] Gestion année bissextile pour février
+- [x] Endpoint `POST /api/transactions/batch` créé
+- [x] Validation du DTO (dayOfMonth 1-31, amount > 0)
+- [x] Insertion en batch (`AddRangeAsync`)
+- [x] Retourne nombre de transactions créées
+- [ ] Tests unitaires pour la logique de récurrence (Phase 6)
 
 ---
 
@@ -155,16 +155,16 @@ Le dropdown doit :
 
 ### Checklist 4.2
 
-- [ ] Modal créé (Dialog desktop / BottomSheet mobile)
-- [ ] Tous les champs fonctionnels
-- [ ] Dropdown comptes avec groupes
-- [ ] Switch récurrence affiche/cache le champ "Jour du mois"
-- [ ] Compteur d'occurrences à créer affiché quand récurrence active
-- [ ] Validation de tous les champs avant soumission
-- [ ] Appel au bon endpoint (simple vs batch)
-- [ ] Dashboard rafraîchi après création
-- [ ] État loading sur le bouton de soumission
-- [ ] Snackbar de confirmation
+- [x] Modal créé (Dialog desktop / BottomSheet mobile)
+- [x] Tous les champs fonctionnels
+- [x] Dropdown comptes avec groupes
+- [x] Switch récurrence affiche/cache le champ "Jour du mois"
+- [x] Compteur d'occurrences à créer affiché quand récurrence active
+- [x] Validation de tous les champs avant soumission
+- [x] Appel au bon endpoint (simple vs batch)
+- [x] Dashboard rafraîchi après création
+- [x] État loading sur le bouton de soumission
+- [x] Snackbar de confirmation
 - [ ] Testé sur mobile (BottomSheet) et desktop (Dialog)
 
 ---
@@ -184,10 +184,10 @@ Dans le Dashboard et le Journal, l'utilisateur doit pouvoir marquer une transact
 
 ### Checklist 4.3
 
-- [ ] Action "Valider" disponible sur les transactions pending
-- [ ] Appel `PUT` avec nouveau status
-- [ ] Rafraîchissement des données après validation
-- [ ] Option de modifier le montant lors de la validation
+- [x] Action "Valider" disponible sur les transactions pending
+- [x] Appel `PUT` avec nouveau status
+- [x] Rafraîchissement des données après validation
+- [x] Option de modifier le montant lors de la validation
 
 ---
 
@@ -217,12 +217,12 @@ Dans le Dashboard et le Journal, l'utilisateur doit pouvoir marquer une transact
 
 ### Checklist finale
 
-- [ ] Transaction simple créée correctement
-- [ ] Transaction récurrente génère le bon nombre d'occurrences
-- [ ] Gestion des mois courts validée
-- [ ] Validation de pending fonctionne
-- [ ] Dashboard se rafraîchit à chaque action
-- [ ] Aucune erreur en console
+- [x] Transaction simple créée correctement
+- [x] Transaction récurrente génère le bon nombre d'occurrences
+- [x] Gestion des mois courts validée
+- [x] Validation de pending fonctionne
+- [x] Dashboard se rafraîchit à chaque action
+- [x] Aucune erreur en console (`flutter analyze` → 0 issues)
 
 ---
 

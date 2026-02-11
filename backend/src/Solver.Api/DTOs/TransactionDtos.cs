@@ -28,3 +28,16 @@ public record BatchTransactionDto(
 public record RecurrenceOptionsDto(
     [Range(1, 31)] int DayOfMonth
 );
+
+public record TransactionItemDto(
+    Guid Id,
+    Guid AccountId,
+    string AccountName,
+    string AccountType,
+    Guid UserId,
+    DateOnly Date,
+    decimal Amount,
+    string? Note,
+    string Status,
+    bool IsAuto
+);

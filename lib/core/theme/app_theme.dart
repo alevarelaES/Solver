@@ -14,6 +14,34 @@ class AppColors {
   static const textDisabled = Color(0x4DFFFFFF);  // white 30%
   static const borderSubtle = Color(0x1AFFFFFF);  // white 10%
   static const surfaceCard = Color(0x0DFFFFFF);   // white 5%
+
+  // ── Elevated surfaces ────────────────────────────────────────────────────
+  static const surfaceDialog = Color(0xFF0F0F0F);   // dialogs / main modals
+  static const surfaceElevated = Color(0xFF1A1A1A); // bottom-sheets, tooltips, dropdowns
+  static const surfaceHeader = Color(0xFF0A0A0A);   // table/grid headers
+
+  // ── Chart palette (8 colours, used in order) ────────────────────────────
+  static const chartColors = <Color>[
+    electricBlue,
+    coolPurple,
+    warmAmber,
+    neonEmerald,
+    softRed,
+    Color(0xFF00BCD4), // cyan
+    Color(0xFFFF5722), // deep-orange
+    Color(0xFF9C27B0), // purple
+  ];
+}
+
+// ── Border radius scale ──────────────────────────────────────────────────────
+class AppRadius {
+  const AppRadius._();
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
 }
 
 class AppTheme {
@@ -58,8 +86,8 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF0F0F0F),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: AppColors.surfaceDialog,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
       ),
     );
   }

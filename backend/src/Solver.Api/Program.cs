@@ -40,5 +40,7 @@ app.UseMiddleware<SupabaseAuthMiddleware>();
 app.MapAccountsEndpoints();
 app.MapTransactionsEndpoints();
 app.MapDashboardEndpoints();
+app.MapBudgetEndpoints();
+app.MapAnalysisEndpoints();
 
 app.Run();

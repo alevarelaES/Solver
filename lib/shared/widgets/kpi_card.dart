@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
@@ -9,6 +9,8 @@ class KpiCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
+  final bool isCurrency;
+  final String? suffix;
 
   const KpiCard({
     super.key,
@@ -16,15 +18,15 @@ class KpiCard extends StatelessWidget {
     required this.amount,
     required this.color,
     required this.icon,
+    this.isCurrency = true,
+    this.suffix,
   });
 
   @override
   Widget build(BuildContext context) {
-    final formatted = NumberFormat.currency(
-      locale: 'fr_CH',
-      symbol: 'CHF',
-      decimalDigits: 2,
-    ).format(amount);
+    final formatted = isCurrency
+        ? AppFormats.currency.format(amount)
+        : '${amount.toStringAsFixed(1)}${suffix ?? ''}';
 
     return GlassContainer(
       padding: const EdgeInsets.all(20),
@@ -53,14 +55,7 @@ class KpiCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            formatted,
-            style: GoogleFonts.robotoMono(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(formatted, style: AppTextStyles.amount(color)),
         ],
       ),
     );

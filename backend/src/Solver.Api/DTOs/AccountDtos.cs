@@ -18,3 +18,5 @@ public record UpdateAccountDto(
     bool IsFixed,
     [Range(0, 10_000_000)] decimal Budget
 );
+
+public record UpdateBudgetDto([Range(0, 10_000_000)] decimal Budget);

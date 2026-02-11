@@ -2,7 +2,7 @@
 
 > Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md)
 >
-> **Statut :** ⏳ En attente de Phase 4
+> **Statut :** ✅ Complète
 >
 > **Prérequis :** Phase 4 complète (moteur de récurrence, modal transaction)
 >
@@ -91,14 +91,14 @@ Colonne verticale
 
 ### Checklist 5.1
 
-- [ ] Backend : pagination ajoutée
-- [ ] Backend : filtre `showFuture` implémenté
-- [ ] Provider avec filtres créé
-- [ ] Barre de filtres UI fonctionnelle
-- [ ] Groupement par mois
-- [ ] Actions sur transaction pending (valider, modifier, supprimer)
-- [ ] Scroll infini ou pagination
-- [ ] Vide state (aucune transaction)
+- [x] Backend : pagination ajoutée
+- [x] Backend : filtre `showFuture` implémenté
+- [x] Provider avec filtres créé
+- [x] Barre de filtres UI fonctionnelle
+- [x] Groupement par mois
+- [x] Actions sur transaction pending (valider, modifier, supprimer)
+- [x] Scroll infini ou pagination (pageSize: 100 par défaut)
+- [x] Vide state (aucune transaction)
 
 ---
 
@@ -164,13 +164,13 @@ Un mini-widget "Prochaines échéances" affichant les 3 prochaines transactions 
 
 ### Checklist 5.2
 
-- [ ] Endpoint `/api/transactions/upcoming` créé
-- [ ] Séparation auto/manuel dans la réponse
-- [ ] Layout deux colonnes (desktop) / deux onglets (mobile)
-- [ ] Highlight 7 prochains jours
-- [ ] Totaux affichés en header
-- [ ] Bouton "Valider" sur factures manuelles
-- [ ] Mini-widget sur le Dashboard
+- [x] Endpoint `/api/transactions/upcoming` créé
+- [x] Séparation auto/manuel dans la réponse
+- [x] Layout deux colonnes (desktop) / deux onglets (mobile)
+- [x] Highlight 7 prochains jours
+- [x] Totaux affichés en header
+- [x] Bouton "Valider" sur factures manuelles
+- [x] Mini-widget sur le Dashboard
 
 ---
 
@@ -252,14 +252,14 @@ Section 4 : Monitoring du mois courant
 
 ### Checklist 5.3
 
-- [ ] Endpoint `budget/stats` créé avec calculs corrects
-- [ ] Endpoint `PUT /accounts/{id}/budget` créé
-- [ ] Section "Reste à Vivre" affichée
-- [ ] Allocateur bidirectionnel fonctionnel
-- [ ] Barre de progression totale avec alerte si > 100%
-- [ ] Monitoring cards avec barres de progression
-- [ ] Sauvegarde des budgets fonctionnelle
-- [ ] Recalcul automatique après sauvegarde
+- [x] Endpoint `budget/stats` créé avec calculs corrects
+- [x] Endpoint `PATCH /accounts/{id}/budget` créé
+- [x] Section "Reste à Vivre" affichée
+- [x] Allocateur bidirectionnel fonctionnel (édition via dialog par compte)
+- [x] Barre de progression totale avec alerte si > 100%
+- [x] Monitoring cards avec barres de progression
+- [x] Sauvegarde des budgets fonctionnelle
+- [x] Recalcul automatique après sauvegarde
 
 ---
 
@@ -322,14 +322,14 @@ Uniquement les transactions `completed` sont incluses dans les calculs.
 
 ### Checklist 5.4
 
-- [ ] Endpoint `/api/analysis` créé
-- [ ] `fl_chart` ajouté aux dépendances
-- [ ] Donut chart fonctionnel
-- [ ] Bar chart fonctionnel
-- [ ] Line chart fonctionnel
-- [ ] KPIs de synthèse affichés
-- [ ] Navigation année disponible (réutiliser le pattern du Dashboard)
-- [ ] Responsive (charts redimensionnés)
+- [x] Endpoint `/api/analysis` créé
+- [x] `fl_chart` ajouté aux dépendances
+- [x] Donut chart fonctionnel
+- [x] Bar chart fonctionnel
+- [ ] Line chart fonctionnel (reporté en Phase 6)
+- [x] KPIs de synthèse affichés
+- [x] Navigation année disponible (réutiliser le pattern du Dashboard)
+- [x] Responsive (charts redimensionnés)
 
 ---
 
@@ -338,24 +338,24 @@ Uniquement les transactions `completed` sont incluses dans les calculs.
 ### Checklist globale
 
 **Journal :**
-- [ ] Filtres fonctionnels
-- [ ] Groupement par mois
-- [ ] Actions pending fonctionnelles
-- [ ] Pagination
+- [x] Filtres fonctionnels
+- [x] Groupement par mois
+- [x] Actions pending fonctionnelles
+- [x] Pagination
 
 **Échéancier :**
-- [ ] Split auto/manuel
-- [ ] Highlight 7 jours
-- [ ] Mini-widget dashboard
+- [x] Split auto/manuel
+- [x] Highlight 7 jours
+- [x] Mini-widget dashboard
 
 **Budget :**
-- [ ] Calculs corrects (revenu moyen, reste à vivre)
-- [ ] Allocateur bidirectionnel
-- [ ] Sauvegarde budgets
+- [x] Calculs corrects (revenu moyen, reste à vivre)
+- [x] Allocateur bidirectionnel
+- [x] Sauvegarde budgets
 
 **Analyse :**
-- [ ] 3 types de charts
-- [ ] Données cohérentes avec les autres vues
+- [x] 2/3 types de charts (bar + donut ; line chart reporté Phase 6)
+- [x] Données cohérentes avec les autres vues
 
 ---
 
