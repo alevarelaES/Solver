@@ -1,0 +1,12 @@
+# Build outputs
+bin/
+obj/
+
+# Environment / Secrets
+.env
+.env.*
+
+# User-specific files
+*.user
+*.suo
+.vs/

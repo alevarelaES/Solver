@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(supabase:*)",
+      "Bash(npm install:*)",
+      "Bash(winget install:*)",
+      "Bash(winget search:*)",
+      "Bash(scoop install:*)",
+      "Bash(Invoke-WebRequest -Uri \"https://github.com/supabase/cli/releases/latest/download/supabase_windows_amd64.tar.gz\" -OutFile \"$env:TEMP\\\\supabase.tar.gz\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://github.com/supabase/cli/releases/latest/download/supabase_windows_amd64.tar.gz'' -OutFile \"\"$env:TEMP\\\\supabase.tar.gz\"\"; tar -xzf \"\"$env:TEMP\\\\supabase.tar.gz\"\" -C \"\"$env:TEMP\"\"; Copy-Item \"\"$env:TEMP\\\\supabase.exe\"\" ''C:\\\\Windows\\\\System32\\\\supabase.exe''\")",
+      "Bash(powershell -Command:*)",
+      "Bash(npx supabase:*)",
+      "Bash(psql:*)",
+      "Bash(npx:*)",
+      "Bash(where:*)",
+      "Bash(node --version:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(set)",
+      "Bash(curl -s -X POST \"https://bmvsvfmtkhdkzeyjppkr.supabase.co/rest/v1/rpc/exec_sql\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtdnN2Zm10a2hka3pleWpwcGtyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDcyMDg4MCwiZXhwIjoyMDg2Mjk2ODgwfQ.NNChnbN_njGOFDd7iS_xxk1ElN2USBSVNZSc7700w8k\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtdnN2Zm10a2hka3pleWpwcGtyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDcyMDg4MCwiZXhwIjoyMDg2Mjk2ODgwfQ.NNChnbN_njGOFDd7iS_xxk1ElN2USBSVNZSc7700w8k\")",
+      "Bash(SERVICE_ROLE_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtdnN2Zm10a2hka3pleWpwcGtyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDcyMDg4MCwiZXhwIjoyMDg2Mjk2ODgwfQ.NNChnbN_njGOFDd7iS_xxk1ElN2USBSVNZSc7700w8k\")",
+      "Bash(__NEW_LINE_0184944119d2084e__ curl -s -X POST \"https://bmvsvfmtkhdkzeyjppkr.supabase.co/rest/v1/accounts\" -H \"apikey: $SERVICE_ROLE_KEY\" -H \"Authorization: Bearer $SERVICE_ROLE_KEY\" -H \"Content-Type: application/json\" -H \"Prefer: resolution=ignore-duplicates,return=minimal\" --data-binary \"@/c/Users/avarela/Projets/solver/tmp_accounts.json\")",
+      "Bash(echo:*)",
+      "Bash(__NEW_LINE_88372cce78fb6241__ curl -s -X POST \"https://bmvsvfmtkhdkzeyjppkr.supabase.co/rest/v1/transactions\" -H \"apikey: $SERVICE_ROLE_KEY\" -H \"Authorization: Bearer $SERVICE_ROLE_KEY\" -H \"Content-Type: application/json\" -H \"Prefer: return=minimal\" --data-binary \"@/c/Users/avarela/Projets/solver/tmp_transactions.json\")",
+      "Bash(__NEW_LINE_a7129d51b5cea7cd__ echo \"=== ACCOUNTS ===\")",
+      "Bash(curl:*)",
+      "Bash(__NEW_LINE_a7129d51b5cea7cd__ echo \"\")",
+      "Bash(__NEW_LINE_56caca08b0687d8b__ echo \"=== ACCOUNTS ===\")",
+      "Bash(__NEW_LINE_56caca08b0687d8b__ echo \"\")"
+    ]
+  }
+}
