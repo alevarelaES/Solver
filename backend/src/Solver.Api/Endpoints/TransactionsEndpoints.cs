@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Solver.Api.Data;
 using Solver.Api.DTOs;
 using Solver.Api.Models;
+using Solver.Api.Services;
 
 namespace Solver.Api.Endpoints;
 
@@ -138,7 +139,7 @@ public static class TransactionsEndpoints
             var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.Transaction.AccountId && a.UserId == userId);
             if (!accountExists) return Results.NotFound(new { error = "Account not found" });
 
-            var transactions = GenerateRecurringTransactions(dto, userId);
+            var transactions = RecurrenceService.Generate(dto, userId);
             await db.Transactions.AddRangeAsync(transactions);
             await db.SaveChangesAsync();
             return Results.Ok(new { count = transactions.Count });
@@ -170,37 +171,6 @@ public static class TransactionsEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
-    }
-
-    private static List<Transaction> GenerateRecurringTransactions(BatchTransactionDto dto, Guid userId)
-    {
-        var transactions = new List<Transaction>();
-        var startMonth = dto.Transaction.Date.Month;
-        var year = dto.Transaction.Date.Year;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        for (int month = startMonth; month <= 12; month++)
-        {
-            var maxDay = DateTime.DaysInMonth(year, month);
-            var day = Math.Min(dto.Recurrence.DayOfMonth, maxDay);
-            var date = new DateOnly(year, month, day);
-            var status = date <= today ? dto.Transaction.Status : TransactionStatus.Pending;
-
-            transactions.Add(new Transaction
-            {
-                Id = Guid.NewGuid(),
-                AccountId = dto.Transaction.AccountId,
-                UserId = userId,
-                Date = date,
-                Amount = dto.Transaction.Amount,
-                Note = dto.Transaction.Note,
-                Status = status,
-                IsAuto = dto.Transaction.IsAuto,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-
-        return transactions;
     }
 
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;

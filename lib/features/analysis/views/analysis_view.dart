@@ -210,10 +210,12 @@ class _BarChartCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: Column(
+      child: LayoutBuilder(builder: (context, cst) {
+        final chartH = cst.maxWidth < 500 ? 160.0 : 200.0;
+        return Column(
         children: [
           SizedBox(
-            height: 200,
+            height: chartH,
             child: BarChart(
               BarChartData(
                 barGroups: groups,
@@ -281,7 +283,8 @@ class _BarChartCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
+      );
+      }),
     );
   }
 }
@@ -341,9 +344,10 @@ class _PieChartCardState extends State<_PieChartCard> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 500;
+          final isWide = constraints.maxWidth > 600;
+          final pieH = constraints.maxWidth < 500 ? 160.0 : 200.0;
           final chart = SizedBox(
-            height: 200,
+            height: pieH,
             child: PieChart(
               PieChartData(
                 sections: sections,

@@ -3,6 +3,7 @@ import 'package:solver/core/services/api_client.dart';
 import 'package:solver/features/accounts/models/account.dart';
 
 final accountsProvider = FutureProvider<List<Account>>((ref) async {
+  ref.keepAlive();
   final client = ref.watch(apiClientProvider);
   final response = await client.get<List<dynamic>>('/api/accounts');
   return (response.data as List)

@@ -11,6 +11,7 @@ import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
 import 'package:solver/features/transactions/widgets/transactions_list_modal.dart';
 import 'package:solver/shared/widgets/kpi_card.dart';
+import 'package:solver/shared/widgets/staggered_fade_in.dart';
 
 // ─── Column dimensions ────────────────────────────────────────────────────────
 const double _kNameColWidth = 200.0;
@@ -178,7 +179,7 @@ class _KpiSection extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 600;
-          final cards = [
+          final rawCards = [
             KpiCard(
               label: 'Solde Actuel',
               amount: data.currentBalance,
@@ -203,6 +204,10 @@ class _KpiSection extends StatelessWidget {
               color: endOfMonthColor,
               icon: Icons.show_chart,
             ),
+          ];
+          final cards = [
+            for (int i = 0; i < rawCards.length; i++)
+              StaggeredFadeIn(index: i, child: rawCards[i]),
           ];
 
           if (isNarrow) {

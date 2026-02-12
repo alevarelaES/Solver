@@ -63,9 +63,12 @@ class _TransactionsListDialog extends ConsumerWidget {
       backgroundColor: AppColors.surfaceDialog,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 600),
+        constraints: BoxConstraints(
+          maxWidth: 520,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width < 500 ? 16 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

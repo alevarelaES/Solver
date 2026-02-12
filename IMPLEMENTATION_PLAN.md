@@ -23,8 +23,8 @@
 | 2 — Flutter Foundation | [docs/phases/PHASE_2_FLUTTER.md](docs/phases/PHASE_2_FLUTTER.md) | ✅ Terminé | Phase 0 |
 | 3 — Dashboard | [docs/phases/PHASE_3_DASHBOARD.md](docs/phases/PHASE_3_DASHBOARD.md) | ✅ Terminé | Phases 1 + 2 |
 | 4 — Récurrence | [docs/phases/PHASE_4_RECURRENCE.md](docs/phases/PHASE_4_RECURRENCE.md) | ✅ Terminé | Phase 3 |
-| 5 — Vues Secondaires | [docs/phases/PHASE_5_VIEWS.md](docs/phases/PHASE_5_VIEWS.md) | ⏳ En attente | Phase 4 |
-| 6 — Polish & Tests | [docs/phases/PHASE_6_POLISH.md](docs/phases/PHASE_6_POLISH.md) | ⏳ En attente | Phase 5 |
+| 5 — Vues Secondaires | [docs/phases/PHASE_5_VIEWS.md](docs/phases/PHASE_5_VIEWS.md) | ✅ Terminé | Phase 4 |
+| 6 — Polish & Tests | [docs/phases/PHASE_6_POLISH.md](docs/phases/PHASE_6_POLISH.md) | ✅ Terminé | Phase 5 |
 
 ---
 
@@ -34,6 +34,6 @@
 
 ---
 
-## Prochaine Étape
+## Statut
 
-Consulter [docs/phases/PHASE_5_VIEWS.md](docs/phases/PHASE_5_VIEWS.md) — Vues secondaires (Journal, Échéancier, Budget, Analyse).
+Toutes les phases sont terminées. Le projet est fonctionnel et prêt pour la production.

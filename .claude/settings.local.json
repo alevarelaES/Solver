@@ -29,7 +29,9 @@
       "Bash(curl:*)",
       "Bash(__NEW_LINE_a7129d51b5cea7cd__ echo \"\")",
       "Bash(__NEW_LINE_56caca08b0687d8b__ echo \"=== ACCOUNTS ===\")",
-      "Bash(__NEW_LINE_56caca08b0687d8b__ echo \"\")"
+      "Bash(__NEW_LINE_56caca08b0687d8b__ echo \"\")",
+      "Bash(ls:*)",
+      "Bash(flutter test:*)"
     ]
   }
 }

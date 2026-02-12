@@ -6,6 +6,7 @@ final selectedYearProvider = StateProvider<int>((ref) => DateTime.now().year);
 
 final dashboardDataProvider =
     FutureProvider.family<DashboardData, int>((ref, year) async {
+  ref.keepAlive();
   final client = ref.watch(apiClientProvider);
   final response = await client.get<Map<String, dynamic>>(
     '/api/dashboard',

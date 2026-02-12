@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/features/auth/providers/auth_provider.dart';
@@ -8,6 +9,17 @@ import 'package:solver/features/schedule/views/schedule_view.dart';
 import 'package:solver/features/budget/views/budget_view.dart';
 import 'package:solver/features/analysis/views/analysis_view.dart';
 import 'package:solver/shared/widgets/app_shell.dart';
+
+Page<void> _fadePage(Widget child, GoRouterState state) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -32,23 +44,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const DashboardView(),
+            pageBuilder: (context, state) => _fadePage(const DashboardView(), state),
           ),
           GoRoute(
             path: '/journal',
-            builder: (context, state) => const JournalView(),
+            pageBuilder: (context, state) => _fadePage(const JournalView(), state),
           ),
           GoRoute(
             path: '/schedule',
-            builder: (context, state) => const ScheduleView(),
+            pageBuilder: (context, state) => _fadePage(const ScheduleView(), state),
           ),
           GoRoute(
             path: '/budget',
-            builder: (context, state) => const BudgetView(),
+            pageBuilder: (context, state) => _fadePage(const BudgetView(), state),
           ),
           GoRoute(
             path: '/analysis',
-            builder: (context, state) => const AnalysisView(),
+            pageBuilder: (context, state) => _fadePage(const AnalysisView(), state),
           ),
         ],
       ),

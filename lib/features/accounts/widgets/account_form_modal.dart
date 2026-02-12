@@ -64,9 +64,12 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
       backgroundColor: AppColors.surfaceDialog,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
+        constraints: BoxConstraints(
+          maxWidth: 480,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width < 500 ? 20 : 28),
           child: Form(
             key: _formKey,
             child: Column(
@@ -106,7 +109,9 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 // Type
                 const Text('Type', style: AppTextStyles.label),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     _TypeChip(
                       label: 'Dépense',
@@ -114,7 +119,6 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                       color: AppColors.softRed,
                       onTap: () => setState(() => _type = 'expense'),
                     ),
-                    const SizedBox(width: 12),
                     _TypeChip(
                       label: 'Revenu',
                       selected: _type == 'income',
@@ -176,7 +180,7 @@ class _TypeChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
           color: selected ? color.withAlpha(40) : Colors.transparent,
           border: Border.all(color: selected ? color : AppColors.borderSubtle),

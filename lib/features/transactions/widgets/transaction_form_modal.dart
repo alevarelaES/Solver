@@ -207,7 +207,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
         controller: widget.scrollController,
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 500 ? 20 : 28),
         child: Form(
           key: _formKey,
           child: Column(

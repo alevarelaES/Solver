@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Solver.Api/Solver.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Solver.Tests/Solver.Tests.csproj" />
+  </Folder>
 </Solution>

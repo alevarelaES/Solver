@@ -2,7 +2,7 @@
 
 > Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md) | [SECURITY.md](../SECURITY.md)
 >
-> **Statut :** ⏳ En attente de Phase 5
+> **Statut :** ✅ Complète
 >
 > **Prérequis :** Toutes les phases 0–5 complètes et validées
 >
@@ -68,10 +68,10 @@ Transformer un produit fonctionnel en un produit **soigné et robuste** :
 
 ### Checklist 6.1
 
-- [ ] Testé sur 5 résolutions minimum
-- [ ] Aucun overflow constaté
-- [ ] Navigation mobile (bottom bar) accessible au pouce
-- [ ] Formulaires utilisables au clavier (web) et au tactile (mobile)
+- [x] Testé sur 5 résolutions minimum
+- [x] Aucun overflow constaté
+- [x] Navigation mobile (bottom bar) accessible au pouce
+- [x] Formulaires utilisables au clavier (web) et au tactile (mobile)
 
 ---
 
@@ -110,12 +110,12 @@ Les animations doivent être **subtiles** et **utiles** — elles guident l'atte
 
 ### Checklist 6.2
 
-- [ ] Transitions entre vues fluides
-- [ ] Animations KPI cards
-- [ ] Hover effects sur web
-- [ ] Loading states sur tous les boutons d'action
-- [ ] Snackbar animé
-- [ ] Aucune animation ne bloque l'interaction (tous `ignorePointer` pendant les transitions)
+- [x] Transitions entre vues fluides
+- [x] Animations KPI cards
+- [x] Hover effects sur web
+- [x] Loading states sur tous les boutons d'action
+- [x] Snackbar animé
+- [x] Aucune animation ne bloque l'interaction (tous `ignorePointer` pendant les transitions)
 
 ---
 
@@ -166,13 +166,13 @@ Tester uniquement les logiques métier **critiques** — celles où un bug aurai
 
 ### Checklist 6.3
 
-- [ ] Projet de tests .NET créé
-- [ ] Tests `RecurrenceService` : 8 cas couverts
-- [ ] Tests `DashboardService` : 3 cas couverts
-- [ ] Tests `AuthMiddleware` : 4 cas couverts
-- [ ] `dotnet test` passe en vert
-- [ ] Tests Flutter : 3 cas couverts
-- [ ] `flutter test` passe en vert
+- [x] Projet de tests .NET créé
+- [x] Tests `RecurrenceService` : 8 cas couverts
+- [x] Tests `DashboardService` : 3 cas couverts
+- [x] Tests `AuthMiddleware` : 4 cas couverts
+- [x] `dotnet test` passe en vert
+- [x] Tests Flutter : 3 cas couverts
+- [x] `flutter test` passe en vert
 
 ---
 
@@ -205,10 +205,10 @@ Tester uniquement les logiques métier **critiques** — celles où un bug aurai
 
 ### Checklist 6.4
 
-- [ ] Aucune requête N+1 côté backend
-- [ ] Compression gzip activée
-- [ ] Providers Flutter avec `keepAlive`
-- [ ] Temps de chargement initial < 3s sur connexion 4G
+- [x] Aucune requête N+1 côté backend
+- [x] Compression gzip activée
+- [x] Providers Flutter avec `keepAlive`
+- [x] Temps de chargement initial < 3s sur connexion 4G
 
 ---
 
@@ -234,10 +234,10 @@ Documenter dans le README comment builder pour la production.
 
 ### Checklist 6.5
 
-- [ ] Stratégie de secrets pour la production documentée
-- [ ] HTTPS configuré ou documenté
-- [ ] CORS production configuré
-- [ ] Variables d'environnement de production listées dans le README
+- [x] Stratégie de secrets pour la production documentée
+- [x] HTTPS configuré ou documenté
+- [x] CORS production configuré
+- [x] Variables d'environnement de production listées dans le README
 
 ---
 
@@ -264,10 +264,10 @@ Vérifier et cocher tous les items dans les fichiers `docs/phases/*.md`.
 
 ### Checklist 6.6
 
-- [ ] `README.md` créé et complet
-- [ ] Toutes les checklists des phases mises à jour
-- [ ] `config.example.json` à jour avec toutes les variables nécessaires
-- [ ] `.env.example` (backend) à jour
+- [x] `README.md` créé et complet
+- [x] Toutes les checklists des phases mises à jour
+- [x] `config.example.json` à jour avec toutes les variables nécessaires
+- [x] `.env.example` (backend) à jour
 
 ---
 
@@ -290,23 +290,23 @@ Vérifier et cocher tous les items dans les fichiers `docs/phases/*.md`.
 ### Checklist finale du projet
 
 **Fonctionnel :**
-- [ ] Les 5 vues fonctionnent correctement
-- [ ] Création / modification / suppression de transactions
-- [ ] Récurrence fonctionnelle
-- [ ] Calculs financiers corrects
+- [x] Les 5 vues fonctionnent correctement
+- [x] Création / modification / suppression de transactions
+- [x] Récurrence fonctionnelle
+- [x] Calculs financiers corrects
 
 **Technique :**
-- [ ] `dotnet build` sans warnings
-- [ ] `flutter build web` sans warnings
-- [ ] Tous les tests passent
-- [ ] Aucun secret dans Git
+- [x] `dotnet build` sans warnings
+- [x] `flutter build web` sans warnings
+- [x] Tous les tests passent
+- [x] Aucun secret dans Git
 
 **UX :**
-- [ ] Responsive sur mobile et desktop
-- [ ] Animations fluides
-- [ ] Messages d'erreur clairs
-- [ ] Loading states présents
+- [x] Responsive sur mobile et desktop
+- [x] Animations fluides
+- [x] Messages d'erreur clairs
+- [x] Loading states présents
 
 **Documentation :**
-- [ ] README complet
-- [ ] Toutes les phases cochées
+- [x] README complet
+- [x] Toutes les phases cochées

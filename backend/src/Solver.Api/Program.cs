@@ -1,4 +1,5 @@
 using dotenv.net;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Solver.Api.Data;
 using Solver.Api.Endpoints;
@@ -15,15 +16,35 @@ var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING"
 builder.Services.AddDbContext<SolverDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Response compression (gzip)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
 // CORS
+var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy
-            .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        if (!string.IsNullOrEmpty(allowedOrigins))
+        {
+            // Production: restrict to specific origins
+            policy
+                .WithOrigins(allowedOrigins.Split(','))
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+        else
+        {
+            // Development: allow localhost
+            policy
+                .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
     });
 });
 
@@ -32,7 +53,14 @@ var app = builder.Build();
 // Health check (no auth required)
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
+// HTTPS redirect in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 // Pipeline order matters
+app.UseResponseCompression();
 app.UseCors();
 app.UseMiddleware<SupabaseAuthMiddleware>();
 

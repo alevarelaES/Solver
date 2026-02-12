@@ -367,8 +367,8 @@ class _UpcomingCardState extends ConsumerState<_UpcomingCard> {
                     onPressed: _validate,
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.neonEmerald,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(60, 28),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(48, 36),
                     ),
                     child: const Text('Valider', style: TextStyle(fontSize: 12)),
                   ),
