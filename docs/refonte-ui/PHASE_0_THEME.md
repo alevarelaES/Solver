@@ -89,10 +89,10 @@ Nouveau style :
 
 ## Checklist de validation
 
-- [ ] `flutter analyze` OK
-- [ ] App compile et s'affiche
-- [ ] Chaque page s'affiche sans crash
-- [ ] Dark mode fonctionne
-- [ ] Sidebar et header fonctionnent
-- [ ] Navigation entre pages fonctionne
-- [ ] Modals s'ouvrent correctement
+- [x] `flutter analyze` OK
+- [x] App compile et s'affiche
+- [x] Chaque page s'affiche sans crash
+- [x] Dark mode fonctionne
+- [x] Sidebar et header fonctionnent
+- [x] Navigation entre pages fonctionne
+- [x] Modals s'ouvrent correctement

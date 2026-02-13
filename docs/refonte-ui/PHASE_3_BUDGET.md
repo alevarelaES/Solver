@@ -95,10 +95,10 @@ Les maquettes Stitch montrent des categories (Shopping, Investment, Lifestyle...
 
 ## Checklist
 
-- [ ] Hero "Reste a Vivre" avec vraies donnees
-- [ ] Toggle Grid/Liste fonctionnel
-- [ ] Vue Grille avec cards
-- [ ] Vue Liste avec lignes
-- [ ] Progress bars correctes (spent / budget)
-- [ ] Footer CTA
-- [ ] Responsive 3 breakpoints
+- [x] Hero "Reste a Vivre" avec vraies donnees
+- [x] Toggle Grid/Liste fonctionnel
+- [x] Vue Grille avec cards
+- [x] Vue Liste avec lignes
+- [x] Progress bars correctes (spent / budget)
+- [x] Footer CTA
+- [x] Responsive 3 breakpoints

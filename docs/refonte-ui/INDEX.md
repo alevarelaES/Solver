@@ -6,11 +6,11 @@ Remplacement du visuel actuel (dark glassmorphic bleu) par les maquettes Stitch 
 
 | # | Fichier | Page | Effort | Statut |
 |---|---------|------|--------|--------|
-| 0 | [PHASE_0_THEME.md](PHASE_0_THEME.md) | Theme + Shell + Composants partages | Moyen | A faire |
-| 1 | [PHASE_1_DASHBOARD.md](PHASE_1_DASHBOARD.md) | Dashboard | Moyen | A faire |
+| 0 | [PHASE_0_THEME.md](PHASE_0_THEME.md) | Theme + Shell + Composants partages | Moyen | Fait |
+| 1 | [PHASE_1_DASHBOARD.md](PHASE_1_DASHBOARD.md) | Dashboard | Moyen | Fait |
 | 2 | [PHASE_2_JOURNAL.md](PHASE_2_JOURNAL.md) | Journal des Transactions | Eleve | A faire |
-| 3 | [PHASE_3_BUDGET.md](PHASE_3_BUDGET.md) | Budget (Grid + Liste) | Moyen | A faire |
-| 4 | [PHASE_4_ECHEANCIER.md](PHASE_4_ECHEANCIER.md) | Echeancier (Liste + Calendrier) | Eleve | A faire |
+| 3 | [PHASE_3_BUDGET.md](PHASE_3_BUDGET.md) | Budget (Grid + Liste) | Moyen | Fait |
+| 4 | [PHASE_4_ECHEANCIER.md](PHASE_4_ECHEANCIER.md) | Echeancier (Liste + Calendrier) | Eleve | Fait |
 | 5 | [PHASE_5_ANALYSE.md](PHASE_5_ANALYSE.md) | Analyse Strategique | Moyen | A faire |
 | 6 | [PHASE_6_TABLEAU.md](PHASE_6_TABLEAU.md) | Tableau Spreadsheet (nouvelle page) | Eleve | A faire |
 

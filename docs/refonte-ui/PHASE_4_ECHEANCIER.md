@@ -112,13 +112,13 @@ Le modele `Transaction` actuel n'a pas explicitement un champ `isAutomatic`. App
 
 ## Checklist
 
-- [ ] Header sticky avec totaux
-- [ ] Toggle Liste/Calendrier
-- [ ] Vue Liste : 2 colonnes auto/manuel
-- [ ] Cards avec icone, date, montant
-- [ ] Bouton Valider fonctionnel
-- [ ] Vue Calendrier : grille 7 jours
-- [ ] Events affiches sur les bons jours
-- [ ] Navigation mois (prev/next)
-- [ ] Aujourd'hui marque
-- [ ] Responsive 3 breakpoints
+- [x] Header sticky avec totaux
+- [x] Toggle Liste/Calendrier
+- [x] Vue Liste : 2 colonnes auto/manuel
+- [x] Cards avec icone, date, montant
+- [x] Bouton Valider fonctionnel
+- [x] Vue Calendrier : grille 7 jours
+- [x] Events affiches sur les bons jours
+- [x] Navigation mois (prev/next)
+- [x] Aujourd'hui marque
+- [x] Responsive 3 breakpoints

@@ -60,11 +60,11 @@ Grid 12 colonnes :
 
 ## Checklist
 
-- [ ] Balance card avec gradient et montant total
-- [ ] 3 KPI cards fonctionnels avec vraies donnees
-- [ ] Bar chart avec couleurs vertes
-- [ ] Donut chart (meme mockee)
-- [ ] Section My Cards avec les comptes reels
-- [ ] Table Recent Activities
-- [ ] Progress bar spending limit
-- [ ] Responsive (mobile : colonnes empilees)
+- [x] Balance card avec gradient et montant total
+- [x] 3 KPI cards fonctionnels avec vraies donnees
+- [x] Bar chart avec couleurs vertes
+- [x] Donut chart (meme mockee)
+- [x] Section My Cards avec les comptes reels
+- [x] Table Recent Activities
+- [x] Progress bar spending limit
+- [x] Responsive (mobile : colonnes empilees)
