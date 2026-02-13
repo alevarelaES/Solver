@@ -72,9 +72,9 @@
 
 ## Checklist
 
-- [ ] 3 KPI cards avec donnees (meme partiellement mockees)
-- [ ] Line chart avec 2 courbes et zone ombrée
-- [ ] Card Projected Savings avec progress bar et stats
-- [ ] Card Peer Comparison avec liste et barres
-- [ ] Selecteur d'annee fonctionnel
-- [ ] Responsive 3 breakpoints
+- [x] 3 KPI cards avec donnees (meme partiellement mockees)
+- [x] Line chart avec 2 courbes et zone ombrée
+- [x] Card Projected Savings avec progress bar et stats
+- [x] Card Peer Comparison avec liste et barres
+- [x] Selecteur d'annee fonctionnel
+- [x] Responsive 3 breakpoints

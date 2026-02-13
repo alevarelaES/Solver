@@ -7,6 +7,7 @@ namespace Solver.Api.Endpoints;
 
 public static class AccountsEndpoints
 {
+    
     public static void MapAccountsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/accounts");

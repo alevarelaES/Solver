@@ -8,6 +8,7 @@ import 'package:solver/features/journal/views/journal_view.dart';
 import 'package:solver/features/schedule/views/schedule_view.dart';
 import 'package:solver/features/budget/views/budget_view.dart';
 import 'package:solver/features/analysis/views/analysis_view.dart';
+import 'package:solver/features/spreadsheet/views/spreadsheet_view.dart';
 import 'package:solver/shared/widgets/app_shell.dart';
 
 Page<void> _fadePage(Widget child, GoRouterState state) {
@@ -61,6 +62,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/analysis',
             pageBuilder: (context, state) => _fadePage(const AnalysisView(), state),
+          ),
+          GoRoute(
+            path: '/spreadsheet',
+            pageBuilder: (context, state) => _fadePage(const SpreadsheetView(), state),
           ),
         ],
       ),

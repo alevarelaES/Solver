@@ -103,13 +103,13 @@ Cette phase est la plus lourde (nouvelle page, nouveau provider, UI complexe).
 
 ## Checklist
 
-- [ ] Route /spreadsheet ajoutee
-- [ ] Navigation : icone dans sidebar + header
-- [ ] Tableau scrollable avec colonne sticky
-- [ ] Sections avec headers colores
-- [ ] Cellules editables
-- [ ] Totaux calcules dynamiquement
-- [ ] Ligne NET CASH FLOW en surbrillance
-- [ ] Toolbar (meme simplifiee)
-- [ ] Footer status bar
-- [ ] Responsive avec scroll horizontal
+- [x] Route /spreadsheet ajoutee
+- [x] Navigation : icone dans sidebar + header
+- [x] Tableau scrollable avec colonne sticky
+- [x] Sections avec headers colores
+- [x] Cellules editables
+- [x] Totaux calcules dynamiquement
+- [x] Ligne NET CASH FLOW en surbrillance
+- [x] Toolbar (meme simplifiee)
+- [x] Footer status bar
+- [x] Responsive avec scroll horizontal
