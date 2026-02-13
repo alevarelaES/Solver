@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
-import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
 class KpiCard extends StatelessWidget {
@@ -24,6 +23,8 @@ class KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final formatted = isCurrency
         ? AppFormats.currency.format(amount)
         : '${amount.toStringAsFixed(1)}${suffix ?? ''}';
@@ -33,23 +34,19 @@ class KpiCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 18),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 12),
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

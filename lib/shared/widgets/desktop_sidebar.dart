@@ -3,56 +3,38 @@ import 'package:go_router/go_router.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/shared/widgets/nav_items.dart';
 
+/// Icon-only sidebar (Stitch style). Always 64px wide.
 class DesktopSidebar extends StatelessWidget {
-  final bool collapsed;
-
-  const DesktopSidebar({super.key, required this.collapsed});
+  const DesktopSidebar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final location = GoRouterState.of(context).matchedLocation;
-    final width = collapsed ? 64.0 : 220.0;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: width,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
+    return Container(
+      width: 64,
+      decoration: BoxDecoration(
+        color: theme.cardColor,
         border: Border(
-          right: BorderSide(color: AppColors.borderSubtle),
+          right: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 32),
-          collapsed
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Icon(Icons.bolt, color: AppColors.electricBlue, size: 24),
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    'Solver',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.electricBlue,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
           const SizedBox(height: 16),
+          // ── Nav icons ───────────────────────────────────────────────
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               children: navItems.map((item) {
                 final isActive = location.startsWith(item.route);
-                return _SidebarTile(
+                return _SidebarIcon(
                   item: item,
                   isActive: isActive,
-                  collapsed: collapsed,
                 );
               }).toList(),
             ),
@@ -63,59 +45,45 @@ class DesktopSidebar extends StatelessWidget {
   }
 }
 
-class _SidebarTile extends StatelessWidget {
+class _SidebarIcon extends StatelessWidget {
   final NavItem item;
   final bool isActive;
-  final bool collapsed;
 
-  const _SidebarTile({
+  const _SidebarIcon({
     required this.item,
     required this.isActive,
-    required this.collapsed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => context.go(item.route),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: collapsed ? 0 : 12,
-            vertical: 12,
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      child: Tooltip(
+        message: item.label,
+        preferBelow: false,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.go(item.route),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              item.icon,
+              size: 22,
+              color: isActive
+                  ? AppColors.primary
+                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+            ),
           ),
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.electricBlue.withAlpha(30) : null,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: collapsed
-              ? Center(
-                  child: Icon(
-                    item.icon,
-                    color: isActive ? AppColors.electricBlue : AppColors.textSecondary,
-                    size: 22,
-                  ),
-                )
-              : Row(
-                  children: [
-                    Icon(
-                      item.icon,
-                      color: isActive ? AppColors.electricBlue : AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        color: isActive ? AppColors.electricBlue : AppColors.textSecondary,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
         ),
       ),
     );

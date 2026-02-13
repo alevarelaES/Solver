@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Solver - Zero-Based Budgeting</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#689e28",
+                        "primary-dark": "#4c6929",
+                        "primary-darker": "#1e2e11",
+                        background: "#ffffff",
+                        surface: "#fcfdfc",
+                        border: "#f0f2f0",
+                    },
+                    fontFamily: {
+                        sans: ["'Plus Jakarta Sans'", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { @apply text-[#1a1a1a] bg-white antialiased; }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            @apply w-full h-1 bg-gray-100 rounded-full outline-none transition-all;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            @apply w-3 h-3 bg-primary rounded-full cursor-pointer border-2 border-white shadow-sm ring-0;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            @apply bg-gray-200 rounded-full;
+        }#list-view-content { display: none; }
+        #view-toggle-list:checked ~ main #card-view-content { display: none; }
+        #view-toggle-list:checked ~ main #list-view-content { display: flex; }
+        #view-toggle-list:checked ~ * .toggle-bg { transform: translateX(100%); }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+<input class="hidden" id="view-toggle-list" type="checkbox"/>
+<div class="flex h-full">
+<aside class="w-16 border-r border-border flex flex-col items-center py-6 shrink-0 bg-white">
+<div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black text-lg mb-10">S</div>
+<nav class="flex flex-col gap-6 items-center flex-1">
+<button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">dashboard</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-xl shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined fill">account_balance_wallet</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">analytics</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">sync_alt</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<button class="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-red-500 mt-auto">
+<span class="material-symbols-outlined">logout</span>
+</button>
+</aside>
+<div class="flex-1 flex flex-col overflow-hidden bg-white">
+<header class="h-16 border-b border-border flex items-center justify-between px-8 shrink-0 bg-white">
+<div class="flex items-center gap-10">
+<h1 class="text-[11px] font-black uppercase tracking-widest text-gray-400">Solver</h1>
+<nav class="flex items-center gap-8">
+<a class="text-[13px] font-bold text-primary relative h-16 flex items-center after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary" href="#">Overview</a>
+<a class="text-[13px] font-bold text-gray-900 h-16 flex items-center" href="#">Budgeting</a>
+<a class="text-[13px] font-medium text-gray-400 hover:text-primary transition-colors h-16 flex items-center" href="#">Investments</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">search</span>
+<input class="bg-gray-50 border-none rounded-full py-2 pl-10 pr-4 text-xs w-64 focus:ring-1 focus:ring-primary/20" placeholder="Search budget..." type="text"/>
+</div>
+<button class="p-2 text-gray-400 hover:text-primary relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<div class="h-9 w-9 rounded-full bg-gray-100 border border-border overflow-hidden">
+<img alt="Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFKiS0EafYQEwdb8LftgO0ETU2s7Fe7x6OVhLO5TzKIItf3CooCiOK2GD1HPJQHPsPYel09NY6lTbXkFId6ZKu61ZmmVme6UKCl38kg5KDjrbwHRpSUNG_-GOAVVjC7XUOM6We4hSPyD6iy_fKO1aFFA1-0plYdPbgNClSUuVywya-FD2xY-DANQDn6BxQS4nBuvv4TNogCkONtvOd2rW9gEOKX7UsAyULsdtb1E6EU3fQZvrZU4pT7WGleRMNMd6RkYO7ZlWLyH59"/>
+</div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto custom-scrollbar p-8">
+<div class="max-w-6xl mx-auto space-y-8">
+<div class="bg-white border border-border rounded-[2rem] p-8 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-16">
+<div>
+<p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-2">Reste à Vivre</p>
+<div class="flex items-baseline gap-2">
+<p class="text-5xl font-black text-primary tracking-tight">6,700</p>
+<p class="text-lg font-bold text-primary">CHF</p>
+</div>
+</div>
+<div class="h-16 w-[1px] bg-border"></div>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<p class="text-[11px] font-medium text-gray-500 w-32">Total Income</p>
+<div class="h-1.5 w-48 bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 100%;"></div>
+</div>
+<p class="text-[11px] font-bold text-gray-900">10,000 CHF</p>
+</div>
+<div class="flex items-center gap-4">
+<p class="text-[11px] font-medium text-gray-500 w-32">Fixed Charges</p>
+<div class="h-1.5 w-48 bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary-dark" style="width: 33%;"></div>
+</div>
+<p class="text-[11px] font-bold text-gray-400">- 3,300 CHF</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative bg-gray-100 p-1 rounded-xl flex items-center h-10 w-24">
+<div class="toggle-bg absolute inset-y-1 left-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-transform duration-200"></div>
+<label class="flex-1 flex items-center justify-center cursor-pointer z-10 text-gray-500 hover:text-primary transition-colors" for="view-toggle-list">
+<span class="material-symbols-outlined text-xl">grid_view</span>
+</label>
+<label class="flex-1 flex items-center justify-center cursor-pointer z-10 text-gray-500 hover:text-primary transition-colors" for="view-toggle-list">
+<span class="material-symbols-outlined text-xl">format_list_bulleted</span>
+</label>
+</div>
+<button class="bg-primary text-white text-[11px] font-bold px-6 py-3 rounded-xl hover:bg-primary-dark transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                                Add Category
+                            </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="card-view-content">
+<div class="bg-white border border-border rounded-3xl p-6 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 group">
+<div class="flex items-start justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">shopping_bag</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">Shopping</h3>
+<p class="text-[11px] font-medium text-gray-400">Clothes &amp; Tech</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Max Spend</p>
+<p class="text-sm font-black text-gray-900">670.00 <span class="text-[10px] text-gray-400">CHF</span></p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-gray-500">Allocation</span>
+<span class="text-primary">10%</span>
+</div>
+<input max="100" min="0" type="range" value="10"/>
+</div>
+<div class="pt-4 border-t border-gray-50">
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-gray-400 italic font-medium">Spent: 210.00 CHF</span>
+<span class="text-gray-900">31%</span>
+</div>
+<div class="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 31%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white border border-border rounded-3xl p-6 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 group">
+<div class="flex items-start justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">trending_up</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">Investment</h3>
+<p class="text-[11px] font-medium text-gray-400">Stocks &amp; Crypto</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Max Spend</p>
+<p class="text-sm font-black text-gray-900">2,010.00 <span class="text-[10px] text-gray-400">CHF</span></p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-gray-500">Allocation</span>
+<span class="text-primary">30%</span>
+</div>
+<input max="100" min="0" type="range" value="30"/>
+</div>
+<div class="pt-4 border-t border-gray-50">
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-gray-400 italic font-medium">Spent: 2,010.00 CHF</span>
+<span class="text-primary-darker">100%</span>
+</div>
+<div class="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+<div class="h-full bg-primary-darker" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white border border-border rounded-3xl p-6 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 group">
+<div class="flex items-start justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">restaurant</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">Lifestyle</h3>
+<p class="text-[11px] font-medium text-gray-400">Dining &amp; Leisure</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Max Spend</p>
+<p class="text-sm font-black text-gray-900">1,340.00 <span class="text-[10px] text-gray-400">CHF</span></p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-gray-500">Allocation</span>
+<span class="text-primary">20%</span>
+</div>
+<input max="100" min="0" type="range" value="20"/>
+</div>
+<div class="pt-4 border-t border-gray-50">
+<div class="flex justify-between text-[11px] font-bold mb-2 text-primary-darker">
+<span class="italic font-medium">Spent: 1,450.00 CHF</span>
+<span>108%</span>
+</div>
+<div class="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+<div class="h-full bg-primary-darker" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white border border-border rounded-3xl p-6 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 group">
+<div class="flex items-start justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">flight_takeoff</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">Travel</h3>
+<p class="text-[11px] font-medium text-gray-400">Holidays &amp; Trips</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Max Spend</p>
+<p class="text-sm font-black text-gray-900">1,005.00 <span class="text-[10px] text-gray-400">CHF</span></p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-gray-500">Allocation</span>
+<span class="text-primary">15%</span>
+</div>
+<input max="100" min="0" type="range" value="15"/>
+</div>
+<div class="pt-4 border-t border-gray-50">
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-gray-400 italic font-medium">Spent: 0.00 CHF</span>
+<span class="text-gray-400">0%</span>
+</div>
+<div class="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 0%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white border border-border rounded-3xl p-6 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 group">
+<div class="flex items-start justify-between mb-6">
+<div class="flex items-center gap-4">
+<div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">fitness_center</span>
+</div>
+<div>
+<h3 class="text-sm font-bold text-gray-900">Health</h3>
+<p class="text-[11px] font-medium text-gray-400">Gym &amp; Medical</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Max Spend</p>
+<p class="text-sm font-black text-gray-900">670.00 <span class="text-[10px] text-gray-400">CHF</span></p>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[11px] font-bold mb-3">
+<span class="text-gray-500">Allocation</span>
+<span class="text-primary">10%</span>
+</div>
+<input max="100" min="0" type="range" value="10"/>
+</div>
+<div class="pt-4 border-t border-gray-50">
+<div class="flex justify-between text-[11px] font-bold mb-2">
+<span class="text-gray-400 italic font-medium">Spent: 450.00 CHF</span>
+<span class="text-gray-900">67%</span>
+</div>
+<div class="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 67%;"></div>
+</div>
+</div>
+</div>
+</div>
+<button class="border-2 border-dashed border-gray-100 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 hover:border-primary/40 hover:bg-primary/5 transition-all group">
+<div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:bg-primary/10 transition-all">
+<span class="material-symbols-outlined text-2xl">add</span>
+</div>
+<span class="text-xs font-black text-gray-300 group-hover:text-primary tracking-widest uppercase">New Goal</span>
+</button>
+</div>
+<div class="flex flex-col gap-4" id="list-view-content">
+<div class="bg-white border border-border rounded-2xl p-4 flex items-center gap-8 group hover:border-primary/20 transition-all">
+<div class="w-1.5 h-10 bg-orange-400 rounded-full"></div>
+<div class="w-48">
+<h3 class="text-sm font-bold text-gray-900">Shopping</h3>
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Variable</p>
+</div>
+<div class="flex-1 px-4">
+<div class="flex justify-between text-[10px] font-bold mb-2 text-gray-400">
+<span>Allocation: 210 / 670 CHF</span>
+<span>31%</span>
+</div>
+<div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 31%;"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg hover:bg-primary hover:text-white transition-all">10%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg hover:bg-primary hover:text-white transition-all">20%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg hover:bg-primary hover:text-white transition-all">50%</button>
+</div>
+<button class="p-2 text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="bg-white border border-border rounded-2xl p-4 flex items-center gap-8 group hover:border-primary/20 transition-all">
+<div class="w-1.5 h-10 bg-blue-400 rounded-full"></div>
+<div class="w-48">
+<h3 class="text-sm font-bold text-gray-900">Investment</h3>
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Monthly</p>
+</div>
+<div class="flex-1 px-4">
+<div class="flex justify-between text-[10px] font-bold mb-2 text-gray-400">
+<span>Allocation: 2,010 / 2,010 CHF</span>
+<span class="text-primary-darker">100%</span>
+</div>
+<div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary-darker" style="width: 100%;"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">10%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">20%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-primary text-white rounded-lg">50%</button>
+</div>
+<button class="p-2 text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="bg-white border border-border rounded-2xl p-4 flex items-center gap-8 group hover:border-primary/20 transition-all">
+<div class="w-1.5 h-10 bg-purple-400 rounded-full"></div>
+<div class="w-48">
+<h3 class="text-sm font-bold text-gray-900">Lifestyle</h3>
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Variable</p>
+</div>
+<div class="flex-1 px-4">
+<div class="flex justify-between text-[10px] font-bold mb-2 text-primary-darker">
+<span>Allocation: 1,450 / 1,340 CHF</span>
+<span>108%</span>
+</div>
+<div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary-darker" style="width: 100%;"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">10%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-primary text-white rounded-lg">20%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">50%</button>
+</div>
+<button class="p-2 text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="bg-white border border-border rounded-2xl p-4 flex items-center gap-8 group hover:border-primary/20 transition-all">
+<div class="w-1.5 h-10 bg-teal-400 rounded-full"></div>
+<div class="w-48">
+<h3 class="text-sm font-bold text-gray-900">Travel</h3>
+<p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Occasional</p>
+</div>
+<div class="flex-1 px-4">
+<div class="flex justify-between text-[10px] font-bold mb-2 text-gray-400">
+<span>Allocation: 0 / 1,005 CHF</span>
+<span>0%</span>
+</div>
+<div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 0%;"></div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">10%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">20%</button>
+<button class="px-3 py-1.5 text-[10px] font-bold bg-gray-50 text-gray-400 rounded-lg">50%</button>
+</div>
+<button class="p-2 text-gray-300 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+<div class="bg-primary-darker rounded-[2rem] p-6 text-white flex items-center justify-between shadow-xl shadow-primary-darker/10">
+<div class="flex items-center gap-6">
+<div class="w-14 h-14 bg-primary/20 border border-primary/30 rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl text-primary">auto_awesome</span>
+</div>
+<div>
+<h4 class="font-bold text-lg leading-tight">Zero-Base Optimization</h4>
+<p class="text-xs text-gray-400 mt-1">You have <span class="text-white font-bold">1,005.00 CHF</span> (15%) remaining to allocate.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-3 text-[11px] font-bold border border-white/10 hover:bg-white/5 rounded-xl transition-colors">Reset All</button>
+<button class="px-6 py-3 text-[11px] font-bold bg-primary hover:bg-primary-dark rounded-xl transition-all shadow-lg shadow-primary/20">Apply Smart Allocation</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+</body></html>

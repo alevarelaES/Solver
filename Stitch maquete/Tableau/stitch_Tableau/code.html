@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Solver Annual Strategic Spreadsheet V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#699f28",
+                        "primary-dark": "#4c6929",
+                        "primary-darker": "#1e2e11",
+                        "background-light": "#f7f8f6",
+                        "background-dark": "#1a1f13",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dense tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+        
+        /* Subtle grid line fix for sticky header */
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        /* Top-left corner needs highest index */
+        thead th:first-child {
+            z-index: 30;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-100 h-screen flex overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-16 bg-white dark:bg-primary-darker/50 border-r border-gray-200 dark:border-primary-darker flex flex-col items-center py-6 gap-8 z-40 shadow-sm flex-shrink-0">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-lg">S</div>
+<nav class="flex flex-col gap-6 w-full">
+<a class="w-full flex justify-center text-gray-400 hover:text-primary transition-colors group relative" href="#">
+<span class="material-icons text-2xl">dashboard</span>
+<div class="absolute left-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Dashboard</div>
+</a>
+<a class="w-full flex justify-center text-primary relative group" href="#">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r"></div>
+<span class="material-icons text-2xl">table_view</span>
+</a>
+<a class="w-full flex justify-center text-gray-400 hover:text-primary transition-colors group relative" href="#">
+<span class="material-icons text-2xl">pie_chart</span>
+<div class="absolute left-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Reports</div>
+</a>
+<a class="w-full flex justify-center text-gray-400 hover:text-primary transition-colors group relative" href="#">
+<span class="material-icons text-2xl">account_balance_wallet</span>
+<div class="absolute left-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Assets</div>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-6 w-full">
+<a class="w-full flex justify-center text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-icons text-2xl">settings</span>
+</a>
+<div class="w-8 h-8 rounded-full bg-gray-200 mx-auto overflow-hidden border border-gray-300">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="User avatar placeholder" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwldfZ6Xh2Rg2I-fG8YmQqhsRBYm2eSa8yJn8S0SJg4WpQEIBKG2JNcNz3dK8d3CGPx7pQr6pAMqe4ovDF6AqvtHpYCjLr3qbd8VsvB81WnGjJTay_PPyf4TV_EJigP5USs3rKw9xZBZIqKDzN6zTz_ONeklmKjW6YfzgU521qRgtPQ9SM7r_yqVU-9duDqjsjG_qyn11A667pdTp2cS1kjP6X8okZ6doJC36hlcaIY3_TmC1NI_sYTI-bUUceBda_8kB8yaX1v6sE"/>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- Header -->
+<header class="h-16 bg-white dark:bg-primary-darker/50 border-b border-gray-200 dark:border-primary-darker flex items-center justify-between px-6 flex-shrink-0">
+<div class="flex items-center gap-4">
+<h1 class="text-lg font-medium text-gray-800 dark:text-white flex items-center gap-2">
+<span class="text-gray-400 font-normal">Strategic Plan</span>
+<span class="text-gray-300">/</span>
+<span>2024 Annual Forecast</span>
+</h1>
+<span class="px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">v1.2 Draft</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-xs text-gray-500 mr-2">Last autosave: 2 min ago</div>
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary hover:bg-primary/5 rounded transition-colors">
+<span class="material-icons text-sm">file_download</span>
+                    Export
+                </button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary hover:bg-primary/5 rounded transition-colors">
+<span class="material-icons text-sm">share</span>
+                    Share
+                </button>
+<button class="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded shadow-sm transition-colors">
+<span class="material-icons text-sm">save</span>
+                    Save Changes
+                </button>
+</div>
+</header>
+<!-- Spreadsheet Container -->
+<div class="flex-1 overflow-auto bg-background-light dark:bg-background-dark p-4">
+<div class="bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg overflow-hidden h-full flex flex-col">
+<!-- Toolbar -->
+<div class="h-10 border-b border-gray-200 dark:border-gray-700 flex items-center px-2 bg-gray-50 dark:bg-primary-darker/20 flex-shrink-0">
+<div class="flex items-center gap-1 border-r border-gray-200 dark:border-gray-700 pr-2 mr-2">
+<button class="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded"><span class="material-icons text-sm">undo</span></button>
+<button class="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded"><span class="material-icons text-sm">redo</span></button>
+</div>
+<div class="flex items-center gap-1 border-r border-gray-200 dark:border-gray-700 pr-2 mr-2">
+<select class="text-xs border-none bg-transparent py-0 pl-1 pr-6 focus:ring-0 text-gray-600 font-medium">
+<option>100%</option>
+<option>75%</option>
+<option>50%</option>
+</select>
+</div>
+<div class="flex items-center gap-1">
+<span class="text-xs text-gray-400 font-mono ml-2">EUR (€)</span>
+<div class="h-4 w-px bg-gray-300 mx-2"></div>
+<span class="text-xs text-primary font-medium">Formula:</span>
+<span class="text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded w-64 truncate">SUM(C14:N14)</span>
+</div>
+</div>
+<!-- Table Wrapper -->
+<div class="flex-1 overflow-auto relative">
+<table class="w-full text-right border-collapse min-w-[1200px]">
+<!-- Column Headers -->
+<thead>
+<tr class="bg-gray-50 dark:bg-primary-darker/30 border-b border-gray-200 dark:border-gray-700">
+<th class="sticky-col bg-gray-50 dark:bg-primary-darker/30 text-left p-3 min-w-[240px] border-r border-gray-200 dark:border-gray-700 font-medium text-xs text-gray-500 uppercase tracking-wider">
+                                    Category
+                                </th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Jan</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Feb</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Mar</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Apr</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">May</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Jun</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Jul</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Aug</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Sep</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Oct</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Nov</th>
+<th class="p-3 min-w-[100px] font-medium text-xs text-primary-darker dark:text-gray-300 uppercase tracking-wider border-r border-gray-100 dark:border-gray-800">Dec</th>
+<th class="p-3 min-w-[100px] font-semibold text-xs text-primary uppercase tracking-wider bg-primary/5 dark:bg-primary/20">Total</th>
+</tr>
+</thead>
+<tbody class="text-sm font-mono text-gray-700 dark:text-gray-300">
+<!-- REVENUS (Income) - Implied Section for context -->
+<tr class="group">
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 font-semibold text-primary-darker dark:text-white">
+<div class="flex items-center gap-2">
+<span class="material-icons text-base text-gray-400">arrow_drop_down</span>
+                                        NET INCOME
+                                    </div>
+</td>
+<!-- Generated cells -->
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200 font-bold bg-green-50/50" type="text" value="5,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200" type="text" value="4,500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-primary-darker dark:text-gray-200 font-bold bg-green-50/50" type="text" value="6,500"/></td>
+<td class="border-b border-gray-100 bg-primary/5 dark:bg-primary/20 font-bold px-2 py-2">56,700</td>
+</tr>
+<!-- Spacer -->
+<tr><td class="h-4 bg-gray-50/50 dark:bg-background-dark border-b border-gray-100" colspan="14"></td></tr>
+<!-- SECTION: OBLIGATOIRE -->
+<tr class="bg-gray-50 dark:bg-primary-darker/20">
+<td class="sticky-col bg-gray-50 dark:bg-primary-darker/20 text-left px-4 py-2 border-r border-b border-gray-200 dark:border-gray-700 font-bold text-xs text-primary uppercase tracking-wider flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+                                    OBLIGATOIRE (Fixed)
+                                </td>
+<td class="border-b border-gray-200 dark:border-gray-700" colspan="13"></td>
+</tr>
+<!-- Row: Rent -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    Rent / Mortgage
+                                </td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="1,200"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">14,400</td>
+</tr>
+<!-- Row: Utilities -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    Utilities (Elec/Water)
+                                </td>
+<!-- Repeating similar inputs, varying numbers slightly -->
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="145"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="160"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="130"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="110"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="90"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="85"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="85"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="90"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="100"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="150"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="180"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">1,445</td>
+</tr>
+<!-- Row: Insurance -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    Insurance
+                                </td>
+<!-- Placeholder repeat for brevity -->
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="45"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">540</td>
+</tr>
+<!-- Row: Total Obligatoire -->
+<tr class="bg-primary/20 dark:bg-primary/30 text-primary-darker dark:text-white font-bold">
+<td class="sticky-col bg-primary/20 dark:bg-primary/30 text-left px-4 py-2 border-r border-b border-primary/30 dark:border-primary/40 font-bold pl-8">
+                                    TOTAL OBLIGATOIRE
+                                </td>
+<!-- Simulated summed data -->
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,390</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,405</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,375</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,355</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,335</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,330</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,330</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,335</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,345</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,365</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,395</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,425</td>
+<td class="px-2 py-2 text-right bg-primary/30 dark:bg-primary/40">16,385</td>
+</tr>
+<!-- Spacer -->
+<tr><td class="h-4 bg-gray-50/50 dark:bg-background-dark border-b border-gray-100" colspan="14"></td></tr>
+<!-- SECTION: SORTIE -->
+<tr class="bg-gray-50 dark:bg-primary-darker/20">
+<td class="sticky-col bg-gray-50 dark:bg-primary-darker/20 text-left px-4 py-2 border-r border-b border-gray-200 dark:border-gray-700 font-bold text-xs text-primary-dark uppercase tracking-wider flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-dark"></span>
+                                    SORTIE (Variable)
+                                </td>
+<td class="border-b border-gray-200 dark:border-gray-700" colspan="13"></td>
+</tr>
+<!-- Row: Groceries -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    Groceries
+                                </td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="400"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="380"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="420"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="400"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="450"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="410"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="390"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="400"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="420"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="400"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="460"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-red-50/50" type="text" value="600"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">5,130</td>
+</tr>
+<!-- Row: Transport -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    Transport
+                                </td>
+<!-- Simplified data -->
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="150"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="180"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="180"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="120"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200" type="text" value="150"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">1,620</td>
+</tr>
+<!-- Row: Total Sortie -->
+<tr class="bg-primary/20 dark:bg-primary/30 text-primary-darker dark:text-white font-bold">
+<td class="sticky-col bg-primary/20 dark:bg-primary/30 text-left px-4 py-2 border-r border-b border-primary/30 dark:border-primary/40 font-bold pl-8">
+                                    TOTAL SORTIE
+                                </td>
+<!-- Simulated summed data -->
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">520</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">540</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">520</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">600</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">590</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">570</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">520</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">540</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">520</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">580</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">750</td>
+<td class="px-2 py-2 text-right bg-primary/30 dark:bg-primary/40">6,750</td>
+</tr>
+<!-- Spacer -->
+<tr><td class="h-4 bg-gray-50/50 dark:bg-background-dark border-b border-gray-100" colspan="14"></td></tr>
+<!-- SECTION: ÉPARGNE -->
+<tr class="bg-gray-50 dark:bg-primary-darker/20">
+<td class="sticky-col bg-gray-50 dark:bg-primary-darker/20 text-left px-4 py-2 border-r border-b border-gray-200 dark:border-gray-700 font-bold text-xs text-primary-darker uppercase tracking-wider flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary-darker"></span>
+                                    ÉPARGNE (Savings)
+                                </td>
+<td class="border-b border-gray-200 dark:border-gray-700" colspan="13"></td>
+</tr>
+<!-- Row: Investment -->
+<tr>
+<td class="sticky-col bg-white dark:bg-background-dark text-left px-4 py-2 border-r border-b border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-medium pl-8">
+                                    ETF / Stock
+                                </td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="1,000"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="500"/></td>
+<td class="border-b border-r border-gray-100 px-1 py-0"><input class="w-full h-full border-none bg-transparent text-right focus:ring-1 focus:ring-inset focus:ring-primary py-2 px-2 text-gray-800 dark:text-gray-200 font-semibold bg-green-50/30" type="text" value="1,500"/></td>
+<td class="border-b border-gray-100 bg-gray-50 dark:bg-gray-800 font-medium px-2 py-2">7,500</td>
+</tr>
+<!-- Row: Total Epargne -->
+<tr class="bg-primary/20 dark:bg-primary/30 text-primary-darker dark:text-white font-bold">
+<td class="sticky-col bg-primary/20 dark:bg-primary/30 text-left px-4 py-2 border-r border-b border-primary/30 dark:border-primary/40 font-bold pl-8">
+                                    TOTAL ÉPARGNE
+                                </td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,000</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">500</td>
+<td class="px-2 py-2 text-right border-r border-b border-primary/30">1,500</td>
+<td class="px-2 py-2 text-right bg-primary/30 dark:bg-primary/40">7,500</td>
+</tr>
+<!-- FINAL: CASH FLOW -->
+<tr class="h-8"></tr>
+<tr class="bg-primary-darker text-white font-bold text-base">
+<td class="sticky-col bg-primary-darker text-left px-4 py-3 border-r border-primary-darker/50 font-bold">
+                                    NET CASH FLOW
+                                </td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,090</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,095</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,085</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,125</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,765</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">1,580</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,100</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,145</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,095</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,095</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">1,925</td>
+<td class="px-2 py-3 text-right border-r border-primary-darker/50">2,825</td>
+<td class="px-2 py-3 text-right bg-primary font-black">26,065</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Footer / Status Bar -->
+<div class="h-8 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-primary-darker/20 flex items-center justify-between px-4 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+<div class="flex gap-4">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Online</span>
+<span>Sheet: Annual2024</span>
+</div>
+<div class="flex gap-4">
+<span>Sum: 26,065</span>
+<span>Count: 13</span>
+<span>Avg: 2,005</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

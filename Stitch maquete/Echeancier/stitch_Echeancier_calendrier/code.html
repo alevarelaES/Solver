@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Solver - Echéancier : Mode Calendrier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#689e28",
+                        "primary-dark": "#4c6929",
+                        "primary-darker": "#1e2e11",
+                        "background-light": "#ffffff",
+                        "background-dark": "#121212",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1e1e1e",
+                        "text-light": "#1e2e11",
+                        "text-dark": "#e5e7eb",
+                        "subtext-light": "#6b7280",
+                        "subtext-dark": "#9ca3af",
+                    },
+                    fontFamily: {
+                        display: ["'Plus Jakarta Sans'", "sans-serif"],
+                        sans: ["'Plus Jakarta Sans'", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        xl: "1rem",
+                        "2xl": "1.5rem",
+                        "3xl": "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style type="text/tailwindcss">
+        :root {
+            --primary-color: #689e28;
+            --manual-color: #4c6929;
+            --header-color: #1e2e11;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #374151;
+        }
+        .calendar-grid-large {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: minmax(120px, auto);
+        }
+        .popover-shadow {
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark transition-colors duration-200">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-20 bg-card-light dark:bg-card-dark flex flex-col items-center py-6 border-r border-gray-100 dark:border-gray-800 z-20 flex-shrink-0">
+<div class="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-8">
+<span class="material-symbols-outlined fill">savings</span>
+</div>
+<nav class="flex-1 flex flex-col space-y-6 w-full items-center">
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">grid_view</span>
+</button>
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</button>
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">analytics</span>
+</button>
+<button class="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined fill">payments</span>
+</button>
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">credit_card</span>
+</button>
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<div class="flex flex-col space-y-4 w-full items-center mt-auto">
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition" id="theme-toggle">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<button class="w-10 h-10 text-subtext-light dark:text-subtext-dark hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center transition">
+<span class="material-symbols-outlined">logout</span>
+</button>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<header class="h-20 px-8 flex items-center justify-between bg-white dark:bg-card-dark border-b border-gray-100 dark:border-gray-800 shrink-0 z-10">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-lg">S</div>
+<h1 class="text-xl font-bold tracking-tight text-[var(--header-color)] dark:text-white">Solver</h1>
+</div>
+<nav class="hidden lg:flex items-center gap-1 p-1 bg-gray-50 dark:bg-gray-800 rounded-lg">
+<button class="px-4 py-1.5 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:text-primary transition">Overview</button>
+<button class="px-4 py-1.5 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:text-primary transition">Analytics</button>
+<button class="px-4 py-1.5 text-sm font-medium bg-white dark:bg-gray-700 shadow-sm rounded-md text-primary">Echéancier</button>
+<button class="px-4 py-1.5 text-sm font-medium text-subtext-light dark:text-subtext-dark hover:text-primary transition">Cards</button>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+<input class="pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border-none rounded-xl text-sm focus:ring-1 focus:ring-primary w-64 text-text-light dark:text-text-dark placeholder-gray-400" placeholder="Search payments..." type="text"/>
+</div>
+<button class="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center relative hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+<span class="material-symbols-outlined text-gray-600 dark:text-gray-300">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+</button>
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-gray-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFKiS0EafYQEwdb8LftgO0ETU2s7Fe7x6OVhLO5TzKIItf3CooCiOK2GD1HPJQHPsPYel09NY6lTbXkFId6ZKu61ZmmVme6UKCl38kg5KDjrbwHRpSUNG_-GOAVVjC7XUOM6We4hSPyD6iy_fKO1aFFA1-0plYdPbgNClSUuVywya-FD2xY-DANQDn6BxQS4nBuvv4TNogCkONtvOd2rW9gEOKX7UsAyULsdtb1E6EU3fQZvrZU4pT7WGleRMNMd6RkYO7ZlWLyH59"/>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto bg-white dark:bg-background-dark scroll-smooth">
+<div class="pt-8 pb-8 text-center border-b border-gray-50 dark:border-gray-900">
+<p class="text-[10px] font-bold text-subtext-light dark:text-subtext-dark uppercase tracking-[0.2em] mb-2">Total à payer • Mars 2026</p>
+<h2 class="text-4xl font-bold text-[var(--header-color)] dark:text-white mb-4">1,800.00 CHF</h2>
+<div class="flex justify-center gap-10">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-sm font-medium text-subtext-light dark:text-subtext-dark">Prélèvements Auto: <span class="text-[var(--header-color)] dark:text-white">1,650.00</span></span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[var(--manual-color)]"></div>
+<span class="text-sm font-medium text-subtext-light dark:text-subtext-dark">Factures Manuelles: <span class="text-[var(--header-color)] dark:text-white">150.00</span></span>
+</div>
+</div>
+</div>
+<div class="max-w-[1400px] mx-auto px-8 pt-8 pb-4 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="inline-flex bg-gray-50 dark:bg-gray-800 p-1 rounded-xl">
+<button class="px-5 py-2 text-sm font-semibold text-subtext-light dark:text-subtext-dark hover:text-primary transition-all">
+                            Liste
+                        </button>
+<button class="px-5 py-2 text-sm font-bold bg-white dark:bg-gray-700 text-primary shadow-sm rounded-lg">
+                            Calendrier
+                        </button>
+</div>
+<div class="h-6 w-px bg-gray-100 dark:bg-gray-800"></div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-subtext-light transition"><span class="material-symbols-outlined">chevron_left</span></button>
+<span class="text-sm font-bold text-[var(--header-color)] dark:text-white">Mars 2026</span>
+<button class="p-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-subtext-light transition"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-gray-100 dark:border-gray-800 rounded-xl text-sm font-semibold text-[var(--header-color)] dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                        Filtres
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary-dark transition shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-lg">add</span>
+                        Nouvelle échéance
+                    </button>
+</div>
+</div>
+<div class="max-w-[1400px] mx-auto px-8 pb-12">
+<div class="bg-white dark:bg-card-dark border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
+<div class="grid grid-cols-7 border-b border-gray-50 dark:border-gray-800">
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Lundi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Mardi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Mercredi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Jeudi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Vendredi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Samedi</div>
+<div class="py-4 text-center text-[10px] font-bold text-subtext-light uppercase tracking-widest">Dimanche</div>
+</div>
+<div class="calendar-grid-large">
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">23</span>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">24</span>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">25</span>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">26</span>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">27</span>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10">
+<span class="text-xs font-medium text-gray-300 dark:text-gray-700">28</span>
+</div>
+<div class="relative p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-[var(--header-color)] dark:text-white">01</span>
+<div class="mt-2 space-y-1">
+<div class="flex items-center gap-1.5 p-1 px-2 rounded bg-primary/10 text-primary border border-primary/20">
+<div class="w-1 h-1 rounded-full bg-primary"></div>
+<span class="text-[10px] font-bold uppercase truncate">Loyer</span>
+</div>
+<div class="flex items-center gap-1.5 p-1 px-2 rounded bg-primary/10 text-primary border border-primary/20">
+<div class="w-1 h-1 rounded-full bg-primary"></div>
+<span class="text-[10px] font-bold uppercase truncate">Abo Transport</span>
+</div>
+<div class="flex items-center gap-1.5 p-1 px-2 rounded bg-[var(--manual-color)]/10 text-[var(--manual-color)] border border-[var(--manual-color)]/20">
+<div class="w-1 h-1 rounded-full bg-[var(--manual-color)]"></div>
+<span class="text-[10px] font-bold uppercase truncate">Swisscom</span>
+</div>
+</div>
+<div class="absolute top-2 left-full ml-2 w-64 p-4 bg-white dark:bg-card-dark rounded-2xl border border-gray-100 dark:border-gray-800 popover-shadow z-30 hidden group-hover:block">
+<h4 class="text-xs font-bold text-subtext-light uppercase tracking-widest mb-3 border-b border-gray-50 dark:border-gray-800 pb-2">Détails du 01 Mars</h4>
+<div class="space-y-4">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">Loyer Mensuel</p>
+<p class="text-[10px] text-primary font-medium">Automatique</p>
+</div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">1,500.00</p>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">Abo Transport</p>
+<p class="text-[10px] text-primary font-medium">Automatique</p>
+</div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">150.00</p>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">Internet (Swisscom)</p>
+<p class="text-[10px] text-[var(--manual-color)] font-medium">Manuel</p>
+</div>
+<p class="text-xs font-bold text-[var(--header-color)] dark:text-white">150.00</p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">02</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">03</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">04</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">05</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">06</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">07</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">08</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">09</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">10</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">11</span></div>
+<div class="p-4 border-r border-b border-primary/10 bg-primary/5 hover:bg-primary/10 transition-colors"><span class="text-xs font-bold text-primary">12</span><p class="text-[9px] font-bold text-primary/60 uppercase mt-1">Aujourd'hui</p></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">13</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">14</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">15</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">16</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">17</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">18</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">19</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">20</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">21</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">22</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">23</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">24</span></div>
+<div class="relative p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer group">
+<span class="text-xs font-bold text-[var(--header-color)] dark:text-white">25</span>
+<div class="mt-2 flex items-center gap-1.5 p-1 px-2 rounded bg-primary/10 text-primary border border-primary/20">
+<div class="w-1 h-1 rounded-full bg-primary"></div>
+<span class="text-[10px] font-bold uppercase truncate">Netflix</span>
+</div>
+</div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">26</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">27</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">28</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">29</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">30</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors"><span class="text-xs font-medium text-subtext-light">31</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10"><span class="text-xs font-medium text-gray-300 dark:text-gray-700">01</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10"><span class="text-xs font-medium text-gray-300 dark:text-gray-700">02</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10"><span class="text-xs font-medium text-gray-300 dark:text-gray-700">03</span></div>
+<div class="p-4 border-r border-b border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-900/10"><span class="text-xs font-medium text-gray-300 dark:text-gray-700">04</span></div>
+</div>
+</div>
+<div class="mt-8 flex items-center justify-center gap-8">
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+<span class="text-[11px] font-bold text-subtext-light uppercase tracking-widest">Prélèvements Automatiques</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-[var(--manual-color)]"></div>
+<span class="text-[11px] font-bold text-subtext-light uppercase tracking-widest">Factures Manuelles</span>
+</div>
+</div>
+</div>
+<footer class="py-12 text-center text-[11px] text-subtext-light dark:text-subtext-dark uppercase tracking-widest opacity-60">
+                © 2026 Solver • Plateforme de gestion des flux financiers
+            </footer>
+</div>
+</main>
+</div>
+<script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const icon = themeToggle.querySelector('span');
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+        icon.textContent = 'dark_mode';
+    }
+    themeToggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        icon.textContent = isDark ? 'dark_mode' : 'light_mode';
+    });
+</script>
+
+</body></html>

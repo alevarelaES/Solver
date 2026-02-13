@@ -9,6 +9,9 @@ import 'package:solver/core/config/app_config.dart';
 import 'package:solver/core/router/app_router.dart';
 import 'package:solver/core/theme/app_theme.dart';
 
+/// Provider for theme mode toggle (light / dark).
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -32,10 +35,13 @@ class SolverApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Solver',
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Solver Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#689e28",
+                        secondary: "#4c6929",
+                        "background-light": "#f8f9fa",
+                        "background-dark": "#121212",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1e1e1e",
+                        "text-main": "#1e2e11",
+                        "text-muted": "#6b7280",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style>::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-gray-200 font-sans antialiased overflow-hidden h-screen flex flex-col">
+<header class="h-16 bg-surface-light dark:bg-surface-dark border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 shrink-0 z-20">
+<div class="flex items-center gap-10">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-lg">S</div>
+<span class="font-bold text-xl tracking-tight text-text-main dark:text-white">Solver</span>
+</div>
+<nav class="hidden md:flex gap-1">
+<a class="px-4 py-1.5 bg-gray-900 text-white rounded-full text-sm font-medium" href="#">Overview</a>
+<a class="px-4 py-1.5 text-text-muted hover:text-primary dark:text-gray-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Analytics</a>
+<a class="px-4 py-1.5 text-text-muted hover:text-primary dark:text-gray-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Payments</a>
+<a class="px-4 py-1.5 text-text-muted hover:text-primary dark:text-gray-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Cards</a>
+<a class="px-4 py-1.5 text-text-muted hover:text-primary dark:text-gray-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Transaction</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+<span class="material-icons-round text-lg">search</span>
+</span>
+<input class="pl-10 pr-4 py-1.5 bg-gray-50 dark:bg-gray-800 border-none rounded-full text-sm w-48 focus:ring-1 focus:ring-primary placeholder-gray-400 dark:text-white" placeholder="Search" type="text"/>
+</div>
+<button class="relative p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+<span class="material-icons-round">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-surface-dark"></span>
+</button>
+<div class="w-9 h-9 rounded-full bg-gray-200 overflow-hidden border border-gray-100 dark:border-gray-700">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClGy8Br9ozyI5RlheXooGPxHEcKMXH7haC9XdGs4ZamH2R8PhNMkdDaFBn6DcG2oONUERgZosdKxH4dE0gT9R2pJdTx-i8wsTHDJxriJIV9ZrXozuZGBr43gMt9CnthmoPZGZqrQ_KEb6x1tNg8q_MRjqkeTjXL-JvsNFk3Q1wpdUeeNAPEoHbwBdfDtRFM2AWQknmYiQejZxs6Sy04oi0ml9XHFkuQ9cM7_pBXxd1O1sVvZJNKm-DAbf9FzbuJfpbUTCzldeMN-H3"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-16 bg-surface-light dark:bg-surface-dark flex flex-col items-center py-6 gap-6 border-r border-gray-100 dark:border-gray-800 shrink-0 z-10">
+<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-900 text-white shadow-lg shadow-gray-200 dark:shadow-none">
+<span class="material-icons-round text-xl">grid_view</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">person</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">bar_chart</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">monetization_on</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">description</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">settings</span>
+</button>
+<div class="mt-auto flex flex-col gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">light_mode</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">help_outline</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-50 hover:text-primary dark:hover:bg-gray-800 transition-colors">
+<span class="material-icons-round text-xl">logout</span>
+</button>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto overflow-x-hidden p-6 relative">
+<h1 class="text-2xl font-bold mb-6 text-text-main dark:text-white">Welcome back, Jonathan!</h1>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6">
+<div class="lg:col-span-4 flex flex-col gap-6">
+<div class="bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-white shadow-xl shadow-green-900/10 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-50">
+<span class="material-icons-round text-2xl">north_east</span>
+</div>
+<h2 class="text-green-100 text-sm font-medium mb-1">My Balance</h2>
+<div class="text-3xl font-bold mb-4">$34,624.43</div>
+<div class="flex items-center gap-2 mb-6">
+<span class="bg-white/20 px-2 py-0.5 rounded text-xs font-semibold flex items-center">
+<span class="material-icons-round text-[10px] mr-1">arrow_upward</span> 12.5%
+                            </span>
+<span class="text-green-100 text-xs">This month</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="bg-white text-text-main py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+                                Transfer <span class="material-icons-round text-sm">login</span>
+</button>
+<button class="bg-white text-text-main py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+                                Received <span class="material-icons-round text-sm">logout</span>
+</button>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col h-full">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-sm text-text-main dark:text-white">Expense Breakdown</h3>
+<button class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                + Add New
+                            </button>
+</div>
+<div class="flex items-center justify-center gap-6 h-full">
+<div class="relative w-32 h-32 shrink-0">
+<canvas id="expenseChart"></canvas>
+<div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
+</div>
+</div>
+<div class="flex flex-col gap-3 text-xs w-full">
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-primary"></span> <span class="text-gray-500 dark:text-gray-400">Housing</span></div>
+<span class="font-bold dark:text-gray-200">$3,255.00</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#4c6929]"></span> <span class="text-gray-500 dark:text-gray-400">Transport</span></div>
+<span class="font-bold dark:text-gray-200">$2,334.30</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#365314]"></span> <span class="text-gray-500 dark:text-gray-400">Food</span></div>
+<span class="font-bold dark:text-gray-200">$2,143.40</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></span> <span class="text-gray-500 dark:text-gray-400">Other</span></div>
+<span class="font-bold dark:text-gray-200">$7,456.00</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-sm text-text-main dark:text-white">My Cards</h3>
+<button class="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                + Add New
+                            </button>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+<div class="min-w-[240px] h-[150px] bg-gradient-to-br from-[#2e5c1b] to-[#143306] rounded-xl p-4 text-white flex flex-col justify-between relative shadow-lg shadow-green-900/20">
+<div class="flex justify-between items-start">
+<span class="material-icons-round text-white/60 text-lg">contactless</span>
+<span class="font-bold italic opacity-80">VISA</span>
+</div>
+<div>
+<div class="text-xs text-white/60 mb-1">Card Number</div>
+<div class="font-mono text-sm tracking-widest flex gap-2">
+<span>****</span><span>****</span><span>****</span><span>4930</span>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="text-[10px] text-white/60">VALID FROM</div>
+<div class="text-xs font-medium">02/26</div>
+</div>
+<div>
+<div class="text-[10px] text-white/60">VALID UP TO</div>
+<div class="text-xs font-medium">02/32</div>
+</div>
+<div class="flex flex-col items-center">
+<div class="text-[8px] text-white/60 uppercase">CVV</div>
+<div class="flex gap-0.5">
+<div class="w-1 h-1 bg-white rounded-full"></div>
+<div class="w-1 h-1 bg-white rounded-full"></div>
+<div class="w-1 h-1 bg-white rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="min-w-[60px] h-[150px] bg-gradient-to-br from-gray-800 to-black rounded-l-xl rounded-r-none p-4 text-white flex flex-col justify-between relative opacity-50">
+<div class="flex justify-between items-start">
+<span class="material-icons-round text-white/60 text-lg">contactless</span>
+</div>
+<div class="font-mono text-sm tracking-widest mt-auto mb-8">
+<span>****</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-sm text-text-main dark:text-white">Monthly Spending Limit</h3>
+<button class="text-xs text-gray-500 hover:text-primary font-medium">Set limit</button>
+</div>
+<div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 mb-2 overflow-hidden">
+<div class="bg-primary h-3 rounded-full" style="width: 75%"></div>
+</div>
+<div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-medium">
+<span>$15,000.00</span>
+<span>$20,000.00</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-8 flex flex-col gap-6">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Income</div>
+<div class="text-2xl font-bold text-text-main dark:text-white mb-2">$39,500.00</div>
+<div class="flex items-center gap-2">
+<span class="text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400 text-xs px-1.5 py-0.5 rounded font-bold flex items-center">
+<span class="material-icons-round text-[10px] mr-0.5">north</span> 12.20%
+                                </span>
+<span class="text-xs text-gray-400">This month</span>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Expense</div>
+<div class="text-2xl font-bold text-text-main dark:text-white mb-2">$15,188.70</div>
+<div class="flex items-center gap-2">
+<span class="text-red-500 bg-red-50 dark:bg-red-900/30 dark:text-red-400 text-xs px-1.5 py-0.5 rounded font-bold flex items-center">
+<span class="material-icons-round text-[10px] mr-0.5">south</span> 16.20%
+                                </span>
+<span class="text-xs text-gray-400">This month</span>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Savings</div>
+<div class="text-2xl font-bold text-text-main dark:text-white mb-2">$5,324.40</div>
+<div class="flex items-center gap-2">
+<span class="text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400 text-xs px-1.5 py-0.5 rounded font-bold flex items-center">
+<span class="material-icons-round text-[10px] mr-0.5">north</span> 7.5%
+                                </span>
+<span class="text-xs text-gray-400">This month</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-text-main dark:text-white">Financial Overview</h3>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-4 text-xs">
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-primary"></span> <span class="text-gray-500 dark:text-gray-400 font-medium">Income</span></div>
+<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#1e2e11]"></span> <span class="text-gray-500 dark:text-gray-400 font-medium">Expenses</span></div>
+</div>
+<select class="bg-gray-50 dark:bg-gray-800 border-none text-xs rounded-lg py-1 pl-2 pr-6 font-medium text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer">
+<option>This Year</option>
+<option>Last Year</option>
+</select>
+</div>
+</div>
+<div class="relative h-48 w-full">
+<canvas id="mainChart"></canvas>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+<div class="lg:col-span-2 bg-surface-light dark:bg-surface-dark rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-text-main dark:text-white">Recent Activities</h3>
+<div class="flex gap-2">
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-2 text-gray-400">
+<span class="material-icons-round text-sm">search</span>
+</span>
+<input class="pl-8 pr-3 py-1 bg-gray-50 dark:bg-gray-800 border-none rounded-lg text-xs w-32 focus:ring-1 focus:ring-primary placeholder-gray-400 dark:text-white" placeholder="Search" type="text"/>
+</div>
+<button class="bg-gray-50 dark:bg-gray-800 p-1 rounded-lg text-gray-500 hover:text-primary transition-colors">
+<span class="material-icons-round text-sm">filter_list</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-xs">
+<thead>
+<tr class="text-gray-400 border-b border-gray-100 dark:border-gray-800">
+<th class="pb-3 font-medium pl-2">Description</th>
+<th class="pb-3 font-medium text-center">Date <span class="material-icons-round text-[10px] align-middle">unfold_more</span></th>
+<th class="pb-3 font-medium text-right pr-2">Amount</th>
+</tr>
+</thead>
+<tbody class="text-text-main dark:text-gray-300">
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="py-3 pl-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 shrink-0">
+<span class="material-icons-round text-base">shopping_cart</span>
+</div>
+<span class="font-medium">Grocery Store</span>
+</td>
+<td class="py-3 text-center text-gray-500 dark:text-gray-400">02 Feb 2026</td>
+<td class="py-3 text-right pr-2 font-medium text-red-500">-$4,567.43</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="py-3 pl-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0 border border-gray-100 dark:border-gray-700">
+<img alt="Elli" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDf11Ypt2U-GEDE-flTk8gol5IfRkqfmww1NI-_VqW1tHWEmOwjdppprsee6m6zps9Jrp_OZWhZ-A7TpYqUrwG2CsbyYyyuJF_x2MskIgrpVgia6t9Mk0q6adk_o00N3kAnGx-Xldqwdttfd7zKoBAvh16wYsSN3LX4GovhIM49jX6pzU5GJIJK9rO36vN1Oak_lJId1XTOtWTgwzrAU-6UyH33fwm_R39fJNBU-D7ZI9bKxGDFIAWKfoqN3BKBZfo5_KX5Sk_7CNlO"/>
+</div>
+<span class="font-medium">Elli Harper</span>
+</td>
+<td class="py-3 text-center text-gray-500 dark:text-gray-400">16 Jan 2026</td>
+<td class="py-3 text-right pr-2 font-medium text-green-600">+$12,567.95</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="py-3 pl-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 shrink-0">
+<span class="material-icons-round text-base">bolt</span>
+</div>
+<span class="font-medium">Electricity Bill</span>
+</td>
+<td class="py-3 text-center text-gray-500 dark:text-gray-400">30 Jan 2026</td>
+<td class="py-3 text-right pr-2 font-medium text-red-500">-$267.28</td>
+</tr>
+<tr class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+<td class="py-3 pl-2 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 shrink-0">
+<span class="material-icons-round text-base">local_gas_station</span>
+</div>
+<span class="font-medium">Gas Station</span>
+</td>
+<td class="py-3 text-center text-gray-500 dark:text-gray-400">26 Jan 2026</td>
+<td class="py-3 text-right pr-2 font-medium text-red-500">-$32.21</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="bg-gradient-to-br from-[#243e0f] to-[#121f08] rounded-2xl p-6 text-white relative overflow-hidden flex-1 flex flex-col justify-center">
+<div class="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+<div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center mb-4">
+<span class="material-icons-round text-primary text-xl">auto_awesome</span>
+</div>
+<h3 class="font-bold text-lg mb-1">Try Solver AI</h3>
+<p class="text-gray-300 text-xs mb-4">1 Month Free Trail Solver AI</p>
+<button class="w-full py-2.5 bg-primary hover:bg-[#5a8a22] text-white font-semibold text-sm rounded-xl transition-colors shadow-lg shadow-green-900/40">Try Now</button>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+<h3 class="font-bold text-sm text-text-main dark:text-white mb-1">Upgrade to Pro!</h3>
+<p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Unlock all feature now!</p>
+<button class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-text-main dark:text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5">
+<span class="material-icons-round text-orange-500 text-sm">workspace_premium</span> Upgrade Now
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // --- Chart Configuration ---
+        // Financial Overview Chart (Bar Chart)
+        const ctxMain = document.getElementById('mainChart').getContext('2d');
+        // Custom plugin for rounded top bars only
+        Chart.defaults.font.family = 'Inter';
+        const mainChart = new Chart(ctxMain, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: [20000, 22000, 25000, 30000, 24000, 28000, 35000, 38000, 42000, 36000, 39000, 32000],
+                        backgroundColor: (context) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+                            // Highlight September
+                            if(context.dataIndex === 8) {
+                                gradient.addColorStop(0, '#689e28');
+                                gradient.addColorStop(1, '#4c6929');
+                                return gradient;
+                            }
+                            return '#e5e7eb'; // Light gray default
+                        },
+                        hoverBackgroundColor: '#689e28',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Expenses',
+                        data: [12000, 15000, 14000, 18000, 10000, 16000, 22000, 24000, 18000, 20000, 25000, 18000],
+                        backgroundColor: (context) => {
+                             // Highlight September
+                             if(context.dataIndex === 8) {
+                                return '#1e2e11';
+                            }
+                            return '#f3f4f6'; // Lighter gray default
+                        },
+                        hoverBackgroundColor: '#1e2e11',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8,
+                        hidden: true // Hiding secondary dataset to mimic the stacked look visually better with single bars first as per reference style often seen
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e2e11',
+                        padding: 10,
+                        titleFont: { size: 10 },
+                        bodyFont: { size: 12, weight: 'bold' },
+                        cornerRadius: 8,
+                        displayColors: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f3f4f6',
+                            borderDash: [5, 5],
+                            drawBorder: false,
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            color: '#9ca3af',
+                            callback: function(value) {
+                                if (value === 0) return '0K';
+                                return value / 1000 + 'K';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            color: '#9ca3af'
+                        }
+                    }
+                }
+            }
+        });
+        // Expense Breakdown Chart (Donut)
+        const ctxExpense = document.getElementById('expenseChart').getContext('2d');
+        const expenseChart = new Chart(ctxExpense, {
+            type: 'doughnut',
+            data: {
+                labels: ['Housing', 'Transport', 'Food', 'Other'],
+                datasets: [{
+                    data: [24, 20, 18, 38],
+                    backgroundColor: [
+                        '#689e28', // Primary
+                        '#4c6929', // Secondary
+                        '#365314', // Dark green
+                        '#e5e7eb'  // Gray
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                cutout: '65%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false // Custom tooltip logic would go here in production
+                    }
+                }
+            }
+        });
+    </script>
+
+</body></html>

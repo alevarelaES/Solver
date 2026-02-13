@@ -8,6 +8,8 @@ class MobileBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final location = GoRouterState.of(context).matchedLocation;
     final currentIndex = navItems.indexWhere(
       (item) => location.startsWith(item.route),
@@ -15,9 +17,10 @@ class MobileBottomBar extends StatelessWidget {
 
     return BottomNavigationBar(
       currentIndex: currentIndex < 0 ? 0 : currentIndex,
-      backgroundColor: const Color(0xFF0A0A0A),
-      selectedItemColor: AppColors.electricBlue,
-      unselectedItemColor: AppColors.textSecondary,
+      backgroundColor: theme.cardColor,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor:
+          isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
       type: BottomNavigationBarType.fixed,
       selectedFontSize: 11,
       unselectedFontSize: 11,
