@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:solver/core/constants/app_currency.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/main.dart';
 import 'package:solver/shared/widgets/desktop_sidebar.dart';
@@ -20,9 +22,8 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          // ── Header top (tablet+) ──────────────────────────────────────
           if (isTablet) _TopHeader(ref: ref),
-          // ── Content area ──────────────────────────────────────────────
+          if (!isTablet) _MobileControls(ref: ref),
           Expanded(
             child: Row(
               children: [
@@ -38,7 +39,6 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-// ── Top header bar (Stitch style) ────────────────────────────────────────────
 class _TopHeader extends StatelessWidget {
   final WidgetRef ref;
 
@@ -63,7 +63,6 @@ class _TopHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // ── Logo ────────────────────────────────────────────────────
           Container(
             width: 32,
             height: 32,
@@ -91,8 +90,6 @@ class _TopHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 32),
-
-          // ── Nav tabs ────────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -111,13 +108,15 @@ class _TopHeader extends StatelessWidget {
               ),
             ),
           ),
-
-          // ── Theme toggle ────────────────────────────────────────────
+          _CurrencyMenuButton(ref: ref),
+          const SizedBox(width: 4),
           IconButton(
             icon: Icon(
               isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
               size: 20,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
             onPressed: () {
               final current = ref.read(themeModeProvider);
@@ -126,19 +125,131 @@ class _TopHeader extends StatelessWidget {
             },
             tooltip: isDark ? 'Mode clair' : 'Mode sombre',
           ),
-
-          // ── Avatar ──────────────────────────────────────────────────
           const SizedBox(width: 4),
           CircleAvatar(
             radius: 16,
-            backgroundColor: isDark ? AppColors.borderDark : AppColors.borderLight,
+            backgroundColor: isDark
+                ? AppColors.borderDark
+                : AppColors.borderLight,
             child: Icon(
               Icons.person,
               size: 18,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MobileControls extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _MobileControls({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          _CurrencyMenuButton(ref: ref),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              size: 20,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+            onPressed: () {
+              final current = ref.read(themeModeProvider);
+              ref.read(themeModeProvider.notifier).state =
+                  current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+            },
+            tooltip: isDark ? 'Mode clair' : 'Mode sombre',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrencyMenuButton extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _CurrencyMenuButton({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final selected = ref.watch(appCurrencyProvider);
+
+    return PopupMenuButton<AppCurrency>(
+      initialValue: selected,
+      tooltip: 'Devise',
+      onSelected: (currency) {
+        ref.read(appCurrencyProvider.notifier).setCurrency(currency);
+      },
+      itemBuilder: (_) => AppCurrency.values.map((currency) {
+        final isSelected = currency == selected;
+        return PopupMenuItem<AppCurrency>(
+          value: currency,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                child: isSelected
+                    ? const Icon(Icons.check, size: 16)
+                    : const SizedBox.shrink(),
+              ),
+              Text('${currency.code} (${currency.symbol})'),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              selected.code,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.expand_more,
+              size: 14,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -166,7 +277,9 @@ class _NavTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? (isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.primaryDarker)
+              ? (isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : AppColors.primaryDarker)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
@@ -177,7 +290,9 @@ class _NavTab extends StatelessWidget {
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             color: isActive
                 ? Colors.white
-                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                : (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight),
           ),
         ),
       ),

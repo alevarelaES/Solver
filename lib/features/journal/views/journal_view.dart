@@ -6,14 +6,25 @@ import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
-import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
 import 'package:solver/features/journal/providers/journal_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
+import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
 
 const _months = [
-  '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  '',
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
 ];
 
 // ── Selected transaction ────────────────────────────────────────────────────
@@ -39,8 +50,10 @@ class JournalView extends ConsumerWidget {
     return txAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Erreur: $e',
-            style: const TextStyle(color: AppColors.danger)),
+        child: Text(
+          'Erreur: $e',
+          style: const TextStyle(color: AppColors.danger),
+        ),
       ),
       data: (transactions) {
         // Apply search filter client-side
@@ -74,27 +87,25 @@ class JournalView extends ConsumerWidget {
                 Expanded(
                   child: filtered.isEmpty
                       ? const Center(
-                          child: Text('Aucune transaction',
-                              style: TextStyle(
-                                  color: AppColors.textSecondary)))
+                          child: Text(
+                            'Aucune transaction',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        )
                       : isMobile
-                          ? _MobileList(transactions: filtered)
-                          : Row(
-                              children: [
-                                SizedBox(
-                                  width: isTablet ? 280 : 340,
-                                  child: _LeftPanel(
-                                      transactions: filtered),
-                                ),
-                                Container(
-                                    width: 1,
-                                    color: AppColors.borderSubtle),
-                                Expanded(
-                                  child: _RightPanel(
-                                      transactions: filtered),
-                                ),
-                              ],
+                      ? _MobileList(transactions: filtered)
+                      : Row(
+                          children: [
+                            SizedBox(
+                              width: isTablet ? 280 : 340,
+                              child: _LeftPanel(transactions: filtered),
                             ),
+                            Container(width: 1, color: AppColors.borderSubtle),
+                            Expanded(
+                              child: _RightPanel(transactions: filtered),
+                            ),
+                          ],
+                        ),
                 ),
               ],
             );
@@ -116,7 +127,9 @@ class _JournalHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 16 : 32, vertical: 20),
+        horizontal: isMobile ? 16 : 32,
+        vertical: 20,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
@@ -192,13 +205,20 @@ class _SearchBar extends ConsumerWidget {
         decoration: InputDecoration(
           hintText: 'Rechercher une transaction…',
           hintStyle: const TextStyle(
-              fontSize: 13, color: AppColors.textDisabled),
-          prefixIcon: const Icon(Icons.search,
-              size: 18, color: AppColors.textDisabled),
+            fontSize: 13,
+            color: AppColors.textDisabled,
+          ),
+          prefixIcon: const Icon(
+            Icons.search,
+            size: 18,
+            color: AppColors.textDisabled,
+          ),
           filled: true,
           fillColor: AppColors.surfaceElevated,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             borderSide: const BorderSide(color: AppColors.borderSubtle),
@@ -209,8 +229,7 @@ class _SearchBar extends ConsumerWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 1.5),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
       ),
@@ -227,15 +246,15 @@ class _AddEntryButton extends ConsumerWidget {
     return TextButton.icon(
       onPressed: () => showTransactionFormModal(context, ref),
       icon: const Icon(Icons.add, size: 16),
-      label: Text(compact ? 'Ajouter' : 'Nouvelle écriture',
-          style: const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700)),
+      label: Text(
+        compact ? 'Ajouter' : 'Nouvelle écriture',
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+      ),
       style: TextButton.styleFrom(
         foregroundColor: Colors.white,
         backgroundColor: AppColors.primary,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -255,7 +274,9 @@ class _JournalFilterBar extends ConsumerWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 16 : 32, vertical: 10),
+        horizontal: isMobile ? 16 : 32,
+        vertical: 10,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
@@ -285,13 +306,13 @@ class _JournalFilterBar extends ConsumerWidget {
                 final selected = filters.accountId != null
                     ? accounts.firstWhere(
                         (a) => a.id == filters.accountId,
-                        orElse: () => accounts.first)
+                        orElse: () => accounts.first,
+                      )
                     : null;
                 return _FilterChip(
                   icon: Icons.account_balance_wallet,
                   label: selected?.name ?? 'Tous les comptes',
-                  onTap: () =>
-                      _pickAccount(context, ref, filters, accounts),
+                  onTap: () => _pickAccount(context, ref, filters, accounts),
                 );
               },
             ),
@@ -301,8 +322,8 @@ class _JournalFilterBar extends ConsumerWidget {
               label: filters.status == 'completed'
                   ? 'Payés'
                   : filters.status == 'pending'
-                      ? 'En attente'
-                      : 'Tous statuts',
+                  ? 'En attente'
+                  : 'Tous statuts',
               onTap: () => _cycleStatus(ref, filters),
             ),
           ],
@@ -311,68 +332,78 @@ class _JournalFilterBar extends ConsumerWidget {
     );
   }
 
-  void _pickYear(
-      BuildContext context, WidgetRef ref, JournalFilters filters) {
+  void _pickYear(BuildContext context, WidgetRef ref, JournalFilters filters) {
     final now = DateTime.now();
     showDialog(
       context: context,
       builder: (_) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text('Année',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Année',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         children: List.generate(6, (i) {
           final y = now.year - i;
           return SimpleDialogOption(
             onPressed: () {
-              ref.read(journalFiltersProvider.notifier).state =
-                  filters.copyWith(year: y, month: null);
+              ref.read(journalFiltersProvider.notifier).state = filters
+                  .copyWith(year: y, month: null);
               ref.read(_currentPageProvider.notifier).state = 0;
               Navigator.pop(context);
             },
-            child: Text('$y',
-                style: TextStyle(
-                    color: y == filters.year
-                        ? AppColors.primary
-                        : AppColors.textPrimary)),
+            child: Text(
+              '$y',
+              style: TextStyle(
+                color: y == filters.year
+                    ? AppColors.primary
+                    : AppColors.textPrimary,
+              ),
+            ),
           );
         }),
       ),
     );
   }
 
-  void _pickMonth(
-      BuildContext context, WidgetRef ref, JournalFilters filters) {
+  void _pickMonth(BuildContext context, WidgetRef ref, JournalFilters filters) {
     showDialog(
       context: context,
       builder: (_) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text('Mois',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Mois',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         children: [
           SimpleDialogOption(
             onPressed: () {
-              ref.read(journalFiltersProvider.notifier).state =
-                  filters.copyWith(month: null);
+              ref.read(journalFiltersProvider.notifier).state = filters
+                  .copyWith(month: null);
               ref.read(_currentPageProvider.notifier).state = 0;
               Navigator.pop(context);
             },
-            child: const Text('Tous',
-                style: TextStyle(color: AppColors.textPrimary)),
+            child: const Text(
+              'Tous',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ),
           ...List.generate(12, (i) {
             final m = i + 1;
             return SimpleDialogOption(
               onPressed: () {
-                ref.read(journalFiltersProvider.notifier).state =
-                    filters.copyWith(month: m);
+                ref.read(journalFiltersProvider.notifier).state = filters
+                    .copyWith(month: m);
                 ref.read(_currentPageProvider.notifier).state = 0;
                 Navigator.pop(context);
               },
-              child: Text(_months[m],
-                  style: TextStyle(
-                      color: m == filters.month
-                          ? AppColors.primary
-                          : AppColors.textPrimary)),
+              child: Text(
+                _months[m],
+                style: TextStyle(
+                  color: m == filters.month
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                ),
+              ),
             );
           }),
         ],
@@ -380,38 +411,51 @@ class _JournalFilterBar extends ConsumerWidget {
     );
   }
 
-  void _pickAccount(BuildContext context, WidgetRef ref,
-      JournalFilters filters, List accounts) {
+  void _pickAccount(
+    BuildContext context,
+    WidgetRef ref,
+    JournalFilters filters,
+    List accounts,
+  ) {
     showDialog(
       context: context,
       builder: (_) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text('Compte',
-            style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Compte',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         children: [
           SimpleDialogOption(
             onPressed: () {
-              ref.read(journalFiltersProvider.notifier).state =
-                  filters.copyWith(accountId: null);
+              ref.read(journalFiltersProvider.notifier).state = filters
+                  .copyWith(accountId: null);
               ref.read(_currentPageProvider.notifier).state = 0;
               Navigator.pop(context);
             },
-            child: const Text('Tous',
-                style: TextStyle(color: AppColors.textPrimary)),
+            child: const Text(
+              'Tous',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ),
-          ...accounts.map((a) => SimpleDialogOption(
-                onPressed: () {
-                  ref.read(journalFiltersProvider.notifier).state =
-                      filters.copyWith(accountId: a.id);
-                  ref.read(_currentPageProvider.notifier).state = 0;
-                  Navigator.pop(context);
-                },
-                child: Text(a.name,
-                    style: TextStyle(
-                        color: a.id == filters.accountId
-                            ? AppColors.primary
-                            : AppColors.textPrimary)),
-              )),
+          ...accounts.map(
+            (a) => SimpleDialogOption(
+              onPressed: () {
+                ref.read(journalFiltersProvider.notifier).state = filters
+                    .copyWith(accountId: a.id);
+                ref.read(_currentPageProvider.notifier).state = 0;
+                Navigator.pop(context);
+              },
+              child: Text(
+                a.name,
+                style: TextStyle(
+                  color: a.id == filters.accountId
+                      ? AppColors.primary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -421,10 +465,11 @@ class _JournalFilterBar extends ConsumerWidget {
     final next = filters.status == null
         ? 'pending'
         : filters.status == 'pending'
-            ? 'completed'
-            : null;
-    ref.read(journalFiltersProvider.notifier).state =
-        filters.copyWith(status: next);
+        ? 'completed'
+        : null;
+    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+      status: next,
+    );
     ref.read(_currentPageProvider.notifier).state = 0;
   }
 }
@@ -434,8 +479,11 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _FilterChip(
-      {required this.icon, required this.label, required this.onTap});
+  const _FilterChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -454,14 +502,20 @@ class _FilterChip extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: AppColors.primary),
             const SizedBox(width: 6),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(width: 4),
-            const Icon(Icons.expand_more,
-                size: 14, color: AppColors.textDisabled),
+            const Icon(
+              Icons.expand_more,
+              size: 14,
+              color: AppColors.textDisabled,
+            ),
           ],
         ),
       ),
@@ -507,30 +561,28 @@ class _LeftPanel extends ConsumerWidget {
           // Pagination footer
           if (totalPages > 1)
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: const BoxDecoration(
                 color: AppColors.surfaceElevated,
-                border: Border(
-                    top: BorderSide(color: AppColors.borderSubtle)),
+                border: Border(top: BorderSide(color: AppColors.borderSubtle)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     onPressed: page > 0
-                        ? () => ref
-                            .read(_currentPageProvider.notifier)
-                            .state = page - 1
+                        ? () => ref.read(_currentPageProvider.notifier).state =
+                              page - 1
                         : null,
                     icon: const Icon(Icons.chevron_left, size: 18),
                     color: AppColors.textDisabled,
-                    disabledColor:
-                        AppColors.textDisabled.withAlpha(80),
+                    disabledColor: AppColors.textDisabled.withAlpha(80),
                     iconSize: 18,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                        minWidth: 28, minHeight: 28),
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                   ),
                   Text(
                     'Page ${page + 1} sur $totalPages',
@@ -543,19 +595,18 @@ class _LeftPanel extends ConsumerWidget {
                   ),
                   IconButton(
                     onPressed: page < totalPages - 1
-                        ? () => ref
-                            .read(_currentPageProvider.notifier)
-                            .state = page + 1
+                        ? () => ref.read(_currentPageProvider.notifier).state =
+                              page + 1
                         : null,
-                    icon:
-                        const Icon(Icons.chevron_right, size: 18),
+                    icon: const Icon(Icons.chevron_right, size: 18),
                     color: AppColors.textDisabled,
-                    disabledColor:
-                        AppColors.textDisabled.withAlpha(80),
+                    disabledColor: AppColors.textDisabled.withAlpha(80),
                     iconSize: 18,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                        minWidth: 28, minHeight: 28),
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
                   ),
                 ],
               ),
@@ -610,9 +661,10 @@ class _TransactionListItem extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateFormat('dd MMM yyyy', 'fr_FR')
-                      .format(t.date)
-                      .toUpperCase(),
+                  DateFormat(
+                    'dd MMM yyyy',
+                    'fr_FR',
+                  ).format(t.date).toUpperCase(),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -652,8 +704,11 @@ class _TransactionListItem extends StatelessWidget {
                 if (t.isAuto)
                   const Padding(
                     padding: EdgeInsets.only(left: 4),
-                    child: Icon(Icons.bolt,
-                        size: 12, color: AppColors.textDisabled),
+                    child: Icon(
+                      Icons.bolt,
+                      size: 12,
+                      color: AppColors.textDisabled,
+                    ),
                   ),
               ],
             ),
@@ -679,12 +734,12 @@ class _RightPanel extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long,
-                size: 48, color: AppColors.textDisabled),
+            Icon(Icons.receipt_long, size: 48, color: AppColors.textDisabled),
             SizedBox(height: 12),
-            Text('Sélectionnez une transaction',
-                style: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 14)),
+            Text(
+              'Sélectionnez une transaction',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
           ],
         ),
       );
@@ -710,14 +765,17 @@ class _DetailViewState extends ConsumerState<_DetailView> {
     try {
       final client = ref.read(apiClientProvider);
       final t = widget.transaction;
-      await client.put('/api/transactions/${t.id}', data: {
-        'accountId': t.accountId,
-        'date': DateFormat('yyyy-MM-dd').format(t.date),
-        'amount': overrideAmount ?? t.amount,
-        'note': t.note,
-        'status': 'completed',
-        'isAuto': t.isAuto,
-      });
+      await client.put(
+        '/api/transactions/${t.id}',
+        data: {
+          'accountId': t.accountId,
+          'date': DateFormat('yyyy-MM-dd').format(t.date),
+          'amount': overrideAmount ?? t.amount,
+          'note': t.note,
+          'status': 0,
+          'isAuto': t.isAuto,
+        },
+      );
       _onChanged();
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -737,43 +795,48 @@ class _DetailViewState extends ConsumerState<_DetailView> {
   }
 
   void _onChanged() {
-    ref.invalidate(journalTransactionsProvider);
-    ref.invalidate(dashboardDataProvider);
+    invalidateAfterTransactionMutation(ref);
   }
 
   void _showValidateDialog() {
     final ctrl = TextEditingController(
-        text: widget.transaction.amount.toStringAsFixed(2));
+      text: widget.transaction.amount.toStringAsFixed(2),
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: const Text('Valider la transaction',
-            style: TextStyle(color: AppColors.textPrimary)),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: const Text(
+          'Valider la transaction',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: TextField(
           controller: ctrl,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
           ],
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-              labelText: 'Montant (CHF)', prefixText: 'CHF '),
+          decoration: InputDecoration(
+            labelText: 'Montant (${AppFormats.currencyCode})',
+            prefixText: '${AppFormats.currencySymbol} ',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              final amount =
-                  double.tryParse(ctrl.text.replaceAll(',', '.'));
+              final amount = double.tryParse(ctrl.text.replaceAll(',', '.'));
               _validate(overrideAmount: amount);
             },
             child: const Text('Valider'),
@@ -821,19 +884,16 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _TransactionIcon(
-                              transaction: t, size: 56),
+                          _TransactionIcon(transaction: t, size: 56),
                           const SizedBox(width: 20),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   t.note?.isNotEmpty == true
                                       ? t.note!
-                                      : (t.accountName ??
-                                          t.accountId),
+                                      : (t.accountName ?? t.accountId),
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
@@ -855,8 +915,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                           ),
                           const SizedBox(width: 16),
                           Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 '$amountPrefix${AppFormats.currency.format(t.amount)}',
@@ -876,16 +935,14 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                       ),
 
                       const SizedBox(height: 32),
-                      const Divider(
-                          color: AppColors.borderSubtle, height: 1),
+                      const Divider(color: AppColors.borderSubtle, height: 1),
                       const SizedBox(height: 24),
 
                       // Detail grid
                       _DetailGrid(transaction: t),
 
                       const SizedBox(height: 32),
-                      const Divider(
-                          color: AppColors.borderSubtle, height: 1),
+                      const Divider(color: AppColors.borderSubtle, height: 1),
                       const SizedBox(height: 20),
 
                       // Actions row
@@ -905,8 +962,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                             icon: Icons.edit_outlined,
                             color: AppColors.textDisabled,
                             tooltip: 'Modifier',
-                            onTap: () =>
-                                showTransactionFormModal(context, ref),
+                            onTap: () => showTransactionFormModal(context, ref),
                           ),
                           const SizedBox(width: 4),
                           _ActionButton(
@@ -918,23 +974,28 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                           const Spacer(),
                           TextButton.icon(
                             onPressed: _delete,
-                            icon: const Icon(Icons.delete_outline,
-                                size: 14),
-                            label: const Text('Supprimer',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5)),
+                            icon: const Icon(Icons.delete_outline, size: 14),
+                            label: const Text(
+                              'Supprimer',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.danger,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.sm),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.sm,
+                                ),
                                 side: BorderSide(
-                                    color:
-                                        AppColors.danger.withAlpha(25)),
+                                  color: AppColors.danger.withAlpha(25),
+                                ),
                               ),
                             ),
                           ),
@@ -1022,35 +1083,29 @@ class _DetailGrid extends StatelessWidget {
           _DetailField(
             label: 'TYPE',
             isChip: true,
-            chipColor: t.isAuto
-                ? AppColors.primary
-                : const Color(0xFFF97316),
+            chipColor: t.isAuto ? AppColors.primary : const Color(0xFFF97316),
             value: t.isAuto ? 'Automatique' : 'Manuel',
           ),
           _DetailField(
             label: 'STATUT',
             isChip: true,
-            chipColor: t.isCompleted
-                ? AppColors.primary
-                : AppColors.warning,
+            chipColor: t.isCompleted ? AppColors.primary : AppColors.warning,
             value: t.isCompleted ? 'Vérifié' : 'En attente',
           ),
         ];
 
         if (isWide) {
-          return Wrap(
-            spacing: 40,
-            runSpacing: 20,
-            children: children,
-          );
+          return Wrap(spacing: 40, runSpacing: 20, children: children);
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: children
-              .map((c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: c,
-                  ))
+              .map(
+                (c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: c,
+                ),
+              )
               .toList(),
         );
       },
@@ -1092,7 +1147,9 @@ class _DetailField extends StatelessWidget {
         isChip
             ? Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: chipColor?.withAlpha(25),
                   borderRadius: BorderRadius.circular(4),
@@ -1189,7 +1246,8 @@ class _ActionButton extends StatelessWidget {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : Icon(icon, size: 20, color: color),
         ),
       ),
@@ -1258,21 +1316,18 @@ class _MobileList extends ConsumerWidget {
         ),
         if (totalPages > 1)
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
               color: AppColors.surfaceElevated,
-              border: Border(
-                  top: BorderSide(color: AppColors.borderSubtle)),
+              border: Border(top: BorderSide(color: AppColors.borderSubtle)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
                   onPressed: page > 0
-                      ? () => ref
-                          .read(_currentPageProvider.notifier)
-                          .state = page - 1
+                      ? () => ref.read(_currentPageProvider.notifier).state =
+                            page - 1
                       : null,
                   icon: const Icon(Icons.chevron_left, size: 18),
                   color: AppColors.textDisabled,
@@ -1287,9 +1342,8 @@ class _MobileList extends ConsumerWidget {
                 ),
                 IconButton(
                   onPressed: page < totalPages - 1
-                      ? () => ref
-                          .read(_currentPageProvider.notifier)
-                          .state = page + 1
+                      ? () => ref.read(_currentPageProvider.notifier).state =
+                            page + 1
                       : null,
                   icon: const Icon(Icons.chevron_right, size: 18),
                   color: AppColors.textDisabled,
@@ -1301,8 +1355,7 @@ class _MobileList extends ConsumerWidget {
     );
   }
 
-  void _showMobileDetail(
-      BuildContext context, WidgetRef ref, Transaction tx) {
+  void _showMobileDetail(BuildContext context, WidgetRef ref, Transaction tx) {
     ref.read(_selectedTxProvider.notifier).state = tx;
     showModalBottomSheet(
       context: context,
@@ -1318,7 +1371,8 @@ class _MobileList extends ConsumerWidget {
             decoration: const BoxDecoration(
               color: AppColors.surfaceElevated,
               borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppRadius.xxl)),
+                top: Radius.circular(AppRadius.xxl),
+              ),
             ),
             child: Column(
               children: [
@@ -1334,9 +1388,7 @@ class _MobileList extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: _DetailView(transaction: tx),
-                ),
+                Expanded(child: _DetailView(transaction: tx)),
               ],
             ),
           ),

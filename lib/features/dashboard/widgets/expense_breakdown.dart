@@ -41,7 +41,9 @@ class ExpenseBreakdown extends StatelessWidget {
                 AppStrings.dashboard.noExpenses,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                  color: isDark
+                      ? AppColors.textDisabledDark
+                      : AppColors.textDisabledLight,
                 ),
               ),
             ),
@@ -97,34 +99,48 @@ class ExpenseBreakdown extends StatelessWidget {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: AppSizes.dotSizeSm,
-                                height: AppSizes.dotSizeSm,
-                                decoration: BoxDecoration(
-                                  color: colors[i % colors.length],
-                                  shape: BoxShape.circle,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: AppSizes.dotSizeSm,
+                                  height: AppSizes.dotSizeSm,
+                                  decoration: BoxDecoration(
+                                    color: colors[i % colors.length],
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                entries[i].name,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    entries[i].name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: AppSpacing.sm),
                           Text(
-                            AppFormats.currencyCompact.format(entries[i].amount),
+                            AppFormats.currencyCompact.format(
+                              entries[i].amount,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.fade,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ],
@@ -141,26 +157,13 @@ class ExpenseBreakdown extends StatelessWidget {
   }
 
   Widget _buildHeader(bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          AppStrings.dashboard.expenseBreakdown,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-          ),
-        ),
-        Text(
-          AppStrings.dashboard.addNew,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primary,
-          ),
-        ),
-      ],
+    return Text(
+      AppStrings.dashboard.expenseBreakdown,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 13,
+        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+      ),
     );
   }
 }

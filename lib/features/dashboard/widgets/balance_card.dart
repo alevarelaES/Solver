@@ -13,6 +13,12 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final spent = data.currentMonthExpenses;
+    final monthlyLimit = data.currentMonthIncome;
+    final usageRatio = monthlyLimit > 0
+        ? (spent / monthlyLimit).clamp(0.0, 1.0)
+        : 0.0;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -66,33 +72,24 @@ class BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          // Trend badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+          Text(
+            'Limite mensuelle: ${AppFormats.currencyCompact.format(spent)} / ${AppFormats.currencyCompact.format(monthlyLimit)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  data.projectedEndOfMonth >= data.currentBalance
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward,
-                  color: Colors.white,
-                  size: 11,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '${AppStrings.dashboard.endOfMonth}: ${AppFormats.currencyCompact.format(data.projectedEndOfMonth)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            child: LinearProgressIndicator(
+              value: usageRatio,
+              minHeight: 8,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation(
+                usageRatio > 0.9 ? AppColors.danger : Colors.white,
+              ),
             ),
           ),
         ],

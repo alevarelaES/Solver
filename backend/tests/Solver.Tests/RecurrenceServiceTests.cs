@@ -25,6 +25,29 @@ public class RecurrenceServiceTests
         return new BatchTransactionDto(tx, recurrence);
     }
 
+    private static RepaymentPlanDto MakeRepaymentDto(
+        int year,
+        int month,
+        int day,
+        decimal totalAmount,
+        decimal monthlyAmount,
+        TransactionStatus status = TransactionStatus.Pending,
+        bool isAuto = false,
+        string? note = "Remboursement"
+    )
+    {
+        var tx = new CreateTransactionDto(
+            AccountId,
+            new DateOnly(year, month, day),
+            monthlyAmount,
+            note,
+            status,
+            isAuto
+        );
+        var repayment = new RepaymentOptionsDto(totalAmount, monthlyAmount);
+        return new RepaymentPlanDto(tx, repayment);
+    }
+
     [Fact]
     public void Generate_CorrectCount_FromStartMonthToDecember()
     {
@@ -135,5 +158,41 @@ public class RecurrenceServiceTests
             Assert.True(t.IsAuto);
             Assert.NotEqual(Guid.Empty, t.Id);
         });
+    }
+
+    [Fact]
+    public void GenerateRepaymentPlan_1000_By300_Creates4Installments()
+    {
+        var dto = MakeRepaymentDto(2026, 2, 10, totalAmount: 1000m, monthlyAmount: 300m);
+        var today = new DateOnly(2026, 1, 1);
+
+        var result = RecurrenceService.GenerateRepaymentPlan(dto, UserId, today);
+
+        Assert.Equal(4, result.Count);
+        Assert.Equal(300m, result[0].Amount);
+        Assert.Equal(300m, result[1].Amount);
+        Assert.Equal(300m, result[2].Amount);
+        Assert.Equal(100m, result[3].Amount);
+        Assert.Equal(new DateOnly(2026, 5, 10), result[3].Date);
+    }
+
+    [Fact]
+    public void GenerateRepaymentPlan_FutureDates_ArePending()
+    {
+        var dto = MakeRepaymentDto(
+            2026,
+            6,
+            14,
+            totalAmount: 600m,
+            monthlyAmount: 200m,
+            status: TransactionStatus.Completed
+        );
+        var today = new DateOnly(2026, 6, 20);
+
+        var result = RecurrenceService.GenerateRepaymentPlan(dto, UserId, today);
+
+        Assert.Equal(TransactionStatus.Completed, result[0].Status);
+        Assert.Equal(TransactionStatus.Pending, result[1].Status);
+        Assert.Equal(TransactionStatus.Pending, result[2].Status);
     }
 }

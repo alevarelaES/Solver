@@ -58,8 +58,7 @@ public static class DashboardEndpoints
                 .Sum(t => t.Amount);
 
             var currentMonthExpenses = currentMonthTx
-                .Where(t => t.Status == TransactionStatus.Completed
-                         && accountTypeMap.GetValueOrDefault(t.AccountId) == AccountType.Expense)
+                .Where(t => accountTypeMap.GetValueOrDefault(t.AccountId) == AccountType.Expense)
                 .Sum(t => t.Amount);
 
             var pendingMonthNet = currentMonthTx

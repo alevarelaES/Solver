@@ -5,13 +5,24 @@ import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_theme.dart';
-import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
+import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transactions_provider.dart';
 
 final _monthNames = [
-  '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  '',
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
 ];
 
 void showTransactionsListModal(
@@ -61,14 +72,18 @@ class _TransactionsListDialog extends ConsumerWidget {
 
     return Dialog(
       backgroundColor: AppColors.surfaceDialog,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 520,
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
         child: Padding(
-          padding: EdgeInsets.all(MediaQuery.of(context).size.width < 500 ? 16 : 24),
+          padding: EdgeInsets.all(
+            MediaQuery.of(context).size.width < 500 ? 16 : 24,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -100,7 +115,10 @@ class _TransactionsListDialog extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -112,10 +130,13 @@ class _TransactionsListDialog extends ConsumerWidget {
               // List
               Flexible(
                 child: txAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
-                    child: Text('Erreur: $e',
-                        style: const TextStyle(color: AppColors.softRed)),
+                    child: Text(
+                      'Erreur: $e',
+                      style: const TextStyle(color: AppColors.softRed),
+                    ),
                   ),
                   data: (transactions) {
                     if (transactions.isEmpty) {
@@ -129,18 +150,24 @@ class _TransactionsListDialog extends ConsumerWidget {
                     return ListView.separated(
                       shrinkWrap: true,
                       itemCount: transactions.length,
-                      separatorBuilder: (_, _) =>
-                          const Divider(color: AppColors.borderSubtle, height: 1),
+                      separatorBuilder: (_, _) => const Divider(
+                        color: AppColors.borderSubtle,
+                        height: 1,
+                      ),
                       itemBuilder: (context, i) => _TransactionTile(
                         transaction: transactions[i],
                         isIncome: isIncome,
                         onValidated: () {
-                          ref.invalidate(transactionsByAccountMonthProvider(key));
-                          ref.invalidate(dashboardDataProvider);
+                          ref.invalidate(
+                            transactionsByAccountMonthProvider(key),
+                          );
+                          invalidateAfterTransactionMutation(ref);
                         },
                         onDeleted: () {
-                          ref.invalidate(transactionsByAccountMonthProvider(key));
-                          ref.invalidate(dashboardDataProvider);
+                          ref.invalidate(
+                            transactionsByAccountMonthProvider(key),
+                          );
+                          invalidateAfterTransactionMutation(ref);
                         },
                       ),
                     );
@@ -180,14 +207,17 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
     try {
       final client = ref.read(apiClientProvider);
       final t = widget.transaction;
-      await client.put('/api/transactions/${t.id}', data: {
-        'accountId': t.accountId,
-        'date': DateFormat('yyyy-MM-dd').format(t.date),
-        'amount': overrideAmount ?? t.amount,
-        'note': t.note,
-        'status': 'completed',
-        'isAuto': t.isAuto,
-      });
+      await client.put(
+        '/api/transactions/${t.id}',
+        data: {
+          'accountId': t.accountId,
+          'date': DateFormat('yyyy-MM-dd').format(t.date),
+          'amount': overrideAmount ?? t.amount,
+          'note': t.note,
+          'status': 0,
+          'isAuto': t.isAuto,
+        },
+      );
       widget.onValidated();
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -213,23 +243,33 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        title: const Text('Valider la transaction',
-            style: TextStyle(color: AppColors.textPrimary)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: const Text(
+          'Valider la transaction',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Modifier le montant si nécessaire :',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            const Text(
+              'Modifier le montant si nécessaire :',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: amountCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
               style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                labelText: 'Montant (CHF)',
-                prefixText: 'CHF ',
+              decoration: InputDecoration(
+                labelText: 'Montant (${AppFormats.currencyCode})',
+                prefixText: '${AppFormats.currencySymbol} ',
               ),
             ),
           ],
@@ -237,12 +277,17 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              final amount = double.tryParse(amountCtrl.text.replaceAll(',', '.'));
+              final amount = double.tryParse(
+                amountCtrl.text.replaceAll(',', '.'),
+              );
               _validate(overrideAmount: amount);
             },
             child: const Text('Valider'),
@@ -279,17 +324,28 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
               children: [
                 Text(
                   DateFormat('dd MMM', 'fr_FR').format(t.date),
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
                 ),
                 if (t.note != null && t.note!.isNotEmpty)
                   Text(
                     t.note!,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 if (t.isAuto)
-                  const Text('Auto',
-                      style: TextStyle(color: AppColors.textDisabled, fontSize: 11)),
+                  const Text(
+                    'Auto',
+                    style: TextStyle(
+                      color: AppColors.textDisabled,
+                      fontSize: 11,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -309,7 +365,8 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
             const SizedBox(width: 8),
             if (_loading)
               const SizedBox(
-                width: 20, height: 20,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
@@ -318,21 +375,33 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
                 children: [
                   // Validate
                   IconButton(
-                    icon: const Icon(Icons.check_circle_outline,
-                        color: AppColors.neonEmerald, size: 20),
+                    icon: const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.neonEmerald,
+                      size: 20,
+                    ),
                     onPressed: _showValidateDialog,
                     tooltip: 'Valider',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                   // Delete
                   IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        color: AppColors.softRed, size: 20),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.softRed,
+                      size: 20,
+                    ),
                     onPressed: _delete,
                     tooltip: 'Supprimer',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ],
               ),

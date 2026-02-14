@@ -54,8 +54,10 @@ class BudgetView extends ConsumerWidget {
     return statsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Erreur: $e',
-            style: const TextStyle(color: AppColors.danger)),
+        child: Text(
+          'Erreur: $e',
+          style: const TextStyle(color: AppColors.danger),
+        ),
       ),
       data: (stats) => LayoutBuilder(
         builder: (context, constraints) {
@@ -117,9 +119,7 @@ class _HeroSection extends StatelessWidget {
                 const SizedBox(width: 48),
                 Container(width: 1, height: 64, color: AppColors.borderSubtle),
                 const SizedBox(width: 48),
-                Expanded(
-                    child:
-                        _heroBars(incomeRatio, fixedRatio)),
+                Expanded(child: _heroBars(incomeRatio, fixedRatio)),
               ],
             )
           : Column(
@@ -163,7 +163,7 @@ class _HeroSection extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'CHF',
+              AppFormats.currencyCode,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -190,7 +190,8 @@ class _HeroSection extends StatelessWidget {
         _HeroBar(
           label: 'Charges fixes',
           ratio: fixedRatio,
-          amount: '- ${AppFormats.currencyCompact.format(stats.fixedExpensesTotal)}',
+          amount:
+              '- ${AppFormats.currencyCompact.format(stats.fixedExpensesTotal)}',
           color: AppColors.primaryDark,
           amountColor: AppColors.textDisabled,
         ),
@@ -220,11 +221,14 @@ class _HeroBar extends StatelessWidget {
       children: [
         SizedBox(
           width: 140,
-          child: Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -247,11 +251,14 @@ class _HeroBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Text(amount,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: amountColor)),
+        Text(
+          amount,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: amountColor,
+          ),
+        ),
       ],
     );
   }
@@ -293,14 +300,12 @@ class _ToolBar extends ConsumerWidget {
               _ToggleButton(
                 icon: Icons.grid_view_rounded,
                 isActive: isGrid,
-                onTap: () =>
-                    ref.read(_viewModeProvider.notifier).state = true,
+                onTap: () => ref.read(_viewModeProvider.notifier).state = true,
               ),
               _ToggleButton(
                 icon: Icons.format_list_bulleted,
                 isActive: !isGrid,
-                onTap: () =>
-                    ref.read(_viewModeProvider.notifier).state = false,
+                onTap: () => ref.read(_viewModeProvider.notifier).state = false,
               ),
             ],
           ),
@@ -310,14 +315,17 @@ class _ToolBar extends ConsumerWidget {
         TextButton.icon(
           onPressed: () {},
           icon: const Icon(Icons.add, size: 16),
-          label: const Text('Ajouter une catégorie',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+          label: const Text(
+            'Ajouter une catégorie',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
           style: TextButton.styleFrom(
             foregroundColor: Colors.white,
             backgroundColor: AppColors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
       ],
@@ -329,8 +337,11 @@ class _ToggleButton extends StatelessWidget {
   final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
-  const _ToggleButton(
-      {required this.icon, required this.isActive, required this.onTap});
+  const _ToggleButton({
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -345,15 +356,18 @@ class _ToggleButton extends StatelessWidget {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                      color: Colors.black.withAlpha(10),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1))
+                    color: Colors.black.withAlpha(10),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
                 ]
               : null,
         ),
-        child: Icon(icon,
-            size: 20,
-            color: isActive ? AppColors.primary : AppColors.textDisabled),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isActive ? AppColors.primary : AppColors.textDisabled,
+        ),
       ),
     );
   }
@@ -396,8 +410,11 @@ class _GridView extends StatelessWidget {
   final List<AccountSpending> accounts;
   final double maxWidth;
   final BudgetStats stats;
-  const _GridView(
-      {required this.accounts, required this.maxWidth, required this.stats});
+  const _GridView({
+    required this.accounts,
+    required this.maxWidth,
+    required this.stats,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -425,18 +442,23 @@ class _GridCard extends ConsumerWidget {
   final AccountSpending spending;
   final int index;
   final double disposableIncome;
-  const _GridCard(
-      {required this.spending, required this.index, required this.disposableIncome});
+  const _GridCard({
+    required this.spending,
+    required this.index,
+    required this.disposableIncome,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = _catColors[index % _catColors.length];
     final bgColor = _catBgColors[index % _catBgColors.length];
     final icon = _catIcons[index % _catIcons.length];
-    final allocationPct =
-        disposableIncome > 0 ? (spending.budget / disposableIncome * 100) : 0.0;
-    final spentPct =
-        spending.budget > 0 ? (spending.spent / spending.budget * 100) : 0.0;
+    final allocationPct = disposableIncome > 0
+        ? (spending.budget / disposableIncome * 100)
+        : 0.0;
+    final spentPct = spending.budget > 0
+        ? (spending.spent / spending.budget * 100)
+        : 0.0;
     final isOver = spending.spent > spending.budget && spending.budget > 0;
     final barColor = isOver ? AppColors.primaryDarker : AppColors.primary;
     final barRatio = spending.budget > 0
@@ -471,28 +493,37 @@ class _GridCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(spending.accountName,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
-                    Text(spending.isFixed ? 'Charge fixe' : spending.group,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textDisabled)),
+                    Text(
+                      spending.accountName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      spending.isFixed ? 'Charge fixe' : spending.group,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textDisabled,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('MAX SPEND',
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDisabled,
-                          letterSpacing: -0.5)),
+                  const Text(
+                    'MAX SPEND',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDisabled,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -501,9 +532,10 @@ class _GridCard extends ConsumerWidget {
                       Text(
                         AppFormats.currency.format(spending.budget),
                         style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -517,16 +549,22 @@ class _GridCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Allocation',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary)),
-              Text('${allocationPct.toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary)),
+              const Text(
+                'Allocation',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '${allocationPct.toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -562,21 +600,23 @@ class _GridCard extends ConsumerWidget {
                     Text(
                       'Spent: ${AppFormats.currency.format(spending.spent)}',
                       style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
-                          color: isOver
-                              ? AppColors.primaryDarker
-                              : AppColors.textDisabled),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                        color: isOver
+                            ? AppColors.primaryDarker
+                            : AppColors.textDisabled,
+                      ),
                     ),
                     Text(
                       '${spentPct.toStringAsFixed(0)}%',
                       style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isOver
-                              ? AppColors.primaryDarker
-                              : AppColors.textPrimary),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isOver
+                            ? AppColors.primaryDarker
+                            : AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -612,11 +652,7 @@ class _ListView extends StatelessWidget {
         for (int i = 0; i < accounts.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _ListRow(
-              spending: accounts[i],
-              index: i,
-              stats: stats,
-            ),
+            child: _ListRow(spending: accounts[i], index: i, stats: stats),
           ),
       ],
     );
@@ -627,14 +663,18 @@ class _ListRow extends ConsumerWidget {
   final AccountSpending spending;
   final int index;
   final BudgetStats stats;
-  const _ListRow(
-      {required this.spending, required this.index, required this.stats});
+  const _ListRow({
+    required this.spending,
+    required this.index,
+    required this.stats,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = _catColors[index % _catColors.length];
-    final spentPct =
-        spending.budget > 0 ? (spending.spent / spending.budget * 100) : 0.0;
+    final spentPct = spending.budget > 0
+        ? (spending.spent / spending.budget * 100)
+        : 0.0;
     final isOver = spending.spent > spending.budget && spending.budget > 0;
     final barColor = isOver ? AppColors.primaryDarker : AppColors.primary;
     final barRatio = spending.budget > 0
@@ -666,20 +706,24 @@ class _ListRow extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(spending.accountName,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary)),
+                Text(
+                  spending.accountName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 Text(
                   spending.isFixed
                       ? 'CHARGE FIXE'
                       : spending.group.toUpperCase(),
                   style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDisabled,
-                      letterSpacing: 0.5),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDisabled,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ],
             ),
@@ -695,20 +739,22 @@ class _ListRow extends ConsumerWidget {
                     Text(
                       'Allocation: ${AppFormats.currencyCompact.format(spending.spent)} / ${AppFormats.currencyCompact.format(spending.budget)}',
                       style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isOver
-                              ? AppColors.primaryDarker
-                              : AppColors.textDisabled),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: isOver
+                            ? AppColors.primaryDarker
+                            : AppColors.textDisabled,
+                      ),
                     ),
                     Text(
                       '${spentPct.toStringAsFixed(0)}%',
                       style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isOver
-                              ? AppColors.primaryDarker
-                              : AppColors.textDisabled),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: isOver
+                            ? AppColors.primaryDarker
+                            : AppColors.textDisabled,
+                      ),
                     ),
                   ],
                 ),
@@ -741,11 +787,14 @@ class _ListRow extends ConsumerWidget {
           // Edit button
           GestureDetector(
             onTap: () => _showBudgetDialog(context, ref),
-            child: const Text('edit',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textDisabled)),
+            child: const Text(
+              'edit',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textDisabled,
+              ),
+            ),
           ),
         ],
       ),
@@ -753,20 +802,24 @@ class _ListRow extends ConsumerWidget {
   }
 
   void _showBudgetDialog(BuildContext context, WidgetRef ref) {
-    final ctrl =
-        TextEditingController(text: spending.budget.toStringAsFixed(0));
+    final ctrl = TextEditingController(
+      text: spending.budget.toStringAsFixed(0),
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xxl)),
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+        ),
         title: Text(spending.accountName),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-              labelText: 'Budget (CHF)', prefixText: 'CHF '),
+          decoration: InputDecoration(
+            labelText: 'Budget (${AppFormats.currencyCode})',
+            prefixText: '${AppFormats.currencySymbol} ',
+          ),
           autofocus: true,
         ),
         actions: [
@@ -807,11 +860,14 @@ class _QuickPctBtn extends StatelessWidget {
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label,
-          style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDisabled)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textDisabled,
+        ),
+      ),
     );
   }
 }
@@ -826,7 +882,9 @@ class _FooterCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalBudgeted = stats.currentMonthSpending.fold<double>(
-        0.0, (sum, s) => sum + s.budget);
+      0.0,
+      (sum, s) => sum + s.budget,
+    );
     final remaining = stats.disposableIncome - totalBudgeted;
     final remainingPct = stats.disposableIncome > 0
         ? (remaining / stats.disposableIncome * 100)
@@ -848,31 +906,41 @@ class _FooterCta extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.primary.withAlpha(75)),
             ),
-            child: const Icon(Icons.auto_awesome,
-                color: AppColors.primary, size: 28),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.primary,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Équilibre du budget',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700)),
+                const Text(
+                  'Équilibre du budget',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF9CA3AF)),
+                      fontSize: 12,
+                      color: Color(0xFF9CA3AF),
+                    ),
                     children: [
                       const TextSpan(text: 'Il reste '),
                       TextSpan(
                         text:
                             '${AppFormats.currency.format(remaining)} (${remainingPct.toStringAsFixed(0)}%)',
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700),
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const TextSpan(text: ' à allouer.'),
                     ],
@@ -887,13 +955,15 @@ class _FooterCta extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
               side: BorderSide(color: Colors.white.withAlpha(25)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Reset',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Reset',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
           ),
           const SizedBox(width: 12),
           ElevatedButton(
@@ -901,13 +971,15 @@ class _FooterCta extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Auto-Allocation',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Auto-Allocation',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),

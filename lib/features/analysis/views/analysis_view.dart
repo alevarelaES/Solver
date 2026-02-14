@@ -7,7 +7,20 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/analysis/providers/analysis_provider.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
-const _monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+const _monthLabels = [
+  'J',
+  'F',
+  'M',
+  'A',
+  'M',
+  'J',
+  'J',
+  'A',
+  'S',
+  'O',
+  'N',
+  'D',
+];
 
 class AnalysisView extends ConsumerWidget {
   const AnalysisView({super.key});
@@ -38,23 +51,33 @@ class AnalysisView extends ConsumerWidget {
               _NavBtn(
                 icon: Icons.chevron_left,
                 onTap: year > currentYear - 5
-                    ? () => ref.read(selectedAnalysisYearProvider.notifier).state = year - 1
+                    ? () =>
+                          ref
+                                  .read(selectedAnalysisYearProvider.notifier)
+                                  .state =
+                              year - 1
                     : null,
               ),
               const SizedBox(width: 16),
-              Text('$year',
-                  style: TextStyle(
-                    color: year == currentYear
-                        ? AppColors.primary
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                '$year',
+                style: TextStyle(
+                  color: year == currentYear
+                      ? AppColors.primary
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(width: 16),
               _NavBtn(
                 icon: Icons.chevron_right,
                 onTap: year < currentYear
-                    ? () => ref.read(selectedAnalysisYearProvider.notifier).state = year + 1
+                    ? () =>
+                          ref
+                                  .read(selectedAnalysisYearProvider.notifier)
+                                  .state =
+                              year + 1
                     : null,
               ),
             ],
@@ -65,7 +88,10 @@ class AnalysisView extends ConsumerWidget {
           child: dataAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
-              child: Text('Erreur: $e', style: const TextStyle(color: AppColors.danger)),
+              child: Text(
+                'Erreur: $e',
+                style: const TextStyle(color: AppColors.danger),
+              ),
             ),
             data: (data) => SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -90,7 +116,9 @@ class AnalysisView extends ConsumerWidget {
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _ProjectedSavingsCard(data: data)),
+                              Expanded(
+                                child: _ProjectedSavingsCard(data: data),
+                              ),
                               const SizedBox(width: 24),
                               Expanded(child: _PeerComparisonCard(data: data)),
                             ],
@@ -131,11 +159,17 @@ class _NavBtn extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(4),
-        child: Icon(icon,
-            color: onTap != null
-                ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
-                : (isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight),
-            size: 22),
+        child: Icon(
+          icon,
+          color: onTap != null
+              ? (isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight)
+              : (isDark
+                    ? AppColors.textDisabledDark
+                    : AppColors.textDisabledLight),
+          size: 22,
+        ),
       ),
     );
   }
@@ -180,29 +214,37 @@ class _StrategicKpiRow extends StatelessWidget {
             value: 'Sept 2038',
             subtitle: '-2 Years vs Jan Estimate',
             subtitleColor: AppColors.warning,
-            trailing: Icon(Icons.auto_awesome, color: AppColors.warning, size: 24),
+            trailing: Icon(
+              Icons.auto_awesome,
+              color: AppColors.warning,
+              size: 24,
+            ),
           ),
         ];
 
         if (isNarrow) {
           return Column(
             children: cards
-                .map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: c,
-                    ))
+                .map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: c,
+                  ),
+                )
                 .toList(),
           );
         }
 
         return Row(
           children: cards
-              .map((c) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: c,
-                    ),
-                  ))
+              .map(
+                (c) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: c,
+                  ),
+                ),
+              )
               .toList(),
         );
       },
@@ -239,7 +281,9 @@ class _StratKpiCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
               letterSpacing: 2,
             ),
           ),
@@ -341,8 +385,12 @@ class _MiniProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: value.clamp(0.0, 1.0),
               minHeight: 6,
-              backgroundColor: isDark ? Colors.white12 : const Color(0xFFF3F4F6),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              backgroundColor: isDark
+                  ? Colors.white12
+                  : const Color(0xFFF3F4F6),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
             ),
           ),
         ],
@@ -403,7 +451,9 @@ class _YoYLineChartCard extends StatelessWidget {
                       'Strategic view of wealth accumulation efficiency',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                       ),
                     ),
                   ],
@@ -443,7 +493,9 @@ class _YoYLineChartCard extends StatelessWidget {
                       drawVerticalLine: false,
                       horizontalInterval: _calcInterval(data),
                       getDrawingHorizontalLine: (_) => FlLine(
-                        color: isDark ? Colors.white10 : const Color(0xFFF3F4F6),
+                        color: isDark
+                            ? Colors.white10
+                            : const Color(0xFFF3F4F6),
                         strokeWidth: 1,
                       ),
                     ),
@@ -458,28 +510,38 @@ class _YoYLineChartCard extends StatelessWidget {
                             child: Text(
                               AppFormats.currencyRaw.format(value),
                               style: TextStyle(
-                                color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                                color: isDark
+                                    ? AppColors.textDisabledDark
+                                    : AppColors.textDisabledLight,
                                 fontSize: 9,
                               ),
                             ),
                           ),
                         ),
                       ),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
                           interval: 1,
                           getTitlesWidget: (value, meta) {
                             final idx = value.toInt();
-                            if (idx < 0 || idx >= _monthLabels.length) return const SizedBox.shrink();
+                            if (idx < 0 || idx >= _monthLabels.length) {
+                              return const SizedBox.shrink();
+                            }
                             return Padding(
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 _monthLabels[idx],
                                 style: TextStyle(
-                                  color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
+                                  color: isDark
+                                      ? AppColors.textDisabledDark
+                                      : AppColors.textDisabledLight,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -516,13 +578,17 @@ class _YoYLineChartCard extends StatelessWidget {
                     ],
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (_) => isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                        getTooltipColor: (_) => isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.surfaceLight,
                         getTooltipItems: (spots) => spots.map((spot) {
                           final isIncome = spot.barIndex == 0;
                           return LineTooltipItem(
-                            '${isIncome ? "Revenus" : "Dépenses"}\nCHF ${AppFormats.currencyRaw.format(spot.y)}',
+                            '${isIncome ? "Revenus" : "Depenses"}\n${AppFormats.currencySymbol} ${AppFormats.currencyRaw.format(spot.y)}',
                             TextStyle(
-                              color: isIncome ? AppColors.primary : AppColors.danger,
+                              color: isIncome
+                                  ? AppColors.primary
+                                  : AppColors.danger,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -537,7 +603,10 @@ class _YoYLineChartCard extends StatelessWidget {
                   top: 40,
                   right: 60,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
@@ -608,7 +677,9 @@ class _ChartLegendItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
             letterSpacing: 0.5,
           ),
         ),
@@ -653,10 +724,13 @@ class _ProjectedSavingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final monthlySavings = data.byMonth.isNotEmpty
-        ? data.byMonth.map((m) => m.savings).reduce((a, b) => a + b) / data.byMonth.length
+        ? data.byMonth.map((m) => m.savings).reduce((a, b) => a + b) /
+              data.byMonth.length
         : 0.0;
     final projectedTotal = monthlySavings * 60; // 5 years projection
-    final progressVal = projectedTotal > 0 ? (projectedTotal / 245000).clamp(0.0, 1.0) : 0.0;
+    final progressVal = projectedTotal > 0
+        ? (projectedTotal / 245000).clamp(0.0, 1.0)
+        : 0.0;
     final roi = data.totalIncome > 0
         ? ((data.totalIncome - data.totalExpenses) / data.totalIncome * 100)
         : 0.0;
@@ -672,7 +746,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
               letterSpacing: 1.5,
             ),
           ),
@@ -683,7 +759,10 @@ class _ProjectedSavingsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -698,7 +777,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${AppFormats.currencyRaw.format(projectedTotal)} CHF',
+                '${AppFormats.currencyRaw.format(projectedTotal)} ${AppFormats.currencySymbol}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -713,8 +792,12 @@ class _ProjectedSavingsCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progressVal,
               minHeight: 8,
-              backgroundColor: isDark ? Colors.white12 : const Color(0xFFF3F4F6),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              backgroundColor: isDark
+                  ? Colors.white12
+                  : const Color(0xFFF3F4F6),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -726,7 +809,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9FAFB),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -737,7 +822,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -758,7 +845,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF9FAFB),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -769,7 +858,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -778,7 +869,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.primaryDarker,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.primaryDarker,
                         ),
                       ),
                     ],
@@ -808,7 +901,11 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.auto_graph, color: AppColors.primary, size: 22),
+                  child: const Icon(
+                    Icons.auto_graph,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -820,7 +917,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.primaryDarker,
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.primaryDarker,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -828,7 +927,9 @@ class _ProjectedSavingsCard extends StatelessWidget {
                         'Current trajectory adds ${AppFormats.currencyRaw.format(projectedTotal * 0.17)} in passive appreciation by 2030.',
                         style: TextStyle(
                           fontSize: 10,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                       ),
                     ],
@@ -870,8 +971,11 @@ class _PeerComparisonCard extends StatelessWidget {
               iconBg: bgColors[idx].withValues(alpha: 0.1),
               iconColor: bgColors[idx],
               title: g.group,
-              subtitle: 'Vs. ${AppFormats.currencyRaw.format(g.total * 0.85)}k median peers',
-              percent: isOptimal ? '-${(100 - g.percentage).toStringAsFixed(1)}%' : '+${(g.percentage - 25).toStringAsFixed(1)}%',
+              subtitle:
+                  'Vs. ${AppFormats.currencyRaw.format(g.total * 0.85)}k median peers',
+              percent: isOptimal
+                  ? '-${(100 - g.percentage).toStringAsFixed(1)}%'
+                  : '+${(g.percentage - 25).toStringAsFixed(1)}%',
               isOptimal: isOptimal,
               barValue: g.percentage / 100,
             );
@@ -929,14 +1033,18 @@ class _PeerComparisonCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                   letterSpacing: 1.5,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFF3F4F6),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -944,7 +1052,9 @@ class _PeerComparisonCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textDisabledDark : const Color(0xFF9CA3AF),
+                    color: isDark
+                        ? AppColors.textDisabledDark
+                        : const Color(0xFF9CA3AF),
                   ),
                 ),
               ),
@@ -953,10 +1063,12 @@ class _PeerComparisonCard extends StatelessWidget {
           const SizedBox(height: 28),
 
           // Comparison items
-          ...comparisons.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: _PeerComparisonRow(item: item),
-              )),
+          ...comparisons.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: _PeerComparisonRow(item: item),
+            ),
+          ),
 
           // Footer: Efficiency Index
           Container(
@@ -964,7 +1076,9 @@ class _PeerComparisonCard extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: isDark ? AppColors.borderDark : const Color(0xFFF3F4F6),
+                  color: isDark
+                      ? AppColors.borderDark
+                      : const Color(0xFFF3F4F6),
                 ),
               ),
             ),
@@ -976,7 +1090,9 @@ class _PeerComparisonCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -1059,7 +1175,9 @@ class _PeerComparisonRow extends StatelessWidget {
                 item.subtitle,
                 style: TextStyle(
                   fontSize: 10,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
             ],
@@ -1086,7 +1204,9 @@ class _PeerComparisonRow extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: item.barValue.clamp(0.0, 1.0),
                   minHeight: 4,
-                  backgroundColor: isDark ? Colors.white12 : const Color(0xFFF3F4F6),
+                  backgroundColor: isDark
+                      ? Colors.white12
+                      : const Color(0xFFF3F4F6),
                   valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                 ),
               ),

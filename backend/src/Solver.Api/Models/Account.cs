@@ -7,10 +7,12 @@ public class Account
     public string Name { get; set; } = string.Empty;
     public AccountType Type { get; set; }
     public string Group { get; set; } = string.Empty;
+    public Guid? GroupId { get; set; }
     public bool IsFixed { get; set; }
     public decimal Budget { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    public CategoryGroup? CategoryGroup { get; set; }
     public ICollection<Transaction> Transactions { get; set; } = [];
 }
 

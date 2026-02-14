@@ -6,7 +6,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:solver/core/config/app_config.dart';
+import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/router/app_router.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 
 /// Provider for theme mode toggle (light / dark).
@@ -36,6 +38,8 @@ class SolverApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final currency = ref.watch(appCurrencyProvider);
+    AppFormats.setCurrency(currency);
 
     return MaterialApp.router(
       title: 'Solver',
@@ -49,9 +53,7 @@ class SolverApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('fr', 'FR'),
-      ],
+      supportedLocales: const [Locale('fr', 'FR')],
     );
   }
 }

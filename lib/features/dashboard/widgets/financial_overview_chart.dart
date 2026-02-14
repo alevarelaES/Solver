@@ -1,13 +1,15 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
-import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
+import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
-class FinancialOverviewChart extends StatefulWidget {
+class FinancialOverviewChart extends ConsumerWidget {
   final DashboardData data;
   final int year;
 
@@ -18,21 +20,16 @@ class FinancialOverviewChart extends StatefulWidget {
   });
 
   @override
-  State<FinancialOverviewChart> createState() => _FinancialOverviewChartState();
-}
-
-class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
-  String _selectedPeriod = 'this_year';
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentMonth = DateTime.now().month;
     final currentYear = DateTime.now().year;
+    final projectionAsync = ref.watch(yearlyExpenseProjectionProvider(year));
 
     final incomes = List<double>.filled(12, 0);
     final expenses = List<double>.filled(12, 0);
-    for (final group in widget.data.groups) {
+
+    for (final group in data.groups) {
       for (final account in group.accounts) {
         for (int m = 1; m <= 12; m++) {
           final cell = account.months[m];
@@ -46,6 +43,21 @@ class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
       }
     }
 
+    if (year == currentYear) {
+      for (int m = currentMonth + 1; m <= 12; m++) {
+        incomes[m - 1] = 0;
+      }
+
+      projectionAsync.whenData((projection) {
+        for (int m = currentMonth + 1; m <= 12; m++) {
+          final i = m - 1;
+          if (i >= projection.totalByMonth.length) continue;
+          // Replace with backend yearly projection to avoid partial/duplicate sums.
+          expenses[i] = projection.totalByMonth[i];
+        }
+      });
+    }
+
     final maxY = _computeMaxY(incomes, expenses);
 
     return GlassContainer(
@@ -54,7 +66,6 @@ class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -75,61 +86,14 @@ class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   _LegendDot(
-                    color: AppColors.primaryDarker,
+                    color: AppColors.danger,
                     label: AppStrings.dashboard.expense,
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  // Period dropdown
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedPeriod,
-                        isDense: true,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                        icon: Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 16,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'this_year',
-                            child: Text(AppStrings.dashboard.thisYear),
-                          ),
-                          DropdownMenuItem(
-                            value: 'last_year',
-                            child: Text(AppStrings.dashboard.lastYear),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _selectedPeriod = v!),
-                      ),
-                    ),
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          // Chart
           Center(
             child: SizedBox(
               height: AppSizes.chartHeight,
@@ -211,13 +175,13 @@ class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
                   borderData: FlBorderData(show: false),
                   barGroups: List.generate(12, (i) {
                     final isHighlighted =
-                        widget.year == currentYear && (i + 1) == currentMonth;
+                        year == currentYear && (i + 1) == currentMonth;
                     final grayIncome = isDark
                         ? const Color(0xFF4B5563)
                         : const Color(0xFFE5E7EB);
                     final grayExpense = isDark
-                        ? const Color(0xFF374151)
-                        : const Color(0xFFF3F4F6);
+                        ? const Color(0xFF7F1D1D)
+                        : const Color(0xFFFEE2E2);
 
                     return BarChartGroupData(
                       x: i,
@@ -232,9 +196,7 @@ class _FinancialOverviewChartState extends State<FinancialOverviewChart> {
                         ),
                         BarChartRodData(
                           toY: expenses[i],
-                          color: isHighlighted
-                              ? AppColors.primaryDarker
-                              : grayExpense,
+                          color: isHighlighted ? AppColors.danger : grayExpense,
                           width: AppSizes.barWidth,
                           borderRadius: BorderRadius.circular(
                             AppSizes.barRadius,

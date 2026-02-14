@@ -6,7 +6,10 @@ namespace Solver.Api.Data;
 
 public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbContext(options)
 {
+    public DbSet<AppDataMigration> AppDataMigrations => Set<AppDataMigration>();
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<CategoryGroup> CategoryGroups => Set<CategoryGroup>();
+    public DbSet<CategoryPreference> CategoryPreferences => Set<CategoryPreference>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -29,11 +32,43 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Type).HasColumnName("type").HasConversion(accountTypeConverter);
             entity.Property(e => e.Group).HasColumnName("group");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.IsFixed).HasColumnName("is_fixed");
             entity.Property(e => e.Budget).HasColumnName("budget");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.GroupId });
+
+            entity.HasOne(e => e.CategoryGroup)
+                .WithMany(g => g.Accounts)
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CategoryGroup>(entity =>
+        {
+            entity.ToTable("category_groups");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Type).HasColumnName("type").HasConversion(accountTypeConverter);
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.IsArchived).HasColumnName("is_archived");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId);
+        });
+
+        modelBuilder.Entity<AppDataMigration>(entity =>
+        {
+            entity.ToTable("app_data_migrations");
+            entity.HasKey(e => e.Name);
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
         });
 
         modelBuilder.Entity<Transaction>(entity =>
@@ -57,6 +92,26 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.HasOne(e => e.Account)
                 .WithMany(a => a.Transactions)
                 .HasForeignKey(e => e.AccountId);
+        });
+
+        modelBuilder.Entity<CategoryPreference>(entity =>
+        {
+            entity.ToTable("category_preferences");
+            entity.HasKey(e => new { e.AccountId, e.UserId });
+
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.IsArchived).HasColumnName("is_archived");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId);
+
+            entity.HasOne(e => e.Account)
+                .WithMany()
+                .HasForeignKey(e => e.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -17,12 +17,21 @@ class Account {
 
   bool get isIncome => type == 'income';
 
-  factory Account.fromJson(Map<String, dynamic> json) => Account(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        type: (json['type'] as String).toLowerCase(),
-        group: json['group'] as String,
-        isFixed: json['isFixed'] as bool,
-        budget: (json['budget'] as num).toDouble(),
-      );
+  factory Account.fromJson(Map<String, dynamic> json) {
+    final rawType = json['type'];
+    final parsedType = switch (rawType) {
+      'income' || 'Income' || 0 => 'income',
+      'expense' || 'Expense' || 1 => 'expense',
+      _ => 'expense',
+    };
+
+    return Account(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? 'Compte',
+      type: parsedType,
+      group: json['group'] as String? ?? 'Autres',
+      isFixed: json['isFixed'] as bool? ?? false,
+      budget: (json['budget'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }

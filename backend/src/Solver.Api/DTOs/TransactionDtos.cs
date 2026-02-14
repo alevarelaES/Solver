@@ -25,8 +25,19 @@ public record BatchTransactionDto(
     [Required] RecurrenceOptionsDto Recurrence
 );
 
+public record RepaymentPlanDto(
+    [Required] CreateTransactionDto Transaction,
+    [Required] RepaymentOptionsDto Repayment
+);
+
 public record RecurrenceOptionsDto(
-    [Range(1, 31)] int DayOfMonth
+    [Range(1, 31)] int DayOfMonth,
+    DateOnly? EndDate = null
+);
+
+public record RepaymentOptionsDto(
+    [Range(0.01, 10_000_000)] decimal TotalAmount,
+    [Range(0.01, 10_000_000)] decimal MonthlyAmount
 );
 
 public record TransactionItemDto(

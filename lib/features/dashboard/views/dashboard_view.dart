@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
-import 'package:solver/features/accounts/widgets/account_form_modal.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
 import 'package:solver/features/dashboard/widgets/balance_card.dart';
 import 'package:solver/features/dashboard/widgets/expense_breakdown.dart';
 import 'package:solver/features/dashboard/widgets/financial_overview_chart.dart';
 import 'package:solver/features/dashboard/widgets/kpi_row.dart';
-import 'package:solver/features/dashboard/widgets/my_cards_section.dart';
+import 'package:solver/features/dashboard/widgets/pending_invoices_section.dart';
 import 'package:solver/features/dashboard/widgets/promo_cards.dart';
 import 'package:solver/features/dashboard/widgets/recent_activities.dart';
-import 'package:solver/features/dashboard/widgets/spending_limit.dart';
 import 'package:solver/features/dashboard/widgets/year_nav_bar.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
 
@@ -55,68 +53,47 @@ class _DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= AppBreakpoints.desktop;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isCompact = width < AppBreakpoints.tablet;
 
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          padding: AppSpacing.paddingPage,
-          child: Column(
+    return SingleChildScrollView(
+      padding: AppSpacing.paddingPage,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const YearNavBar(),
-              const SizedBox(height: AppSpacing.xxl),
-              if (isDesktop)
-                _buildDesktopLayout(width)
+              if (isCompact)
+                const SizedBox(width: AppSpacing.md)
               else
-                _buildMobileLayout(),
+                ElevatedButton.icon(
+                  onPressed: () => showTransactionFormModal(context, ref),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                  label: Text(AppStrings.dashboard.transaction),
+                ),
             ],
           ),
-        ),
-        // FABs
-        Positioned(
-          bottom: AppSpacing.xxl,
-          right: AppSpacing.xxl,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              FloatingActionButton.small(
-                heroTag: 'fab_account',
-                backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-                onPressed: () => showAccountFormModal(context, ref),
-                tooltip: AppStrings.dashboard.newAccount,
-                child: Icon(
-                  Icons.folder_outlined,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                  size: AppSizes.iconSize,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              FloatingActionButton.extended(
-                heroTag: 'fab_transaction',
-                backgroundColor: AppColors.primary,
+          if (isCompact) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: () => showTransactionFormModal(context, ref),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: Text(
-                  AppStrings.dashboard.transaction,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                label: Text(AppStrings.dashboard.transaction),
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.xxl),
+          if (isDesktop) _buildDesktopLayout(width) else _buildMobileLayout(),
+          const SizedBox(height: AppSpacing.xxxl),
+        ],
+      ),
     );
   }
 
-  /// Desktop: row-based layout matching the mockup grid
-  ///
-  /// Row 1: [Balance card]          [Income] [Expense] [Savings]
-  /// Row 2: [Expense Breakdown]     [Financial Overview chart]
-  /// Row 3: [My Cards + Limit]      [Recent Activities] [Solver AI]
   Widget _buildDesktopLayout(double screenWidth) {
     const gap = SizedBox(height: AppSpacing.lg);
     const hGap = SizedBox(width: AppSpacing.xxl);
@@ -124,7 +101,6 @@ class _DashboardContent extends StatelessWidget {
 
     return Column(
       children: [
-        // ── Row 1: Balance + KPIs ────────────────────────────────
         Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -140,8 +116,6 @@ class _DashboardContent extends StatelessWidget {
             .fadeIn(duration: AppDurations.normal)
             .slideY(begin: 0.05, end: 0),
         gap,
-
-        // ── Row 2: Expense Breakdown + Financial Overview ────────
         Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -159,26 +133,15 @@ class _DashboardContent extends StatelessWidget {
             .fadeIn(duration: AppDurations.normal, delay: AppDurations.stagger)
             .slideY(begin: 0.05, end: 0),
         gap,
-
-        // ── Row 3: Cards+Limit | Activities | Promos ─────────────
         Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left: My Cards + Spending Limit stacked
                 SizedBox(
                   width: AppSizes.leftColumnWidth,
-                  child: Column(
-                    children: [
-                      const MyCardsSection(),
-                      const SizedBox(height: AppSpacing.lg),
-                      SpendingLimit(data: data),
-                    ],
-                  ),
+                  child: const PendingInvoicesSection(),
                 ),
                 hGap,
-                // Center: Recent Activities
                 const Expanded(child: RecentActivities()),
-                // Right: Promo cards (wide screens only)
                 if (isWide) ...[
                   hGap,
                   SizedBox(
@@ -200,8 +163,6 @@ class _DashboardContent extends StatelessWidget {
               delay: AppDurations.stagger * 2,
             )
             .slideY(begin: 0.05, end: 0),
-
-        // Promo cards below on non-wide desktops
         if (!isWide) ...[
           gap,
           Row(
@@ -222,7 +183,6 @@ class _DashboardContent extends StatelessWidget {
     );
   }
 
-  /// Mobile/Tablet: stacked single column
   Widget _buildMobileLayout() {
     const gap = SizedBox(height: AppSpacing.lg);
     int i = 0;
@@ -245,11 +205,9 @@ class _DashboardContent extends StatelessWidget {
         gap,
         animated(ExpenseBreakdown(data: data)),
         gap,
-        animated(const MyCardsSection()),
+        animated(const PendingInvoicesSection()),
         gap,
         animated(const RecentActivities()),
-        gap,
-        animated(SpendingLimit(data: data)),
         gap,
         animated(const SolverAiCard()),
         gap,

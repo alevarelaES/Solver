@@ -71,7 +71,7 @@ public static class TransactionsEndpoints
             return Results.Ok(new { items, totalCount, page, pageSize });
         });
 
-        // GET /api/transactions/upcoming — before /{id:guid} to avoid route conflict
+        // GET /api/transactions/upcoming — includes overdue pending items up to limit
         group.MapGet("/upcoming", async (
             SolverDbContext db,
             HttpContext ctx,
@@ -84,7 +84,6 @@ public static class TransactionsEndpoints
             var upcoming = await db.Transactions
                 .Where(t => t.UserId == userId
                     && t.Status == TransactionStatus.Pending
-                    && t.Date >= today
                     && t.Date <= limit)
                 .OrderBy(t => t.Date)
                 .Select(t => new {
@@ -109,40 +108,284 @@ public static class TransactionsEndpoints
             return Results.Ok(new { auto, manual, totalAuto, totalManual, grandTotal = totalAuto + totalManual });
         });
 
-        group.MapPost("/", async (CreateTransactionDto dto, SolverDbContext db, HttpContext ctx) =>
+        // GET /api/transactions/projection/yearly?year=2026
+        // Returns pending expense totals by month for a full year.
+        group.MapGet("/projection/yearly", async (
+            SolverDbContext db,
+            HttpContext ctx,
+            int? year) =>
         {
             var userId = GetUserId(ctx);
-            var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.AccountId && a.UserId == userId);
-            if (!accountExists) return Results.NotFound(new { error = "Account not found" });
+            var targetYear = year ?? DateTime.UtcNow.Year;
 
-            var transaction = new Transaction
+            var yearly = await db.Transactions
+                .Where(t => t.UserId == userId
+                    && t.Status == TransactionStatus.Pending
+                    && t.Date.Year == targetYear
+                    && t.Account!.Type == AccountType.Expense)
+                .Select(t => new
+                {
+                    month = t.Date.Month,
+                    amount = t.Amount,
+                    isAuto = t.IsAuto
+                })
+                .ToListAsync();
+
+            var manualByMonth = Enumerable.Repeat(0m, 12).ToArray();
+            var autoByMonth = Enumerable.Repeat(0m, 12).ToArray();
+
+            foreach (var t in yearly)
             {
-                Id = Guid.NewGuid(),
-                AccountId = dto.AccountId,
-                UserId = userId,
-                Date = dto.Date,
-                Amount = dto.Amount,
-                Note = dto.Note,
-                Status = dto.Status,
-                IsAuto = dto.IsAuto,
-                CreatedAt = DateTime.UtcNow
-            };
+                var index = t.month - 1;
+                if (index < 0 || index > 11) continue;
+                if (t.isAuto) autoByMonth[index] += t.amount;
+                else manualByMonth[index] += t.amount;
+            }
 
-            db.Transactions.Add(transaction);
-            await db.SaveChangesAsync();
-            return Results.Created($"/api/transactions/{transaction.Id}", transaction);
+            var totalByMonth = new decimal[12];
+            for (var i = 0; i < 12; i++)
+            {
+                totalByMonth[i] = manualByMonth[i] + autoByMonth[i];
+            }
+
+            return Results.Ok(new
+            {
+                year = targetYear,
+                manualByMonth,
+                autoByMonth,
+                totalByMonth
+            });
         });
 
-        group.MapPost("/batch", async (BatchTransactionDto dto, SolverDbContext db, HttpContext ctx) =>
+        group.MapPost("/", async (CreateTransactionDto dto, IServiceScopeFactory scopeFactory, HttpContext ctx) =>
         {
             var userId = GetUserId(ctx);
-            var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.Transaction.AccountId && a.UserId == userId);
-            if (!accountExists) return Results.NotFound(new { error = "Account not found" });
 
-            var transactions = RecurrenceService.Generate(dto, userId);
-            await db.Transactions.AddRangeAsync(transactions);
-            await db.SaveChangesAsync();
-            return Results.Ok(new { count = transactions.Count });
+            for (var attempt = 1; attempt <= 2; attempt++)
+            {
+                using var scope = scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
+                var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.AccountId && a.UserId == userId);
+                if (!accountExists) return Results.NotFound(new { error = "Account not found" });
+
+                var transaction = new Transaction
+                {
+                    Id = Guid.NewGuid(),
+                    AccountId = dto.AccountId,
+                    UserId = userId,
+                    Date = dto.Date,
+                    Amount = dto.Amount,
+                    Note = dto.Note,
+                    Status = dto.Status,
+                    IsAuto = dto.IsAuto,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                db.Transactions.Add(transaction);
+                try
+                {
+                    await db.SaveChangesAsync();
+                    return Results.Created($"/api/transactions/{transaction.Id}", transaction);
+                }
+                catch (DbUpdateException ex) when (IsNpgsqlDisposedConnector(ex))
+                {
+                    if (attempt < 2)
+                    {
+                        await Task.Delay(120);
+                        continue;
+                    }
+
+                    return Results.Problem(
+                        title: "Erreur temporaire base de donnees",
+                        detail: "Echec de creation de transaction. Reessayez dans quelques secondes.",
+                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+            }
+
+            return Results.Problem(
+                title: "Erreur temporaire base de donnees",
+                detail: "Echec de creation de transaction. Reessayez dans quelques secondes.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        });
+
+        group.MapPost("/batch", async (BatchTransactionDto dto, IServiceScopeFactory scopeFactory, HttpContext ctx) =>
+        {
+            var userId = GetUserId(ctx);
+
+            using (var validationScope = scopeFactory.CreateScope())
+            {
+                var db = validationScope.ServiceProvider.GetRequiredService<SolverDbContext>();
+                var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.Transaction.AccountId && a.UserId == userId);
+                if (!accountExists) return Results.NotFound(new { error = "Account not found" });
+            }
+
+            if (dto.Recurrence.EndDate.HasValue && dto.Recurrence.EndDate.Value < dto.Transaction.Date)
+            {
+                return Results.BadRequest(new { error = "End date must be on or after transaction date" });
+            }
+
+            var planned = RecurrenceService.Generate(dto, userId)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.AccountId,
+                    t.UserId,
+                    t.Date,
+                    t.Amount,
+                    t.Note,
+                    t.Status,
+                    t.IsAuto,
+                    t.CreatedAt,
+                })
+                .ToList();
+
+            foreach (var seed in planned)
+            {
+                var saved = false;
+
+                for (var attempt = 1; attempt <= 3; attempt++)
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
+
+                    db.Transactions.Add(new Transaction
+                    {
+                        Id = seed.Id,
+                        AccountId = seed.AccountId,
+                        UserId = seed.UserId,
+                        Date = seed.Date,
+                        Amount = seed.Amount,
+                        Note = seed.Note,
+                        Status = seed.Status,
+                        IsAuto = seed.IsAuto,
+                        CreatedAt = seed.CreatedAt
+                    });
+
+                    try
+                    {
+                        await db.SaveChangesAsync();
+                        saved = true;
+                        break;
+                    }
+                    catch (DbUpdateException ex) when (IsNpgsqlDisposedConnector(ex))
+                    {
+                        if (attempt < 3)
+                        {
+                            await Task.Delay(120);
+                            continue;
+                        }
+
+                        return Results.Problem(
+                            title: "Erreur temporaire base de donnees",
+                            detail: "Echec de creation des transactions recurentes. Reessayez dans quelques secondes.",
+                            statusCode: StatusCodes.Status503ServiceUnavailable);
+                    }
+                }
+
+                if (!saved)
+                {
+                    return Results.Problem(
+                        title: "Erreur temporaire base de donnees",
+                        detail: "Echec de creation des transactions recurentes. Reessayez dans quelques secondes.",
+                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+            }
+
+            return Results.Ok(new { count = planned.Count });
+        });
+
+        group.MapPost("/repayment-plan", async (RepaymentPlanDto dto, IServiceScopeFactory scopeFactory, HttpContext ctx) =>
+        {
+            var userId = GetUserId(ctx);
+
+            using (var validationScope = scopeFactory.CreateScope())
+            {
+                var db = validationScope.ServiceProvider.GetRequiredService<SolverDbContext>();
+                var accountExists = await db.Accounts.AnyAsync(a => a.Id == dto.Transaction.AccountId && a.UserId == userId);
+                if (!accountExists) return Results.NotFound(new { error = "Account not found" });
+            }
+
+            if (dto.Repayment.TotalAmount <= 0 || dto.Repayment.MonthlyAmount <= 0)
+            {
+                return Results.BadRequest(new { error = "TotalAmount and MonthlyAmount must be > 0" });
+            }
+
+            var planned = RecurrenceService.GenerateRepaymentPlan(dto, userId)
+                .Select(t => new
+                {
+                    t.Id,
+                    t.AccountId,
+                    t.UserId,
+                    t.Date,
+                    t.Amount,
+                    t.Note,
+                    t.Status,
+                    t.IsAuto,
+                    t.CreatedAt,
+                })
+                .ToList();
+
+            if (planned.Count == 0)
+            {
+                return Results.BadRequest(new { error = "No repayment transactions generated" });
+            }
+
+            foreach (var seed in planned)
+            {
+                var saved = false;
+
+                for (var attempt = 1; attempt <= 3; attempt++)
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
+
+                    db.Transactions.Add(new Transaction
+                    {
+                        Id = seed.Id,
+                        AccountId = seed.AccountId,
+                        UserId = seed.UserId,
+                        Date = seed.Date,
+                        Amount = seed.Amount,
+                        Note = seed.Note,
+                        Status = seed.Status,
+                        IsAuto = seed.IsAuto,
+                        CreatedAt = seed.CreatedAt
+                    });
+
+                    try
+                    {
+                        await db.SaveChangesAsync();
+                        saved = true;
+                        break;
+                    }
+                    catch (DbUpdateException ex) when (IsNpgsqlDisposedConnector(ex))
+                    {
+                        if (attempt < 3)
+                        {
+                            await Task.Delay(120);
+                            continue;
+                        }
+
+                        return Results.Problem(
+                            title: "Erreur temporaire base de donnees",
+                            detail: "Echec de creation du plan de remboursement. Reessayez dans quelques secondes.",
+                            statusCode: StatusCodes.Status503ServiceUnavailable);
+                    }
+                }
+
+                if (!saved)
+                {
+                    return Results.Problem(
+                        title: "Erreur temporaire base de donnees",
+                        detail: "Echec de creation du plan de remboursement. Reessayez dans quelques secondes.",
+                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+            }
+
+            var endDate = planned[^1].Date;
+            var lastAmount = planned[^1].Amount;
+            var totalAmount = planned.Sum(t => t.Amount);
+            return Results.Ok(new { count = planned.Count, endDate, lastAmount, totalAmount });
         });
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateTransactionDto dto, SolverDbContext db, HttpContext ctx) =>
@@ -171,6 +414,13 @@ public static class TransactionsEndpoints
             await db.SaveChangesAsync();
             return Results.NoContent();
         });
+    }
+
+    private static bool IsNpgsqlDisposedConnector(DbUpdateException ex)
+    {
+        if (ex.InnerException is not ObjectDisposedException disposed) return false;
+        return string.Equals(disposed.ObjectName, "System.Threading.ManualResetEventSlim", StringComparison.Ordinal)
+            || string.Equals(disposed.ObjectName, "Npgsql.NpgsqlConnection", StringComparison.Ordinal);
     }
 
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;

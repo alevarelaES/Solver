@@ -1,0 +1,239 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/schedule/providers/schedule_provider.dart';
+import 'package:solver/features/transactions/models/transaction.dart';
+import 'package:solver/shared/widgets/glass_container.dart';
+
+class PendingInvoicesSection extends ConsumerStatefulWidget {
+  const PendingInvoicesSection({super.key});
+
+  @override
+  ConsumerState<PendingInvoicesSection> createState() =>
+      _PendingInvoicesSectionState();
+}
+
+class _PendingInvoicesSectionState
+    extends ConsumerState<PendingInvoicesSection> {
+  bool _showAll = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final upcomingAsync = ref.watch(upcomingTransactionsProvider);
+
+    return GlassContainer(
+      padding: AppSpacing.paddingCardCompact,
+      child: upcomingAsync.when(
+        loading: () => const SizedBox(
+          height: 180,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (_, _) => const SizedBox(
+          height: 120,
+          child: Center(
+            child: Text(
+              'Impossible de charger les factures',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ),
+        data: (data) {
+          final source = _showAll
+              ? [...data.manual, ...data.auto]
+              : data.manual;
+          final invoices = source.where((t) {
+            if (t.amount <= 0) return false;
+            final days = _daysUntil(t.date);
+            // Keep overdue bills, and upcoming bills due in the next 30 days.
+            return days <= 30;
+          }).toList()..sort(_compareByPriority);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Factures a traiter',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _showAll = !_showAll),
+                    style: TextButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      _showAll ? 'Manuelles' : 'Tout afficher',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                invoices.isEmpty
+                    ? 'Aucune facture en attente'
+                    : '${invoices.length} facture${invoices.length > 1 ? 's' : ''} a traiter (retards inclus)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (invoices.isEmpty)
+                const SizedBox(
+                  height: 140,
+                  child: Center(
+                    child: Text(
+                      'Rien a traiter pour le moment',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 200),
+                  child: Column(
+                    children: invoices.take(6).map((t) {
+                      final days = _daysUntil(t.date);
+                      final color = _priorityColor(days);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.xs,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.accountName ?? 'Facture',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_priorityLabel(days)} - ${_daysLabel(days)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Echeance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              AppFormats.currencyCompact.format(t.amount),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  int _compareByPriority(Transaction a, Transaction b) {
+    final dayDiff = _daysUntil(a.date).compareTo(_daysUntil(b.date));
+    if (dayDiff != 0) return dayDiff;
+    return b.amount.compareTo(a.amount);
+  }
+
+  int _daysUntil(DateTime date) {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final due = DateUtils.dateOnly(date);
+    return due.difference(today).inDays;
+  }
+
+  Color _priorityColor(int days) {
+    if (days <= -14) return const Color(0xFF7F1D1D);
+    if (days <= -7) return const Color(0xFFB91C1C);
+    if (days <= -1) return AppColors.danger;
+    if (days == 0) return const Color(0xFFEA580C);
+    if (days <= 3) return AppColors.warning;
+    if (days <= 7) return const Color(0xFFEAB308);
+    if (days <= 14) return const Color(0xFF84CC16);
+    return AppColors.primary;
+  }
+
+  String _priorityLabel(int days) {
+    if (days <= 0) return 'Urgent';
+    if (days <= 3) return 'Tres urgent';
+    if (days <= 10) return 'Prioritaire';
+    return 'A venir';
+  }
+
+  String _daysLabel(int days) {
+    if (days < 0) {
+      final late = days.abs();
+      return 'En retard de $late jour${late > 1 ? 's' : ''}';
+    }
+    if (days == 0) return 'Echeance aujourd hui';
+    if (days == 1) return 'Dans 1 jour';
+    return 'Dans $days jours';
+  }
+}

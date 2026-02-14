@@ -3,10 +3,24 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/spreadsheet/providers/spreadsheet_provider.dart';
 
-const _monthHeaders = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+const _monthHeaders = [
+  'Jan',
+  'Fév',
+  'Mar',
+  'Avr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Aoû',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Déc',
+];
 final _numFmt = NumberFormat('#,##0', 'fr_CH');
 
 class SpreadsheetView extends ConsumerStatefulWidget {
@@ -27,10 +41,16 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentYear = DateTime.now().year;
 
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final mutedColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final mutedColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
 
     return Column(
       children: [
@@ -45,45 +65,68 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
           child: Row(
             children: [
               // Title
-              Text('Strategic Plan', style: TextStyle(color: mutedColor, fontSize: 14)),
-              Text('  /  ', style: TextStyle(color: mutedColor.withValues(alpha: 0.5))),
-              Text('$year Annual Forecast',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  )),
+              Text(
+                'Strategic Plan',
+                style: TextStyle(color: mutedColor, fontSize: 14),
+              ),
+              Text(
+                '  /  ',
+                style: TextStyle(color: mutedColor.withValues(alpha: 0.5)),
+              ),
+              Text(
+                '$year Annual Forecast',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: Text('v1.0 Draft',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.primary)),
+                child: Text(
+                  'v1.0 Draft',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
               const Spacer(),
               // Year nav
               IconButton(
                 icon: const Icon(Icons.chevron_left, size: 20),
                 onPressed: year > currentYear - 5
-                    ? () => ref.read(spreadsheetYearProvider.notifier).state = year - 1
+                    ? () => ref.read(spreadsheetYearProvider.notifier).state =
+                          year - 1
                     : null,
                 splashRadius: 18,
               ),
-              Text('$year', style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+              Text(
+                '$year',
+                style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
+              ),
               IconButton(
                 icon: const Icon(Icons.chevron_right, size: 20),
                 onPressed: year < currentYear + 1
-                    ? () => ref.read(spreadsheetYearProvider.notifier).state = year + 1
+                    ? () => ref.read(spreadsheetYearProvider.notifier).state =
+                          year + 1
                     : null,
                 splashRadius: 18,
               ),
               const SizedBox(width: 8),
-              Text('Last autosave: 2 min ago',
-                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              Text(
+                'Last autosave: 2 min ago',
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
             ],
           ),
         ),
@@ -101,11 +144,28 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
               _ToolbarButton(icon: Icons.undo, onTap: () {}),
               _ToolbarButton(icon: Icons.redo, onTap: () {}),
               _ToolbarDivider(color: borderColor),
-              Text('100%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: mutedColor)),
+              Text(
+                '100%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: mutedColor,
+                ),
+              ),
               _ToolbarDivider(color: borderColor),
-              Text('CHF', style: GoogleFonts.robotoMono(fontSize: 11, color: mutedColor)),
+              Text(
+                AppFormats.currencyCode,
+                style: GoogleFonts.robotoMono(fontSize: 11, color: mutedColor),
+              ),
               _ToolbarDivider(color: borderColor),
-              Text('Formula: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.primary)),
+              Text(
+                'Formula: ',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.primary,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -116,7 +176,10 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                   _selectedCellId != null && _selectedMonth != null
                       ? 'Cell(${_selectedCellId!}, ${_monthHeaders[_selectedMonth!]})'
                       : 'SUM(row)',
-                  style: GoogleFonts.robotoMono(fontSize: 11, color: mutedColor),
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 11,
+                    color: mutedColor,
+                  ),
                 ),
               ),
             ],
@@ -133,14 +196,33 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
               border: Border.all(color: borderColor),
               boxShadow: isDark
                   ? null
-                  : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                      ),
+                    ],
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
-                Expanded(child: _buildTable(data, isDark, surfaceColor, borderColor, textColor, mutedColor)),
+                Expanded(
+                  child: _buildTable(
+                    data,
+                    isDark,
+                    surfaceColor,
+                    borderColor,
+                    textColor,
+                    mutedColor,
+                  ),
+                ),
                 // ── Footer status bar ─────────────────────────────────
-                _StatusBar(data: data, borderColor: borderColor, mutedColor: mutedColor, isDark: isDark),
+                _StatusBar(
+                  data: data,
+                  borderColor: borderColor,
+                  mutedColor: mutedColor,
+                  isDark: isDark,
+                ),
               ],
             ),
           ),
@@ -162,10 +244,18 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
     const cellWidth = 100.0;
     const totalWidth = 110.0;
 
-    final headerBg = isDark ? AppColors.primaryDarker.withValues(alpha: 0.3) : const Color(0xFFF9FAFB);
-    final sectionBg = isDark ? AppColors.primaryDarker.withValues(alpha: 0.2) : const Color(0xFFF9FAFB);
-    final totalRowBg = AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.15);
-    final totalColBg = AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.05);
+    final headerBg = isDark
+        ? AppColors.primaryDarker.withValues(alpha: 0.3)
+        : const Color(0xFFF9FAFB);
+    final sectionBg = isDark
+        ? AppColors.primaryDarker.withValues(alpha: 0.2)
+        : const Color(0xFFF9FAFB);
+    final totalRowBg = AppColors.primary.withValues(
+      alpha: isDark ? 0.25 : 0.15,
+    );
+    final totalColBg = AppColors.primary.withValues(
+      alpha: isDark ? 0.15 : 0.05,
+    );
 
     // Sections in display order
     final sections = [
@@ -199,12 +289,15 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                         isDark: isDark,
                         borderColor: borderColor,
                       ),
-                      ...List.generate(12, (i) => _HeaderCell(
-                        text: _monthHeaders[i],
-                        width: cellWidth,
-                        isDark: isDark,
-                        borderColor: borderColor,
-                      )),
+                      ...List.generate(
+                        12,
+                        (i) => _HeaderCell(
+                          text: _monthHeaders[i],
+                          width: cellWidth,
+                          isDark: isDark,
+                          borderColor: borderColor,
+                        ),
+                      ),
                       _HeaderCell(
                         text: 'Total',
                         width: totalWidth,
@@ -220,7 +313,8 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                 Expanded(
                   child: ListView(
                     children: [
-                      for (final (sectionType, sectionLabel, sectionColor) in sections) ...[
+                      for (final (sectionType, sectionLabel, sectionColor)
+                          in sections) ...[
                         // Section header
                         _SectionHeaderRow(
                           label: sectionLabel,
@@ -253,7 +347,9 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                               _selectedMonth = month;
                             }),
                             onCellEdit: (rowId, month, value) {
-                              ref.read(spreadsheetDataProvider.notifier).updateCell(rowId, month, value);
+                              ref
+                                  .read(spreadsheetDataProvider.notifier)
+                                  .updateCell(rowId, month, value);
                             },
                           ),
                         // Section total row
@@ -319,7 +415,9 @@ class _HeaderCell extends StatelessWidget {
         color: isPrimary
             ? AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.05)
             : null,
-        border: Border(right: BorderSide(color: borderColor.withValues(alpha: 0.5))),
+        border: Border(
+          right: BorderSide(color: borderColor.withValues(alpha: 0.5)),
+        ),
       ),
       alignment: alignment,
       child: Text(
@@ -329,7 +427,9 @@ class _HeaderCell extends StatelessWidget {
           fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
           color: isPrimary
               ? AppColors.primary
-              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              : (isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight),
           letterSpacing: 0.8,
         ),
       ),
@@ -382,7 +482,10 @@ class _SectionHeaderRow extends StatelessWidget {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -444,7 +547,9 @@ class _DataRow extends StatelessWidget {
       height: 38,
       decoration: BoxDecoration(
         color: surfaceColor,
-        border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.5))),
+        border: Border(
+          bottom: BorderSide(color: borderColor.withValues(alpha: 0.5)),
+        ),
       ),
       child: Row(
         children: [
@@ -462,7 +567,9 @@ class _DataRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.textSecondaryDark : const Color(0xFF4B5563),
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : const Color(0xFF4B5563),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -553,7 +660,9 @@ class _EditableCellState extends State<_EditableCell> {
   }
 
   void _submit() {
-    final raw = _ctrl.text.replaceAll(RegExp(r"[^0-9.,\-]"), '').replaceAll("'", '');
+    final raw = _ctrl.text
+        .replaceAll(RegExp(r"[^0-9.,\-]"), '')
+        .replaceAll("'", '');
     final parsed = double.tryParse(raw.replaceAll(',', '.'));
     if (parsed != null) {
       widget.onSubmit(parsed);
@@ -591,14 +700,21 @@ class _EditableCellState extends State<_EditableCell> {
                 ),
                 decoration: const InputDecoration(
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
+                  ),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   filled: false,
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\-]'))],
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,\-]')),
+                ],
                 onSubmitted: (_) => _submit(),
                 onTapOutside: (_) => _submit(),
               )
@@ -645,7 +761,9 @@ class _TotalRow extends StatelessWidget {
       height: 38,
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border(bottom: BorderSide(color: AppColors.primary.withValues(alpha: 0.3))),
+        border: Border(
+          bottom: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
       ),
       child: Row(
         children: [
@@ -654,30 +772,45 @@ class _TotalRow extends StatelessWidget {
             padding: const EdgeInsets.only(left: 36, right: 12),
             decoration: BoxDecoration(
               color: bgColor,
-              border: Border(right: BorderSide(color: AppColors.primary.withValues(alpha: 0.3))),
+              border: Border(
+                right: BorderSide(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
             ),
             alignment: Alignment.centerLeft,
             child: Text(
               label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textColor),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
             ),
           ),
-          ...List.generate(12, (m) => Container(
-                width: cellWidth,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  border: Border(right: BorderSide(color: AppColors.primary.withValues(alpha: 0.2))),
-                ),
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _numFmt.format(totals[m]),
-                  style: GoogleFonts.robotoMono(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
+          ...List.generate(
+            12,
+            (m) => Container(
+              width: cellWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.2),
                   ),
                 ),
-              )),
+              ),
+              alignment: Alignment.centerRight,
+              child: Text(
+                _numFmt.format(totals[m]),
+                style: GoogleFonts.robotoMono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ),
           Container(
             width: totalWidth,
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -725,7 +858,11 @@ class _NetCashFlowRow extends StatelessWidget {
             width: catWidth,
             padding: const EdgeInsets.only(left: 16, right: 12),
             decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: AppColors.primaryDarker.withValues(alpha: 0.5))),
+              border: Border(
+                right: BorderSide(
+                  color: AppColors.primaryDarker.withValues(alpha: 0.5),
+                ),
+              ),
             ),
             alignment: Alignment.centerLeft,
             child: Text(
@@ -737,22 +874,27 @@ class _NetCashFlowRow extends StatelessWidget {
               ),
             ),
           ),
-          ...List.generate(12, (m) => Container(
-                width: cellWidth,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+          ...List.generate(
+            12,
+            (m) => Container(
+              width: cellWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                 ),
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _numFmt.format(monthValues[m]),
-                  style: GoogleFonts.robotoMono(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+              ),
+              alignment: Alignment.centerRight,
+              child: Text(
+                _numFmt.format(monthValues[m]),
+                style: GoogleFonts.robotoMono(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
-              )),
+              ),
+            ),
+          ),
           Container(
             width: totalWidth,
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -787,9 +929,13 @@ class _ToolbarButton extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(icon,
-            size: 16,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+        child: Icon(
+          icon,
+          size: 16,
+          color: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
+        ),
       ),
     );
   }
@@ -834,7 +980,9 @@ class _StatusBar extends StatelessWidget {
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.primaryDarker.withValues(alpha: 0.2) : const Color(0xFFF9FAFB),
+        color: isDark
+            ? AppColors.primaryDarker.withValues(alpha: 0.2)
+            : const Color(0xFFF9FAFB),
         border: Border(top: BorderSide(color: borderColor)),
       ),
       child: Row(
@@ -845,27 +993,38 @@ class _StatusBar extends StatelessWidget {
               Container(
                 width: 7,
                 height: 7,
-                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 6),
               Text('Online', style: TextStyle(fontSize: 11, color: mutedColor)),
               const SizedBox(width: 20),
-              Text('Sheet: Annual${data.year}',
-                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              Text(
+                'Sheet: Annual${data.year}',
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
             ],
           ),
           const Spacer(),
           // Right side
           Row(
             children: [
-              Text('Sum: ${_numFmt.format(cashFlow)}',
-                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              Text(
+                'Sum: ${_numFmt.format(cashFlow)}',
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
               const SizedBox(width: 20),
-              Text('Count: $count',
-                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              Text(
+                'Count: $count',
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
               const SizedBox(width: 20),
-              Text('Avg: ${_numFmt.format(avg)}',
-                  style: TextStyle(fontSize: 11, color: mutedColor)),
+              Text(
+                'Avg: ${_numFmt.format(avg)}',
+                style: TextStyle(fontSize: 11, color: mutedColor),
+              ),
             ],
           ),
         ],
