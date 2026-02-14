@@ -12,7 +12,8 @@ public class SupabaseAuthMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.StartsWithSegments("/health"))
+        if (context.Request.Path.StartsWithSegments("/health")
+            || context.Request.Method == HttpMethods.Options)
         {
             await next(context);
             return;

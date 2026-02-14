@@ -35,7 +35,10 @@
       "Bash(dir:*)",
       "Bash(Get-ChildItem -Recurse \"C:\\\\Users\\\\avarela\\\\Projets\\\\solver\\\\Stitch maquete\")",
       "Bash(Select-Object FullName)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(cmd /c npx -y supabase-mcp-server)",
+      "mcp__supabase__list_projects",
+      "Bash(flutter pub add:*)"
     ]
   }
 }

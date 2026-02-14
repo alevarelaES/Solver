@@ -50,9 +50,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Health check (no auth required)
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
 // HTTPS redirect in production
 if (!app.Environment.IsDevelopment())
 {
@@ -61,10 +58,12 @@ if (!app.Environment.IsDevelopment())
 
 // Pipeline order matters
 app.UseResponseCompression();
+app.UseRouting();
 app.UseCors();
 app.UseMiddleware<SupabaseAuthMiddleware>();
 
 // Endpoints
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapAccountsEndpoints();
 app.MapTransactionsEndpoints();
 app.MapDashboardEndpoints();
