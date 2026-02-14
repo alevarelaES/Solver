@@ -23,14 +23,13 @@ class JournalFilters {
     int? year,
     Object? month = _sentinel,
     bool? showFuture,
-  }) =>
-      JournalFilters(
-        accountId: accountId == _sentinel ? this.accountId : accountId as String?,
-        status: status == _sentinel ? this.status : status as String?,
-        year: year ?? this.year,
-        month: month == _sentinel ? this.month : month as int?,
-        showFuture: showFuture ?? this.showFuture,
-      );
+  }) => JournalFilters(
+    accountId: accountId == _sentinel ? this.accountId : accountId as String?,
+    status: status == _sentinel ? this.status : status as String?,
+    year: year ?? this.year,
+    month: month == _sentinel ? this.month : month as int?,
+    showFuture: showFuture ?? this.showFuture,
+  );
 }
 
 const _sentinel = Object();
@@ -39,18 +38,23 @@ final journalFiltersProvider = StateProvider<JournalFilters>(
   (ref) => JournalFilters(year: DateTime.now().year),
 );
 
-final journalTransactionsProvider = FutureProvider.autoDispose<List<Transaction>>((ref) async {
+final _journalQueryScopeProvider = Provider<({int year, bool showFuture})>((ref) {
   final filters = ref.watch(journalFiltersProvider);
+  return (year: filters.year, showFuture: filters.showFuture);
+});
+
+final journalTransactionsProvider = FutureProvider<List<Transaction>>((
+  ref,
+) async {
+  final scope = ref.watch(_journalQueryScopeProvider);
   final client = ref.watch(apiClientProvider);
 
   final params = <String, dynamic>{
-    'year': filters.year,
-    'showFuture': filters.showFuture,
-    'pageSize': 100,
+    'year': scope.year,
+    'showFuture': scope.showFuture,
+    // Big enough to apply account/month/status filters locally without refetch.
+    'pageSize': 2000,
   };
-  if (filters.accountId != null) params['accountId'] = filters.accountId;
-  if (filters.status != null) params['status'] = filters.status;
-  if (filters.month != null) params['month'] = filters.month;
 
   final response = await client.get<Map<String, dynamic>>(
     '/api/transactions',
