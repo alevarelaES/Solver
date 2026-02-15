@@ -4,6 +4,7 @@ import 'package:solver/core/services/api_client.dart';
 class SavingGoal {
   final String id;
   final String name;
+  final String goalType;
   final double targetAmount;
   final DateTime targetDate;
   final double initialAmount;
@@ -21,6 +22,7 @@ class SavingGoal {
   const SavingGoal({
     required this.id,
     required this.name,
+    required this.goalType,
     required this.targetAmount,
     required this.targetDate,
     required this.initialAmount,
@@ -39,6 +41,7 @@ class SavingGoal {
   factory SavingGoal.fromJson(Map<String, dynamic> json) => SavingGoal(
     id: json['id'] as String,
     name: json['name'] as String,
+    goalType: (json['goalType'] as String?) ?? 'savings',
     targetAmount: (json['targetAmount'] as num).toDouble(),
     targetDate: DateTime.parse(json['targetDate'] as String),
     initialAmount: (json['initialAmount'] as num).toDouble(),
@@ -112,6 +115,7 @@ class GoalsApi {
 
   Future<void> createGoal({
     required String name,
+    required String goalType,
     required double targetAmount,
     required DateTime targetDate,
     required double initialAmount,
@@ -122,6 +126,7 @@ class GoalsApi {
       '/api/goals',
       data: {
         'name': name,
+        'goalType': goalType,
         'targetAmount': targetAmount,
         'targetDate': _formatDateOnly(targetDate),
         'initialAmount': initialAmount,
@@ -134,6 +139,7 @@ class GoalsApi {
   Future<void> updateGoal({
     required String id,
     required String name,
+    required String goalType,
     required double targetAmount,
     required DateTime targetDate,
     required double initialAmount,
@@ -144,6 +150,7 @@ class GoalsApi {
       '/api/goals/$id',
       data: {
         'name': name,
+        'goalType': goalType,
         'targetAmount': targetAmount,
         'targetDate': _formatDateOnly(targetDate),
         'initialAmount': initialAmount,

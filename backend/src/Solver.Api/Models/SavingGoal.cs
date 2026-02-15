@@ -5,6 +5,7 @@ public class SavingGoal
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public SavingGoalType GoalType { get; set; } = SavingGoalType.Savings;
     public decimal TargetAmount { get; set; }
     public DateOnly TargetDate { get; set; }
     public decimal InitialAmount { get; set; }
@@ -17,3 +18,8 @@ public class SavingGoal
     public ICollection<SavingGoalEntry> Entries { get; set; } = [];
 }
 
+public enum SavingGoalType
+{
+    Savings,
+    Debt
+}

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
-import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
 final _viewModeProvider = StateProvider<bool>(
@@ -91,34 +90,10 @@ DateTime _shiftMonth(DateTime d, int delta) =>
 double _parseNumber(String raw) =>
     double.tryParse(raw.replaceAll(' ', '').replaceAll(',', '.')) ?? 0.0;
 
-String _statusLabel(String status) {
-  switch (status) {
-    case 'achieved':
-      return 'Atteint';
-    case 'on_track':
-      return 'Sur trajectoire';
-    case 'behind':
-      return 'En retard';
-    case 'overdue':
-      return 'Depasse';
-    default:
-      return status;
-  }
-}
-
-Color _statusColor(String status) {
-  switch (status) {
-    case 'achieved':
-      return AppColors.primary;
-    case 'on_track':
-      return const Color(0xFF15803D);
-    case 'behind':
-      return const Color(0xFFB45309);
-    case 'overdue':
-      return AppColors.danger;
-    default:
-      return AppColors.textSecondary;
-  }
+String _editableInputValue(double value, {int maxDecimals = 1}) {
+  if (value.abs() < 0.000001) return '';
+  final text = value.toStringAsFixed(maxDecimals);
+  return text.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
 class BudgetView extends ConsumerStatefulWidget {
@@ -339,361 +314,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     );
   }
 
-  Future<void> _showGoalEditor({SavingGoal? goal}) async {
-    final nameCtrl = TextEditingController(text: goal?.name ?? '');
-    final targetCtrl = TextEditingController(
-      text: goal == null ? '' : goal.targetAmount.toStringAsFixed(0),
-    );
-    final initialCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.initialAmount.toStringAsFixed(0),
-    );
-    final monthlyCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.monthlyContribution.toStringAsFixed(0),
-    );
-    final priorityCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.priority.toString(),
-    );
-    DateTime targetDate =
-        goal?.targetDate ?? DateTime.now().add(const Duration(days: 365));
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setLocalState) => AlertDialog(
-          title: Text(goal == null ? 'Nouvel objectif' : 'Modifier objectif'),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 460,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Nom'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: targetCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Montant cible (${AppFormats.currencyCode})',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: initialCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Montant initial (${AppFormats.currencyCode})',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: monthlyCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText:
-                          'Contribution mensuelle (${AppFormats.currencyCode})',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: priorityCtrl,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Priorite (0 = plus prioritaire)',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Text(
-                        'Date cible',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: targetDate,
-                            firstDate: DateTime(2020, 1, 1),
-                            lastDate: DateTime(2100, 12, 31),
-                          );
-                          if (picked != null) {
-                            setLocalState(() => targetDate = picked);
-                          }
-                        },
-                        child: Text(
-                          '${targetDate.day.toString().padLeft(2, '0')}.${targetDate.month.toString().padLeft(2, '0')}.${targetDate.year}',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sauvegarder'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final api = ref.read(goalsApiProvider);
-      if (goal == null) {
-        await api.createGoal(
-          name: nameCtrl.text.trim(),
-          targetAmount: _parseNumber(targetCtrl.text),
-          targetDate: targetDate,
-          initialAmount: _parseNumber(initialCtrl.text),
-          monthlyContribution: _parseNumber(monthlyCtrl.text),
-          priority: int.tryParse(priorityCtrl.text),
-        );
-      } else {
-        await api.updateGoal(
-          id: goal.id,
-          name: nameCtrl.text.trim(),
-          targetAmount: _parseNumber(targetCtrl.text),
-          targetDate: targetDate,
-          initialAmount: _parseNumber(initialCtrl.text),
-          monthlyContribution: _parseNumber(monthlyCtrl.text),
-          priority: int.tryParse(priorityCtrl.text) ?? goal.priority,
-        );
-      }
-      ref.invalidate(goalsProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Objectif enregistre')));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur de sauvegarde objectif')),
-        );
-      }
-    }
-  }
-
-  Future<void> _showGoalEntryEditor(SavingGoal goal) async {
-    final amountCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    var isDeposit = true;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setLocalState) => AlertDialog(
-          title: Text('Mouvement - ${goal.name}'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('Depot'),
-                        selected: isDeposit,
-                        onSelected: (_) =>
-                            setLocalState(() => isDeposit = true),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('Retrait'),
-                        selected: !isDeposit,
-                        onSelected: (_) =>
-                            setLocalState(() => isDeposit = false),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: 'Montant (${AppFormats.currencyCode})',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Note (optionnel)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Valider'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final amount = _parseNumber(amountCtrl.text);
-      if (amount <= 0) return;
-      final signed = isDeposit ? amount : -amount;
-      await ref
-          .read(goalsApiProvider)
-          .addEntry(
-            goalId: goal.id,
-            amount: signed,
-            note: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
-          );
-      ref.invalidate(goalsProvider);
-      ref.invalidate(goalEntriesProvider(goal.id));
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Mouvement enregistre')));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Erreur de mouvement')));
-      }
-    }
-  }
-
-  Future<void> _showGoalHistory(SavingGoal goal) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: SizedBox(
-          width: 720,
-          height: 520,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Historique - ${goal.name}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Fermer'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final asyncEntries = ref.watch(
-                        goalEntriesProvider(goal.id),
-                      );
-                      return asyncEntries.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Erreur: $e')),
-                        data: (entries) {
-                          if (entries.isEmpty) {
-                            return const Center(
-                              child: Text('Aucun mouvement pour cet objectif.'),
-                            );
-                          }
-                          return ListView.separated(
-                            itemCount: entries.length,
-                            separatorBuilder: (_, i) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final entry = entries[index];
-                              final isPositive = entry.amount >= 0;
-                              return ListTile(
-                                dense: true,
-                                title: Text(
-                                  '${entry.entryDate.day.toString().padLeft(2, '0')}.${entry.entryDate.month.toString().padLeft(2, '0')}.${entry.entryDate.year}',
-                                ),
-                                subtitle: Text(
-                                  entry.note ??
-                                      (entry.isAuto ? 'Auto' : 'Manuel'),
-                                ),
-                                trailing: Text(
-                                  '${isPositive ? '+' : '-'} ${AppFormats.currencyCompact.format(entry.amount.abs())}',
-                                  style: TextStyle(
-                                    color: isPositive
-                                        ? AppColors.primary
-                                        : AppColors.danger,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final selectedMonth = ref.watch(selectedBudgetMonthProvider);
@@ -702,7 +322,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
       month: selectedMonth.month,
     );
     final statsAsync = ref.watch(budgetStatsProvider(monthKey));
-    final goalsAsync = ref.watch(goalsProvider);
     final isCards = ref.watch(_viewModeProvider);
 
     return statsAsync.when(
@@ -744,13 +363,15 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                   ),
                   const SizedBox(height: 12),
                   _PlannerHero(
+                    inputVersion:
+                        _draftToken ??
+                        '${stats.selectedYear}-${stats.selectedMonth}',
                     disposable: disposable.toDouble(),
                     totalPercent: totals.totalPercent,
                     totalAmount: totals.totalAmount,
                     remainingPercent: totals.remainingPercent,
                     remainingAmount: totals.remainingAmount,
                     averageIncome: stats.averageIncome,
-                    fixedExpenses: stats.fixedExpensesTotal,
                     copiedFrom: stats.budgetPlan.copiedFrom,
                     onDisposableChanged: (raw) {
                       setState(() {
@@ -829,33 +450,24 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                   const SizedBox(height: 14),
                   if (isCards)
                     _CardsLayout(
+                      inputVersion:
+                          _draftToken ??
+                          '${stats.selectedYear}-${stats.selectedMonth}',
+                      disposableIncome: disposable.toDouble(),
                       rows: rows,
                       onModeChanged: _setGroupMode,
                       onValueChanged: _setGroupValue,
                     )
                   else
                     _ListLayout(
+                      inputVersion:
+                          _draftToken ??
+                          '${stats.selectedYear}-${stats.selectedMonth}',
+                      disposableIncome: disposable.toDouble(),
                       rows: rows,
                       onModeChanged: _setGroupMode,
                       onValueChanged: _setGroupValue,
                     ),
-                  const SizedBox(height: 24),
-                  _GoalsSection(
-                    goalsAsync: goalsAsync,
-                    onCreateGoal: () => _showGoalEditor(),
-                    onEditGoal: (goal) => _showGoalEditor(goal: goal),
-                    onAddEntry: _showGoalEntryEditor,
-                    onHistory: _showGoalHistory,
-                    onArchive: (goal) async {
-                      await ref
-                          .read(goalsApiProvider)
-                          .archiveGoal(
-                            id: goal.id,
-                            isArchived: !goal.isArchived,
-                          );
-                      ref.invalidate(goalsProvider);
-                    },
-                  ),
                 ],
               ),
             ),
@@ -933,24 +545,24 @@ class _PlannerTopBar extends StatelessWidget {
 }
 
 class _PlannerHero extends StatelessWidget {
+  final String inputVersion;
   final double disposable;
   final double totalPercent;
   final double totalAmount;
   final double remainingPercent;
   final double remainingAmount;
   final double averageIncome;
-  final double fixedExpenses;
   final BudgetPlanCopySource? copiedFrom;
   final ValueChanged<String> onDisposableChanged;
 
   const _PlannerHero({
+    required this.inputVersion,
     required this.disposable,
     required this.totalPercent,
     required this.totalAmount,
     required this.remainingPercent,
     required this.remainingAmount,
     required this.averageIncome,
-    required this.fixedExpenses,
     required this.copiedFrom,
     required this.onDisposableChanged,
   });
@@ -980,8 +592,8 @@ class _PlannerHero extends StatelessWidget {
               SizedBox(
                 width: 220,
                 child: TextFormField(
-                  key: ValueKey('disposable-${disposable.toStringAsFixed(2)}'),
-                  initialValue: disposable.toStringAsFixed(0),
+                  key: ValueKey('disposable-$inputVersion'),
+                  initialValue: _editableInputValue(disposable, maxDecimals: 0),
                   onChanged: onDisposableChanged,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -998,7 +610,7 @@ class _PlannerHero extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Text(
-                'Base moyenne: ${AppFormats.currencyCompact.format(averageIncome)} - fixes ${AppFormats.currencyCompact.format(fixedExpenses)}',
+                'Base moyenne 3 mois: ${AppFormats.currencyCompact.format(averageIncome)}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -1083,11 +695,15 @@ class _PlannerHero extends StatelessWidget {
 }
 
 class _CardsLayout extends StatelessWidget {
+  final String inputVersion;
+  final double disposableIncome;
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
 
   const _CardsLayout({
+    required this.inputVersion,
+    required this.disposableIncome,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -1108,6 +724,8 @@ class _CardsLayout extends StatelessWidget {
               SizedBox(
                 width: width,
                 child: _GroupCard(
+                  inputVersion: inputVersion,
+                  disposableIncome: disposableIncome,
                   row: row,
                   onModeChanged: onModeChanged,
                   onValueChanged: onValueChanged,
@@ -1121,11 +739,15 @@ class _CardsLayout extends StatelessWidget {
 }
 
 class _ListLayout extends StatelessWidget {
+  final String inputVersion;
+  final double disposableIncome;
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
 
   const _ListLayout({
+    required this.inputVersion,
+    required this.disposableIncome,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -1139,6 +761,8 @@ class _ListLayout extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(bottom: i == rows.length - 1 ? 0 : 10),
             child: _GroupCard(
+              inputVersion: inputVersion,
+              disposableIncome: disposableIncome,
               row: rows[i],
               compact: true,
               onModeChanged: onModeChanged,
@@ -1151,12 +775,16 @@ class _ListLayout extends StatelessWidget {
 }
 
 class _GroupCard extends StatelessWidget {
+  final String inputVersion;
+  final double disposableIncome;
   final _RenderedGroup row;
   final bool compact;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
 
   const _GroupCard({
+    required this.inputVersion,
+    required this.disposableIncome,
     required this.row,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -1169,6 +797,16 @@ class _GroupCard extends StatelessWidget {
         ? (row.group.spentActual / row.plannedAmount) * 100
         : 0.0;
     final cappedUsage = usagePct.clamp(0, 100);
+    final amountSliderMax = disposableIncome > 0
+        ? disposableIncome
+        : (row.plannedAmount > 0 ? row.plannedAmount : 100.0);
+    final sliderMax = row.draft.inputMode == 'amount' ? amountSliderMax : 100;
+    final safeSliderMax = sliderMax <= 0 ? 1.0 : sliderMax.toDouble();
+    final sliderValue =
+        (row.draft.inputMode == 'amount'
+                ? row.plannedAmount
+                : row.plannedPercent)
+            .clamp(0, safeSliderMax);
 
     return AppPanel(
       padding: EdgeInsets.symmetric(
@@ -1192,7 +830,7 @@ class _GroupCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '- ${AppFormats.currencyCompact.format(row.group.spentActual)} reel',
+                'Depense reelle: ${AppFormats.currencyCompact.format(row.group.spentActual)}',
                 style: const TextStyle(
                   color: AppColors.danger,
                   fontWeight: FontWeight.w900,
@@ -1210,6 +848,26 @@ class _GroupCard extends StatelessWidget {
               fontSize: 12,
             ),
           ),
+          if (row.group.autoPlannedAmount > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Auto detecte: ${AppFormats.currencyCompact.format(row.group.autoPlannedAmount)} (${row.group.autoPlannedPercent.toStringAsFixed(1)}%)',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            if (row.plannedAmount + 0.01 < row.group.autoPlannedAmount)
+              Text(
+                'Allocation trop basse pour couvrir l auto (${AppFormats.currencyCompact.format(row.group.autoPlannedAmount - row.plannedAmount)} manquant)',
+                style: const TextStyle(
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+          ],
           const SizedBox(height: 10),
           Row(
             children: [
@@ -1229,11 +887,11 @@ class _GroupCard extends StatelessWidget {
                 width: 140,
                 child: TextFormField(
                   key: ValueKey(
-                    '${row.group.groupId}-${row.draft.inputMode}-${row.draft.inputMode == 'amount' ? row.plannedAmount.toStringAsFixed(2) : row.plannedPercent.toStringAsFixed(2)}',
+                    '$inputVersion-${row.group.groupId}-${row.draft.inputMode}',
                   ),
                   initialValue: row.draft.inputMode == 'amount'
-                      ? row.plannedAmount.toStringAsFixed(0)
-                      : row.plannedPercent.toStringAsFixed(1),
+                      ? _editableInputValue(row.plannedAmount, maxDecimals: 0)
+                      : _editableInputValue(row.plannedPercent, maxDecimals: 1),
                   onChanged: (v) => onValueChanged(row, v),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -1243,6 +901,7 @@ class _GroupCard extends StatelessWidget {
                   ],
                   decoration: InputDecoration(
                     isDense: true,
+                    hintText: '0',
                     suffixText: row.draft.inputMode == 'amount'
                         ? AppFormats.currencyCode
                         : '%',
@@ -1257,6 +916,43 @@ class _GroupCard extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Slider(
+            value: sliderValue.toDouble(),
+            min: 0,
+            max: safeSliderMax,
+            onChanged: (value) {
+              onValueChanged(
+                row,
+                row.draft.inputMode == 'amount'
+                    ? value.toStringAsFixed(0)
+                    : value.toStringAsFixed(1),
+              );
+            },
+          ),
+          Row(
+            children: [
+              Text(
+                '0',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textDisabled,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                row.draft.inputMode == 'amount'
+                    ? AppFormats.currencyCompact.format(safeSliderMax)
+                    : '100%',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textDisabled,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -1296,250 +992,6 @@ class _GroupCard extends StatelessWidget {
                 usagePct >= 100 ? AppColors.danger : AppColors.primary,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GoalsSection extends StatelessWidget {
-  final AsyncValue<List<SavingGoal>> goalsAsync;
-  final VoidCallback onCreateGoal;
-  final void Function(SavingGoal goal) onEditGoal;
-  final void Function(SavingGoal goal) onAddEntry;
-  final void Function(SavingGoal goal) onHistory;
-  final void Function(SavingGoal goal) onArchive;
-
-  const _GoalsSection({
-    required this.goalsAsync,
-    required this.onCreateGoal,
-    required this.onEditGoal,
-    required this.onAddEntry,
-    required this.onHistory,
-    required this.onArchive,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AppPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      radius: AppRadius.r20,
-      borderColor: AppColors.borderSubtle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'OBJECTIFS D EPARGNE',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textDisabled,
-                  fontSize: 11,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: onCreateGoal,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Nouvel objectif'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          goalsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text(
-              'Erreur objectifs: $e',
-              style: const TextStyle(color: AppColors.danger),
-            ),
-            data: (goals) {
-              if (goals.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    'Aucun objectif pour le moment.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: [
-                  for (int i = 0; i < goals.length; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: i == goals.length - 1 ? 0 : 10,
-                      ),
-                      child: _GoalCard(
-                        goal: goals[i],
-                        onEdit: () => onEditGoal(goals[i]),
-                        onMove: () => onAddEntry(goals[i]),
-                        onHistory: () => onHistory(goals[i]),
-                        onArchive: () => onArchive(goals[i]),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GoalCard extends StatelessWidget {
-  final SavingGoal goal;
-  final VoidCallback onEdit;
-  final VoidCallback onMove;
-  final VoidCallback onHistory;
-  final VoidCallback onArchive;
-
-  const _GoalCard({
-    required this.goal,
-    required this.onEdit,
-    required this.onMove,
-    required this.onHistory,
-    required this.onArchive,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final statusColor = _statusColor(goal.status);
-    final progress = (goal.progressPercent / 100).clamp(0.0, 1.0);
-    final projected = goal.projectedDate;
-
-    return AppPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      radius: AppRadius.r16,
-      borderColor: AppColors.borderSubtle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  goal.name,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withAlpha(26),
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                child: Text(
-                  _statusLabel(goal.status),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                '${goal.progressPercent.toStringAsFixed(1)}% - ${AppFormats.currencyCompact.format(goal.currentAmount)} / ${AppFormats.currencyCompact.format(goal.targetAmount)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'Reste ${AppFormats.currencyCompact.format(goal.remainingAmount)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.danger,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.r8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            children: [
-              Text(
-                'Mensuel actuel: ${AppFormats.currencyCompact.format(goal.monthlyContribution)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                'Mensuel recommande: ${AppFormats.currencyCompact.format(goal.recommendedMonthly)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Mois restants: ${goal.monthsRemaining}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                projected == null
-                    ? 'Projection: non calculee'
-                    : 'Projection: ${projected.month.toString().padLeft(2, '0')}.${projected.year}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: onMove,
-                child: const Text('Depot/Retrait'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: onHistory,
-                child: const Text('Historique'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(onPressed: onEdit, child: const Text('Modifier')),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: onArchive,
-                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: Text(goal.isArchived ? 'Desarchiver' : 'Archiver'),
-              ),
-            ],
           ),
         ],
       ),

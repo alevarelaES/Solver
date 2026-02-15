@@ -83,6 +83,8 @@ class BudgetPlanGroup {
   final bool isFixedGroup;
   final List<BudgetPlanGroupCategory> categories;
   final double spentActual;
+  final double autoPlannedAmount;
+  final double autoPlannedPercent;
   final double plannedPercent;
   final double plannedAmount;
   final String inputMode;
@@ -95,30 +97,32 @@ class BudgetPlanGroup {
     required this.isFixedGroup,
     required this.categories,
     required this.spentActual,
+    required this.autoPlannedAmount,
+    required this.autoPlannedPercent,
     required this.plannedPercent,
     required this.plannedAmount,
     required this.inputMode,
     required this.priority,
   });
 
-  factory BudgetPlanGroup.fromJson(Map<String, dynamic> json) =>
-      BudgetPlanGroup(
-        groupId: json['groupId'] as String,
-        groupName: json['groupName'] as String,
-        sortOrder: json['sortOrder'] as int,
-        isFixedGroup: json['isFixedGroup'] as bool,
-        categories: (json['categories'] as List)
-            .map(
-              (c) =>
-                  BudgetPlanGroupCategory.fromJson(c as Map<String, dynamic>),
-            )
-            .toList(),
-        spentActual: (json['spentActual'] as num).toDouble(),
-        plannedPercent: (json['plannedPercent'] as num).toDouble(),
-        plannedAmount: (json['plannedAmount'] as num).toDouble(),
-        inputMode: (json['inputMode'] as String?) ?? 'percent',
-        priority: (json['priority'] as num?)?.toInt() ?? 0,
-      );
+  factory BudgetPlanGroup.fromJson(
+    Map<String, dynamic> json,
+  ) => BudgetPlanGroup(
+    groupId: json['groupId'] as String,
+    groupName: json['groupName'] as String,
+    sortOrder: json['sortOrder'] as int,
+    isFixedGroup: json['isFixedGroup'] as bool,
+    categories: (json['categories'] as List)
+        .map((c) => BudgetPlanGroupCategory.fromJson(c as Map<String, dynamic>))
+        .toList(),
+    spentActual: (json['spentActual'] as num).toDouble(),
+    autoPlannedAmount: (json['autoPlannedAmount'] as num?)?.toDouble() ?? 0,
+    autoPlannedPercent: (json['autoPlannedPercent'] as num?)?.toDouble() ?? 0,
+    plannedPercent: (json['plannedPercent'] as num).toDouble(),
+    plannedAmount: (json['plannedAmount'] as num).toDouble(),
+    inputMode: (json['inputMode'] as String?) ?? 'percent',
+    priority: (json['priority'] as num?)?.toInt() ?? 0,
+  );
 }
 
 class BudgetPlan {

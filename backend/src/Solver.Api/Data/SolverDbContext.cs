@@ -26,6 +26,9 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
         var transactionStatusConverter = new ValueConverter<TransactionStatus, string>(
             v => v.ToString().ToLowerInvariant(),
             v => Enum.Parse<TransactionStatus>(v, ignoreCase: true));
+        var savingGoalTypeConverter = new ValueConverter<SavingGoalType, string>(
+            v => v.ToString().ToLowerInvariant(),
+            v => Enum.Parse<SavingGoalType>(v, ignoreCase: true));
 
         modelBuilder.Entity<Account>(entity =>
         {
@@ -170,6 +173,7 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.GoalType).HasColumnName("goal_type").HasConversion(savingGoalTypeConverter);
             entity.Property(e => e.TargetAmount).HasColumnName("target_amount");
             entity.Property(e => e.TargetDate).HasColumnName("target_date");
             entity.Property(e => e.InitialAmount).HasColumnName("initial_amount");

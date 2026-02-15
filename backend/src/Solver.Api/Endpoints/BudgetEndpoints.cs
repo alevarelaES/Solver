@@ -45,6 +45,11 @@ public static class BudgetEndpoints
             .ToListAsync();
 
         var spendingMap = await GetSpentByAccountAsync(db, userId, selectedYear, selectedMonth);
+        var autoPendingByGroup = await GetAutoPendingByGroupAsync(
+            db,
+            userId,
+            selectedYear,
+            selectedMonth);
 
         var currentMonthSpending = expenseAccounts.Select(a =>
         {
@@ -96,6 +101,16 @@ public static class BudgetEndpoints
             var categories = categoriesByGroup.GetValueOrDefault(g.Id) ?? [];
             var spentActual = categories.Sum(c => c.spent);
             var alloc = allocationByGroupId.GetValueOrDefault(g.Id);
+            var autoPlannedAmount = autoPendingByGroup.GetValueOrDefault(g.Id, 0m);
+            var autoPlannedPercent = planMonth.ForecastDisposableIncome > 0
+                ? autoPlannedAmount / planMonth.ForecastDisposableIncome * 100m
+                : 0m;
+            var plannedAmount = alloc?.PlannedAmount ?? autoPlannedAmount;
+            var plannedPercent = alloc?.PlannedPercent
+                ?? (planMonth.ForecastDisposableIncome > 0
+                    ? plannedAmount / planMonth.ForecastDisposableIncome * 100m
+                    : 0m);
+            var inputMode = alloc?.InputMode ?? (autoPlannedAmount > 0 ? "amount" : "percent");
             return new
             {
                 groupId = g.Id,
@@ -104,9 +119,11 @@ public static class BudgetEndpoints
                 isFixedGroup = categories.Count > 0 && categories.All(c => c.isFixed),
                 categories,
                 spentActual,
-                plannedPercent = alloc?.PlannedPercent ?? 0m,
-                plannedAmount = alloc?.PlannedAmount ?? 0m,
-                inputMode = alloc?.InputMode ?? "percent",
+                autoPlannedAmount = Math.Round(autoPlannedAmount, 2),
+                autoPlannedPercent = Math.Round(autoPlannedPercent, 4),
+                plannedPercent = Math.Round(plannedPercent, 4),
+                plannedAmount = Math.Round(plannedAmount, 2),
+                inputMode,
                 priority = alloc?.Priority ?? g.SortOrder
             };
         }).ToList();
@@ -383,6 +400,42 @@ public static class BudgetEndpoints
         return spentByAccount.ToDictionary(x => x.AccountId, x => x.Spent);
     }
 
+    private static async Task<Dictionary<Guid, decimal>> GetAutoPendingByGroupAsync(
+        SolverDbContext db,
+        Guid userId,
+        int year,
+        int month)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var isCurrentMonth = year == today.Year && month == today.Month;
+
+        var rows = await db.Transactions
+            .Where(t => t.UserId == userId
+                && t.Status == TransactionStatus.Pending
+                && t.IsAuto
+                && t.Date.Year == year
+                && t.Date.Month == month
+                && (!isCurrentMonth || t.Date >= today))
+            .Join(
+                db.Accounts.Where(a => a.Type == AccountType.Expense && a.GroupId.HasValue),
+                t => t.AccountId,
+                a => a.Id,
+                (t, a) => new
+                {
+                    GroupId = a.GroupId!.Value,
+                    t.Amount
+                })
+            .GroupBy(x => x.GroupId)
+            .Select(g => new
+            {
+                GroupId = g.Key,
+                Amount = g.Sum(x => x.Amount)
+            })
+            .ToListAsync();
+
+        return rows.ToDictionary(x => x.GroupId, x => x.Amount);
+    }
+
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;
 
     public sealed record UpsertBudgetPlanDto(
@@ -398,4 +451,3 @@ public static class BudgetEndpoints
         int? Priority
     );
 }
-

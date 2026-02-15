@@ -68,6 +68,7 @@ public static class GoalsEndpoints
             Id = Guid.NewGuid(),
             UserId = userId,
             Name = dto.Name.Trim(),
+            GoalType = ParseGoalType(dto.GoalType),
             TargetAmount = dto.TargetAmount,
             TargetDate = dto.TargetDate,
             InitialAmount = Math.Max(0m, dto.InitialAmount ?? 0m),
@@ -105,6 +106,7 @@ public static class GoalsEndpoints
         }
 
         goal.Name = dto.Name.Trim();
+        goal.GoalType = ParseGoalType(dto.GoalType);
         goal.TargetAmount = dto.TargetAmount;
         goal.TargetDate = dto.TargetDate;
         goal.InitialAmount = Math.Max(0m, dto.InitialAmount);
@@ -242,6 +244,7 @@ public static class GoalsEndpoints
         {
             id = goal.Id,
             name = goal.Name,
+            goalType = goal.GoalType.ToString().ToLowerInvariant(),
             targetAmount = goal.TargetAmount,
             targetDate = goal.TargetDate,
             initialAmount = goal.InitialAmount,
@@ -268,8 +271,21 @@ public static class GoalsEndpoints
 
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;
 
+    private static SavingGoalType ParseGoalType(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return SavingGoalType.Savings;
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "debt" => SavingGoalType.Debt,
+            "repayment" => SavingGoalType.Debt,
+            "remboursement" => SavingGoalType.Debt,
+            _ => SavingGoalType.Savings
+        };
+    }
+
     public sealed record CreateGoalDto(
         string Name,
+        string? GoalType,
         decimal TargetAmount,
         DateOnly TargetDate,
         decimal? InitialAmount,
@@ -279,6 +295,7 @@ public static class GoalsEndpoints
 
     public sealed record UpdateGoalDto(
         string Name,
+        string? GoalType,
         decimal TargetAmount,
         DateOnly TargetDate,
         decimal InitialAmount,
@@ -295,4 +312,3 @@ public static class GoalsEndpoints
         bool? IsAuto
     );
 }
-

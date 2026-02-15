@@ -159,6 +159,7 @@ using (var scope = app.Services.CreateScope())
             id uuid PRIMARY KEY,
             user_id uuid NOT NULL,
             name text NOT NULL,
+            goal_type text NOT NULL DEFAULT 'savings',
             target_amount numeric(14,2) NOT NULL,
             target_date date NOT NULL,
             initial_amount numeric(14,2) NOT NULL DEFAULT 0,
@@ -168,10 +169,13 @@ using (var scope = app.Services.CreateScope())
             created_at timestamp with time zone NOT NULL DEFAULT now(),
             updated_at timestamp with time zone NOT NULL DEFAULT now()
         );
+        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS goal_type text NOT NULL DEFAULT 'savings';
         CREATE INDEX IF NOT EXISTS ix_saving_goals_user_id
             ON saving_goals (user_id);
         CREATE INDEX IF NOT EXISTS ix_saving_goals_user_priority
             ON saving_goals (user_id, priority);
+        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_goal_type
+            ON saving_goals (user_id, goal_type);
 
         CREATE TABLE IF NOT EXISTS saving_goal_entries (
             id uuid PRIMARY KEY,
