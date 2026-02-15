@@ -14,6 +14,16 @@ public static class RecurrenceService
     {
         var transactions = new List<Transaction>();
         var startDate = dto.Transaction.Date;
+
+        // If an automatic pending recurrence is created after its day of month,
+        // start from today so we do not create an immediately overdue instance.
+        if (dto.Transaction.IsAuto
+            && dto.Transaction.Status == TransactionStatus.Pending
+            && startDate < today)
+        {
+            startDate = today;
+        }
+
         var endDate = dto.Recurrence.EndDate ?? new DateOnly(startDate.Year, 12, 31);
 
         if (endDate < startDate) return transactions;

@@ -20,6 +20,7 @@ public static class TransactionsEndpoints
             string? status,
             int? month,
             int? year,
+            string? search,
             bool showFuture = false,
             int page = 1,
             int pageSize = 50) =>
@@ -39,6 +40,14 @@ public static class TransactionsEndpoints
             if (year.HasValue)
                 query = query.Where(t => t.Date.Year == year.Value);
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var pattern = $"%{search.Trim()}%";
+                query = query.Where(t =>
+                    EF.Functions.ILike(t.Account!.Name, pattern) ||
+                    (t.Note != null && EF.Functions.ILike(t.Note, pattern)));
+            }
+
             if (!showFuture)
             {
                 var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -46,7 +55,7 @@ public static class TransactionsEndpoints
             }
 
             var totalCount = await query.CountAsync();
-            pageSize = Math.Clamp(pageSize, 1, 100);
+            pageSize = Math.Clamp(pageSize, 1, 5000);
             page = Math.Max(page, 1);
 
             var items = await query

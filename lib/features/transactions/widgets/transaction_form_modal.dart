@@ -254,7 +254,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
     final selectedAccountId = _selectedAccountId;
     if (selectedAccountId == null) {
-      setState(() => _error = 'Selectionnez un compte');
+      setState(() => _error = 'Sélectionnez un compte');
       return;
     }
 
@@ -329,7 +329,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Erreur lors de la creation';
+        _error = 'Erreur lors de la création';
         _loading = false;
       });
     }
@@ -496,7 +496,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.borderSubtle),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.r12),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,7 +560,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Selectionner un compte',
+                          'Sélectionner un compte',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -576,7 +576,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     TextField(
                       onChanged: (v) => setLocalState(() => query = v),
                       decoration: const InputDecoration(
-                        hintText: 'Rechercher une categorie ou un groupe',
+                        hintText: 'Rechercher une catégorie ou un groupe',
                         prefixIcon: Icon(Icons.search),
                       ),
                     ),
@@ -591,7 +591,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                               setLocalState(() => typeFilter = 'all'),
                         ),
                         ChoiceChip(
-                          label: const Text('Depenses'),
+                          label: const Text('Dépenses'),
                           selected: typeFilter == 'expense',
                           onSelected: (_) =>
                               setLocalState(() => typeFilter = 'expense'),
@@ -629,7 +629,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                       child: filtered.isEmpty
                           ? const Center(
                               child: Text(
-                                'Aucun resultat. Cree une categorie rapide.',
+                                'Aucun résultat. Crée une catégorie rapide.',
                               ),
                             )
                           : ListView(
@@ -655,7 +655,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                               }
                             },
                             icon: const Icon(Icons.add),
-                            label: const Text('Categorie rapide'),
+                            label: const Text('Catégorie rapide'),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -663,7 +663,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                           child: TextButton(
                             onPressed: () =>
                                 showCategoriesManagerModal(context, ref),
-                            child: const Text('Gerer groupes/cat.'),
+                            child: const Text('Gérer groupes/cat.'),
                           ),
                         ),
                       ],
@@ -742,7 +742,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Categorie "${created.name}" creee'),
+            content: Text('Catégorie "${created.name}" créée'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -757,7 +757,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(apiMessage ?? 'Erreur creation categorie'),
+            content: Text(apiMessage ?? 'Erreur création catégorie'),
             backgroundColor: AppColors.softRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -802,20 +802,20 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         builder: (context, setLocalState) {
           final options = groupsForType();
           return AlertDialog(
-            title: const Text('Creation rapide categorie'),
+            title: const Text('Création rapide catégorie'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nom categorie'),
+                  decoration: const InputDecoration(labelText: 'Nom catégorie'),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: type,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Depense')),
+                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
                     DropdownMenuItem(value: 'income', child: Text('Revenu')),
                   ],
                   onChanged: (v) {
@@ -857,7 +857,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     label: Text(
                       createNewGroup
                           ? 'Utiliser un groupe existant'
-                          : 'Creer un nouveau groupe',
+                          : 'Créer un nouveau groupe',
                     ),
                   ),
                 ),
@@ -915,7 +915,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     ),
                   );
                 },
-                child: const Text('Creer'),
+                child: const Text('Créer'),
               ),
             ],
           );
@@ -973,7 +973,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Selectionne une categorie existante ou cree-la directement ici.',
+                'Sélectionne une catégorie existante ou crée-la directement ici.',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 18),
@@ -1043,7 +1043,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                           ),
                           child: selected == null
                               ? const Text(
-                                  'Choisir une categorie',
+                                  'Choisir une catégorie',
                                   style: TextStyle(
                                     color: AppColors.textSecondary,
                                   ),
@@ -1103,13 +1103,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                               }
                             },
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Creation rapide'),
+                            label: const Text('Création rapide'),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
                             onPressed: () =>
                                 showCategoriesManagerModal(context, ref),
-                            child: const Text('Gerer groupes/cat.'),
+                            child: const Text('Gérer groupes/cat.'),
                           ),
                         ],
                       ),
@@ -1207,7 +1207,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 }),
                 color: AppColors.info,
                 helperText: _repaymentPlan
-                    ? 'Cree automatiquement des mensualites jusqu au solde.'
+                    ? 'Crée automatiquement des mensualités jusqu\'au solde.'
                     : 'Active si tu rembourses un montant total sur plusieurs mois.',
               ),
               if (_recurrence) ...[
@@ -1280,7 +1280,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                       );
                     }
                     return Text(
-                      '$installments mensualite(s) jusqu au ${DateFormat('dd MMM yyyy', 'fr_FR').format(endDate)} (derniere: ${AppFormats.currency.format(_repaymentLastInstallment)})',
+                      '$installments mensualité(s) jusqu\'au ${DateFormat('dd MMM yyyy', 'fr_FR').format(endDate)} (dernière: ${AppFormats.currency.format(_repaymentLastInstallment)})',
                       style: const TextStyle(
                         color: AppColors.info,
                         fontSize: 12,
@@ -1313,10 +1313,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                         )
                       : Text(
                           _repaymentPlan && _repaymentInstallments > 0
-                              ? 'Creer plan ($_repaymentInstallments mensualites)'
+                              ? 'Créer plan ($_repaymentInstallments mensualités)'
                               : _recurrence && _occurrences > 0
-                              ? 'Creer $_occurrences transaction(s)'
-                              : 'Creer la transaction',
+                              ? 'Créer $_occurrences transaction(s)'
+                              : 'Créer la transaction',
                         ),
                 ),
               ),
@@ -1488,7 +1488,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         }
       }
     }
-    return 'Erreur lors de la creation';
+    return 'Erreur lors de la création';
   }
 
   String _normalize(String value) => value.trim().toLowerCase();
@@ -1580,3 +1580,4 @@ class _SwitchRow extends StatelessWidget {
     );
   }
 }
+

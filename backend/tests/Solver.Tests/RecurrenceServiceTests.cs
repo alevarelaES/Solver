@@ -118,6 +118,29 @@ public class RecurrenceServiceTests
     }
 
     [Fact]
+    public void Generate_AutoPendingCreatedAfterDueDay_StartsNextOccurrence()
+    {
+        var dto = new BatchTransactionDto(
+            new CreateTransactionDto(
+                AccountId,
+                new DateOnly(2026, 2, 1),
+                120m,
+                "Auto debit",
+                TransactionStatus.Pending,
+                true
+            ),
+            new RecurrenceOptionsDto(12)
+        );
+        var today = new DateOnly(2026, 2, 14);
+
+        var result = RecurrenceService.Generate(dto, UserId, today);
+
+        Assert.NotEmpty(result);
+        Assert.Equal(new DateOnly(2026, 3, 12), result[0].Date);
+        Assert.DoesNotContain(result, t => t.Date == new DateOnly(2026, 2, 12));
+    }
+
+    [Fact]
     public void Generate_StartMonth12_OnlyOneTransaction()
     {
         var dto = MakeDto(2026, 12, 15);

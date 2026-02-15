@@ -7,128 +7,95 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/services/api_client.dart';
+import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
 import 'package:solver/features/journal/providers/journal_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
+import 'package:solver/shared/widgets/app_panel.dart';
 
 const _months = <String>[
   '',
   'Janvier',
-  'Fevrier',
+  'FÃ©vrier',
   'Mars',
   'Avril',
   'Mai',
   'Juin',
   'Juillet',
-  'Aout',
+  'AoÃ»t',
   'Septembre',
   'Octobre',
   'Novembre',
-  'Decembre',
+  'DÃ©cembre',
 ];
 
-const _pageSize = 20;
-
 final _selectedTxIdProvider = StateProvider<String?>((ref) => null);
-final _searchQueryProvider = StateProvider<String>((ref) => '');
-final _currentPageProvider = StateProvider<int>((ref) => 0);
-final _showOtherMonthsProvider = StateProvider<bool>((ref) => false);
-final _navigatedMonthProvider = StateProvider<int>(
-  (ref) => DateTime.now().month,
-);
 
 class JournalView extends ConsumerWidget {
   const JournalView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filters = ref.watch(journalFiltersProvider);
-    final showOtherMonths = ref.watch(_showOtherMonthsProvider);
-    final navigatedMonth = ref.watch(_navigatedMonthProvider);
-    final txAsync = ref.watch(journalTransactionsProvider);
+    final txAsync = ref.watch(journalVisibleTransactionsProvider);
+    final transactions = txAsync.valueOrNull ?? const <Transaction>[];
 
-    return txAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
+    if (txAsync.hasError && transactions.isEmpty) {
+      return Center(
         child: Text(
-          'Erreur: $e',
+          'Erreur: ${txAsync.error}',
           style: const TextStyle(color: AppColors.danger),
         ),
-      ),
-      data: (transactions) {
-        final now = DateTime.now();
-        final defaultFocusMonth = filters.year == now.year ? now.month : 1;
-        final effectiveMonth =
-            filters.month ??
-            (showOtherMonths ? navigatedMonth : defaultFocusMonth);
-        final accountScoped = filters.accountId == null
-            ? transactions
-            : transactions
-                  .where((t) => t.accountId == filters.accountId)
-                  .toList();
+      );
+    }
+    if (txAsync.isLoading && transactions.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        final statusScoped = filters.status == 'completed'
-            ? accountScoped.where((t) => t.isCompleted).toList()
-            : filters.status == 'pending'
-            ? accountScoped.where((t) => t.isPending).toList()
-            : accountScoped;
+    final selectedId = ref.watch(_selectedTxIdProvider);
+    final selected = selectedId == null
+        ? null
+        : transactions.where((t) => t.id == selectedId).firstOrNull;
 
-        final monthScoped = statusScoped
-            .where((t) => t.date.month == effectiveMonth)
-            .toList();
-        final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
-        final filtered = query.isEmpty
-            ? monthScoped
-            : monthScoped.where((t) {
-                final label = _displayLabel(t).toLowerCase();
-                final note = (t.note ?? '').toLowerCase();
-                final account = (t.accountName ?? '').toLowerCase();
-                return label.contains(query) ||
-                    note.contains(query) ||
-                    account.contains(query);
-              }).toList();
+    if (selectedId != null && selected == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(_selectedTxIdProvider.notifier).state = null;
+      });
+    }
 
-        final selectedId = ref.watch(_selectedTxIdProvider);
-        final selected = selectedId == null
-            ? null
-            : filtered.where((t) => t.id == selectedId).firstOrNull;
-
-        if (selectedId != null && selected == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ref.read(_selectedTxIdProvider.notifier).state = null;
-          });
-        }
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 900;
-            return Stack(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 900;
+        return Stack(
+          children: [
+            Column(
               children: [
-                Column(
-                  children: [
-                    _JournalHeader(isMobile: isMobile),
-                    _JournalFilterBar(isMobile: isMobile),
-                    Expanded(
-                      child: _JournalBody(
-                        transactions: filtered,
-                        selected: selected,
-                        isMobile: isMobile,
-                      ),
-                    ),
-                  ],
-                ),
-                if (!isMobile && selected != null)
-                  _DesktopDetailOverlay(
-                    transaction: selected,
-                    onClose: () =>
-                        ref.read(_selectedTxIdProvider.notifier).state = null,
+                _JournalHeader(isMobile: isMobile),
+                Expanded(
+                  child: _JournalBody(
+                    transactions: transactions,
+                    selected: selected,
+                    isMobile: isMobile,
                   ),
+                ),
               ],
-            );
-          },
+            ),
+            if (txAsync.isLoading)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            if (!isMobile && selected != null)
+              _DesktopDetailOverlay(
+                transaction: selected,
+                onClose: () =>
+                    ref.read(_selectedTxIdProvider.notifier).state = null,
+              ),
+          ],
         );
       },
     );
@@ -167,10 +134,19 @@ class _JournalHeader extends ConsumerWidget {
             )
           : Row(
               children: [
-                const _TitleBlock(),
-                const SizedBox(width: 24),
-                const Expanded(child: _SearchBar()),
-                const SizedBox(width: 14),
+                const Expanded(flex: 2, child: _TitleBlock()),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 3,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: const _SearchBar(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 _AddEntryButton(compact: false),
               ],
             ),
@@ -198,7 +174,7 @@ class _TitleBlock extends StatelessWidget {
         ),
         SizedBox(height: 2),
         Text(
-          'Suivre les transactions, puis ouvrir le detail au clic.',
+          'Suivre les transactions, puis ouvrir le dÃ©tail au clic.',
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
       ],
@@ -213,35 +189,27 @@ class _SearchBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return TextField(
       onChanged: (v) {
-        ref.read(_searchQueryProvider.notifier).state = v;
-        ref.read(_currentPageProvider.notifier).state = 0;
+        ref.read(journalSearchProvider.notifier).state = v;
       },
       style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-      decoration: InputDecoration(
+      decoration: AppInputStyles.search(
         hintText: 'Rechercher une transaction...',
-        hintStyle: const TextStyle(fontSize: 14, color: AppColors.textDisabled),
-        prefixIcon: const Icon(
-          Icons.search,
-          size: 18,
-          color: AppColors.textDisabled,
-        ),
-        filled: true,
-        fillColor: AppColors.surfaceElevated,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderSubtle),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderSubtle),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        square: true,
+        suffixIcon: Container(
+          margin: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.borderSubtle),
+            borderRadius: BorderRadius.zero,
+          ),
+          child: const Text(
+            'K',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
     );
@@ -258,14 +226,14 @@ class _AddEntryButton extends ConsumerWidget {
       onPressed: () => showTransactionFormModal(context, ref),
       icon: const Icon(Icons.add, size: 16),
       label: Text(
-        compact ? 'Ajouter' : 'Nouvelle ecriture',
+        compact ? 'Ajouter' : 'Nouvelle Ã©criture',
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
-      style: TextButton.styleFrom(
+      style: AppButtonStyles.tonal(
         foregroundColor: Colors.white,
         backgroundColor: AppColors.primary,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        radius: 0,
       ),
     );
   }
@@ -278,13 +246,21 @@ class _JournalFilterBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filters = ref.watch(journalFiltersProvider);
+    final columnFilters = ref.watch(journalColumnFiltersProvider);
+    final now = DateTime.now();
+    final defaultFocusMonth = filters.year == now.year ? now.month : 1;
+    final monthLabel = filters.month != null
+        ? _months[filters.month!]
+        : 'Mois courant (${_months[defaultFocusMonth]})';
+    final dateLabel = _dateFilterLabel(columnFilters);
+    final textLabel = columnFilters.label.trim().isEmpty
+        ? 'Tous libelles'
+        : 'Libelle: ${columnFilters.label.trim()}';
+    final amountLabel = _amountFilterLabel(columnFilters);
     final accountsAsync = ref.watch(accountsProvider);
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 28,
-        vertical: 10,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       decoration: const BoxDecoration(
         color: AppColors.surfaceCard,
         border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
@@ -299,15 +275,11 @@ class _JournalFilterBar extends ConsumerWidget {
                     label: '${filters.year}',
                     onTap: () => _pickYear(context, ref, filters),
                   ),
-                  const SizedBox(width: 8),
                   _FilterChip(
                     icon: Icons.date_range,
-                    label: filters.month == null
-                        ? 'Tous les mois'
-                        : _months[filters.month!],
+                    label: monthLabel,
                     onTap: () => _pickMonth(context, ref, filters),
                   ),
-                  const SizedBox(width: 8),
                   accountsAsync.when(
                     loading: () => const SizedBox.shrink(),
                     error: (_, _) => const SizedBox.shrink(),
@@ -325,76 +297,141 @@ class _JournalFilterBar extends ConsumerWidget {
                       );
                     },
                   ),
-                  const SizedBox(width: 8),
                   _FilterChip(
                     icon: Icons.fact_check_outlined,
                     label: _statusFilterLabel(filters.status),
-                    onTap: () => _cycleStatus(ref, filters),
+                    onTap: () => _pickStatus(context, ref, filters),
                   ),
+                  _FilterChip(
+                    icon: Icons.event,
+                    label: dateLabel,
+                    onTap: () => _pickDateRange(context, ref, columnFilters),
+                  ),
+                  _FilterChip(
+                    icon: Icons.label_outline,
+                    label: textLabel,
+                    onTap: () => _pickLabel(context, ref, columnFilters),
+                  ),
+                  _FilterChip(
+                    icon: Icons.tune,
+                    label: amountLabel,
+                    onTap: () => _pickAmount(context, ref, columnFilters),
+                  ),
+                  if (columnFilters.hasActiveFilters)
+                    _FilterChip(
+                      icon: Icons.filter_alt_off_outlined,
+                      label: 'Reinitialiser',
+                      showChevron: false,
+                      onTap: () => _clearColumnFilters(ref),
+                    ),
                 ],
               ),
             )
-          : Row(
+          : Column(
               children: [
-                Expanded(
-                  child: _FilterChip(
-                    icon: Icons.calendar_today,
-                    label: '${filters.year}',
-                    expand: true,
-                    onTap: () => _pickYear(context, ref, filters),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.calendar_today,
+                        label: '${filters.year}',
+                        expand: true,
+                        onTap: () => _pickYear(context, ref, filters),
+                      ),
+                    ),
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.date_range,
+                        label: monthLabel,
+                        expand: true,
+                        onTap: () => _pickMonth(context, ref, filters),
+                      ),
+                    ),
+                    Expanded(
+                      child: accountsAsync.when(
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
+                        data: (accounts) {
+                          final selected = filters.accountId == null
+                              ? null
+                              : accounts
+                                    .where((a) => a.id == filters.accountId)
+                                    .firstOrNull;
+                          return _FilterChip(
+                            icon: Icons.account_balance_wallet,
+                            label: selected?.name ?? 'Tous les comptes',
+                            expand: true,
+                            onTap: () =>
+                                _pickAccount(context, ref, filters, accounts),
+                          );
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.fact_check_outlined,
+                        label: _statusFilterLabel(filters.status),
+                        expand: true,
+                        onTap: () => _pickStatus(context, ref, filters),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _FilterChip(
-                    icon: Icons.date_range,
-                    label: filters.month == null
-                        ? 'Tous les mois'
-                        : _months[filters.month!],
-                    expand: true,
-                    onTap: () => _pickMonth(context, ref, filters),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: accountsAsync.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, _) => const SizedBox.shrink(),
-                    data: (accounts) {
-                      final selected = filters.accountId == null
-                          ? null
-                          : accounts
-                                .where((a) => a.id == filters.accountId)
-                                .firstOrNull;
-                      return _FilterChip(
-                        icon: Icons.account_balance_wallet,
-                        label: selected?.name ?? 'Tous les comptes',
+                const Divider(height: 1, color: AppColors.borderSubtle),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.event,
+                        label: dateLabel,
                         expand: true,
                         onTap: () =>
-                            _pickAccount(context, ref, filters, accounts),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _FilterChip(
-                    icon: Icons.fact_check_outlined,
-                    label: _statusFilterLabel(filters.status),
-                    expand: true,
-                    onTap: () => _cycleStatus(ref, filters),
-                  ),
+                            _pickDateRange(context, ref, columnFilters),
+                      ),
+                    ),
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.label_outline,
+                        label: textLabel,
+                        expand: true,
+                        onTap: () => _pickLabel(context, ref, columnFilters),
+                      ),
+                    ),
+                    Expanded(
+                      child: _FilterChip(
+                        icon: Icons.tune,
+                        label: amountLabel,
+                        expand: true,
+                        onTap: () => _pickAmount(context, ref, columnFilters),
+                      ),
+                    ),
+                    if (columnFilters.hasActiveFilters)
+                      SizedBox(
+                        width: 180,
+                        child: _FilterChip(
+                          icon: Icons.filter_alt_off_outlined,
+                          label: 'Reinitialiser',
+                          expand: true,
+                          showChevron: false,
+                          onTap: () => _clearColumnFilters(ref),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
     );
   }
 
-  void _pickYear(BuildContext context, WidgetRef ref, JournalFilters filters) {
+  Future<void> _pickYear(
+    BuildContext context,
+    WidgetRef ref,
+    JournalFilters filters,
+  ) async {
     final now = DateTime.now();
-    showDialog(
+    final selectedYear = await showDialog<int>(
       context: context,
-      builder: (_) => SimpleDialog(
+      builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
         title: const Text(
           'Annee',
@@ -403,16 +440,7 @@ class _JournalFilterBar extends ConsumerWidget {
         children: List.generate(6, (i) {
           final year = now.year - i;
           return SimpleDialogOption(
-            onPressed: () {
-              final defaultFocusMonth = year == now.year ? now.month : 1;
-              ref.read(journalFiltersProvider.notifier).state = filters
-                  .copyWith(year: year, month: null);
-              ref.read(_showOtherMonthsProvider.notifier).state = false;
-              ref.read(_navigatedMonthProvider.notifier).state =
-                  defaultFocusMonth;
-              ref.read(_currentPageProvider.notifier).state = 0;
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(year),
             child: Text(
               '$year',
               style: TextStyle(
@@ -425,13 +453,21 @@ class _JournalFilterBar extends ConsumerWidget {
         }),
       ),
     );
+    if (selectedYear == null) return;
+    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+      year: selectedYear,
+      month: null,
+    );
   }
 
-  void _pickMonth(BuildContext context, WidgetRef ref, JournalFilters filters) {
-    final now = DateTime.now();
-    showDialog(
+  Future<void> _pickMonth(
+    BuildContext context,
+    WidgetRef ref,
+    JournalFilters filters,
+  ) async {
+    final selected = await showDialog<int>(
       context: context,
-      builder: (_) => SimpleDialog(
+      builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
         title: const Text(
           'Mois',
@@ -439,34 +475,16 @@ class _JournalFilterBar extends ConsumerWidget {
         ),
         children: [
           SimpleDialogOption(
-            onPressed: () {
-              final defaultFocusMonth = filters.year == now.year
-                  ? now.month
-                  : 1;
-              ref.read(journalFiltersProvider.notifier).state = filters
-                  .copyWith(month: null);
-              ref.read(_showOtherMonthsProvider.notifier).state = false;
-              ref.read(_navigatedMonthProvider.notifier).state =
-                  defaultFocusMonth;
-              ref.read(_currentPageProvider.notifier).state = 0;
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(0),
             child: const Text(
-              'Tous',
+              'Mois courant',
               style: TextStyle(color: AppColors.textPrimary),
             ),
           ),
           ...List.generate(12, (index) {
             final month = index + 1;
             return SimpleDialogOption(
-              onPressed: () {
-                ref.read(journalFiltersProvider.notifier).state = filters
-                    .copyWith(month: month);
-                ref.read(_showOtherMonthsProvider.notifier).state = true;
-                ref.read(_navigatedMonthProvider.notifier).state = month;
-                ref.read(_currentPageProvider.notifier).state = 0;
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(month),
               child: Text(
                 _months[month],
                 style: TextStyle(
@@ -480,17 +498,27 @@ class _JournalFilterBar extends ConsumerWidget {
         ],
       ),
     );
+    if (selected == null) return;
+    if (selected == 0) {
+      ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+        month: null,
+      );
+      return;
+    }
+    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+      month: selected,
+    );
   }
 
-  void _pickAccount(
+  Future<void> _pickAccount(
     BuildContext context,
     WidgetRef ref,
     JournalFilters filters,
     List accounts,
-  ) {
-    showDialog(
+  ) async {
+    final selected = await showDialog<String>(
       context: context,
-      builder: (_) => SimpleDialog(
+      builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
         title: const Text(
           'Compte',
@@ -498,12 +526,7 @@ class _JournalFilterBar extends ConsumerWidget {
         ),
         children: [
           SimpleDialogOption(
-            onPressed: () {
-              ref.read(journalFiltersProvider.notifier).state = filters
-                  .copyWith(accountId: null);
-              ref.read(_currentPageProvider.notifier).state = 0;
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.of(dialogContext).pop('__all__'),
             child: const Text(
               'Tous',
               style: TextStyle(color: AppColors.textPrimary),
@@ -511,12 +534,7 @@ class _JournalFilterBar extends ConsumerWidget {
           ),
           ...accounts.map((a) {
             return SimpleDialogOption(
-              onPressed: () {
-                ref.read(journalFiltersProvider.notifier).state = filters
-                    .copyWith(accountId: a.id);
-                ref.read(_currentPageProvider.notifier).state = 0;
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.of(dialogContext).pop(a.id as String),
               child: Text(
                 a.name,
                 style: TextStyle(
@@ -530,24 +548,422 @@ class _JournalFilterBar extends ConsumerWidget {
         ],
       ),
     );
+    if (selected == null) return;
+    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+      accountId: selected == '__all__' ? null : selected,
+    );
   }
 
-  void _cycleStatus(WidgetRef ref, JournalFilters filters) {
-    final next = filters.status == null
-        ? 'pending'
-        : filters.status == 'pending'
-        ? 'completed'
-        : null;
-    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
-      status: next,
+  Future<void> _pickStatus(
+    BuildContext context,
+    WidgetRef ref,
+    JournalFilters filters,
+  ) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: const Text(
+          'Statut',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(dialogContext).pop('__all__'),
+            child: const Text(
+              'Tous statuts',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(dialogContext).pop('pending'),
+            child: const Text(
+              'A payer',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(dialogContext).pop('completed'),
+            child: const Text(
+              'Payees',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
     );
-    ref.read(_currentPageProvider.notifier).state = 0;
+    if (selected == null) return;
+    ref.read(journalFiltersProvider.notifier).state = filters.copyWith(
+      status: selected == '__all__' ? null : selected,
+    );
   }
 
   String _statusFilterLabel(String? status) {
     if (status == 'pending') return 'A payer';
     if (status == 'completed') return 'Payees';
     return 'Tous statuts';
+  }
+
+  String _dateFilterLabel(JournalColumnFilters filters) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final from = filters.fromDate;
+    final to = filters.toDate;
+    if (from == null && to == null) return 'Toutes dates';
+    if (from != null && to != null) {
+      if (_sameDay(from, to)) return 'Date: ${fmt.format(from)}';
+      return 'Du ${fmt.format(from)} au ${fmt.format(to)}';
+    }
+    if (from != null) return 'A partir du ${fmt.format(from)}';
+    return 'Jusqu au ${fmt.format(to!)}';
+  }
+
+  String _amountFilterLabel(JournalColumnFilters filters) {
+    final min = filters.minAmount;
+    final max = filters.maxAmount;
+    if (min == null && max == null) return 'Tous montants';
+    if (min != null && max != null) {
+      return '${AppFormats.currency.format(min)} - ${AppFormats.currency.format(max)}';
+    }
+    if (min != null) return '>= ${AppFormats.currency.format(min)}';
+    return '<= ${AppFormats.currency.format(max!)}';
+  }
+
+  Future<void> _pickDateRange(
+    BuildContext context,
+    WidgetRef ref,
+    JournalColumnFilters filters,
+  ) async {
+    final picked = await showDialog<List<DateTime?>>(
+      context: context,
+      builder: (dialogContext) {
+        var from = filters.fromDate;
+        var to = filters.toDate;
+        return StatefulBuilder(
+          builder: (context, setLocalState) => AlertDialog(
+            backgroundColor: AppColors.surfaceElevated,
+            title: const Text(
+              'Filtrer par date',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _DateFilterInput(
+                    label: 'Date min',
+                    date: from,
+                    onTap: () async {
+                      final selected = await showDatePicker(
+                        context: context,
+                        initialDate: from ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (selected == null) return;
+                      setLocalState(() => from = selected);
+                    },
+                    onClear: () => setLocalState(() => from = null),
+                  ),
+                  const SizedBox(height: 10),
+                  _DateFilterInput(
+                    label: 'Date max',
+                    date: to,
+                    onTap: () async {
+                      final selected = await showDatePicker(
+                        context: context,
+                        initialDate: to ?? (from ?? DateTime.now()),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (selected == null) return;
+                      setLocalState(() => to = selected);
+                    },
+                    onClear: () => setLocalState(() => to = null),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text(
+                  'Annuler',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(<DateTime?>[]),
+                child: const Text(
+                  'Effacer',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(<DateTime?>[from, to]),
+                child: const Text('Appliquer'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked == null) return;
+    DateTime? from;
+    DateTime? to;
+    if (picked.isNotEmpty) {
+      from = picked[0];
+      to = picked.length > 1 ? picked[1] : null;
+    }
+    if (from != null && to != null && to.isBefore(from)) {
+      final temp = from;
+      from = to;
+      to = temp;
+    }
+    ref.read(journalColumnFiltersProvider.notifier).state = filters.copyWith(
+      fromDate: from,
+      toDate: to,
+    );
+  }
+
+  Future<void> _pickLabel(
+    BuildContext context,
+    WidgetRef ref,
+    JournalColumnFilters filters,
+  ) async {
+    final controller = TextEditingController(text: filters.label);
+    final next = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: const Text(
+          'Filtrer par libelle',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 80,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(labelText: 'Libelle contient...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(''),
+            child: const Text(
+              'Effacer',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Appliquer'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (next == null) return;
+    ref.read(journalColumnFiltersProvider.notifier).state = filters.copyWith(
+      label: next,
+    );
+  }
+
+  Future<void> _pickAmount(
+    BuildContext context,
+    WidgetRef ref,
+    JournalColumnFilters filters,
+  ) async {
+    final minCtrl = TextEditingController(
+      text: filters.minAmount?.toStringAsFixed(2) ?? '',
+    );
+    final maxCtrl = TextEditingController(
+      text: filters.maxAmount?.toStringAsFixed(2) ?? '',
+    );
+    final picked = await showDialog<List<double?>>(
+      context: context,
+      builder: (dialogContext) {
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setLocalState) => AlertDialog(
+            backgroundColor: AppColors.surfaceElevated,
+            title: const Text(
+              'Filtrer par montant',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: minCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    ],
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(labelText: 'Montant min'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: maxCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    ],
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: const InputDecoration(labelText: 'Montant max'),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error!,
+                      style: const TextStyle(
+                        color: AppColors.danger,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text(
+                  'Annuler',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(<double?>[]),
+                child: const Text(
+                  'Effacer',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final min = _parseAmount(minCtrl.text);
+                  final max = _parseAmount(maxCtrl.text);
+                  final minInvalid =
+                      minCtrl.text.trim().isNotEmpty && min == null;
+                  final maxInvalid =
+                      maxCtrl.text.trim().isNotEmpty && max == null;
+                  if (minInvalid || maxInvalid) {
+                    setLocalState(() => error = 'Montant invalide');
+                    return;
+                  }
+                  if (min != null && max != null && max < min) {
+                    setLocalState(() => error = 'Montant max < montant min');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(<double?>[min, max]);
+                },
+                child: const Text('Appliquer'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    minCtrl.dispose();
+    maxCtrl.dispose();
+    if (picked == null) return;
+    final min = picked.isNotEmpty ? picked[0] : null;
+    final max = picked.length > 1 ? picked[1] : null;
+    ref.read(journalColumnFiltersProvider.notifier).state = filters.copyWith(
+      minAmount: picked.isEmpty ? null : min,
+      maxAmount: picked.isEmpty ? null : max,
+    );
+  }
+
+  void _clearColumnFilters(WidgetRef ref) {
+    ref.read(journalColumnFiltersProvider.notifier).state =
+        const JournalColumnFilters();
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  double? _parseAmount(String input) {
+    final raw = input.trim().replaceAll(' ', '').replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+}
+
+class _DateFilterInput extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateFilterInput({
+    required this.label,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.r10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(AppRadius.r10),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today,
+              size: 14,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                date == null ? label : '$label: ${fmt.format(date!)}',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (date != null)
+              IconButton(
+                onPressed: onClear,
+                icon: const Icon(Icons.clear, size: 16),
+                color: AppColors.textDisabled,
+                splashRadius: 16,
+                tooltip: 'Effacer',
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -556,26 +972,28 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool expand;
+  final bool showChevron;
 
   const _FilterChip({
     required this.icon,
     required this.label,
     required this.onTap,
     this.expand = false,
+    this.showChevron = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
+      borderRadius: BorderRadius.zero,
       child: Container(
         width: expand ? double.infinity : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surfaceElevated,
           border: Border.all(color: AppColors.borderSubtle),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.zero,
         ),
         child: Row(
           mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
@@ -604,12 +1022,14 @@ class _FilterChip extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.expand_more,
-              size: 14,
-              color: AppColors.textDisabled,
-            ),
+            if (showChevron) ...[
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.expand_more,
+                size: 14,
+                color: AppColors.textDisabled,
+              ),
+            ],
           ],
         ),
       ),
@@ -630,100 +1050,21 @@ class _JournalBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filters = ref.watch(journalFiltersProvider);
-    final showOtherMonths = ref.watch(_showOtherMonthsProvider);
-    final now = DateTime.now();
-    final defaultFocusMonth = filters.year == now.year ? now.month : 1;
-    final navigatedMonth = ref.watch(_navigatedMonthProvider);
-    final focusedMonth =
-        filters.month ?? (showOtherMonths ? navigatedMonth : defaultFocusMonth);
-    final page = ref.watch(_currentPageProvider);
-    final totalPages = (transactions.length / _pageSize).ceil();
-    final safePage = totalPages == 0
-        ? 0
-        : (page >= totalPages ? totalPages - 1 : page);
-    if (safePage != page && safePage >= 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(_currentPageProvider.notifier).state = safePage;
-      });
-    }
-    final start = safePage * _pageSize;
-    final end = transactions.isEmpty
-        ? 0
-        : (start + _pageSize).clamp(0, transactions.length);
-    final pageItems = transactions.isEmpty
-        ? const <Transaction>[]
-        : transactions.sublist(start, end);
+    final pageItems = transactions;
     final monthTotals = _buildMonthTotals(transactions);
 
     return Container(
       color: AppColors.surfaceElevated,
       child: Column(
         children: [
-          if (filters.month == null)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                isMobile ? 10 : 16,
-                10,
-                isMobile ? 10 : 16,
-                2,
-              ),
-              child: _MonthFocusBanner(
-                isMobile: isMobile,
-                monthLabel: '${_months[focusedMonth]} ${filters.year}',
-                showOtherMonths: showOtherMonths,
-                onToggle: () {
-                  if (!showOtherMonths) {
-                    ref.read(_navigatedMonthProvider.notifier).state =
-                        defaultFocusMonth;
-                  }
-                  ref.read(_showOtherMonthsProvider.notifier).state =
-                      !showOtherMonths;
-                  ref.read(_currentPageProvider.notifier).state = 0;
-                },
-                onPreviousMonth: () {
-                  final current = ref.read(_navigatedMonthProvider);
-                  if (current > 1) {
-                    ref.read(_navigatedMonthProvider.notifier).state =
-                        current - 1;
-                    ref.read(_currentPageProvider.notifier).state = 0;
-                  }
-                },
-                onNextMonth: () {
-                  final current = ref.read(_navigatedMonthProvider);
-                  if (current < 12) {
-                    ref.read(_navigatedMonthProvider.notifier).state =
-                        current + 1;
-                    ref.read(_currentPageProvider.notifier).state = 0;
-                  }
-                },
-                canGoPrevious: focusedMonth > 1,
-                canGoNext: focusedMonth < 12,
-              ),
-            ),
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                isMobile ? 8 : 16,
-                10,
-                isMobile ? 8 : 16,
-                0,
-              ),
-              child: _TransactionTable(
-                transactions: pageItems,
-                monthTotals: monthTotals,
-                isMobile: isMobile,
-                onSelect: (tx) => _onSelect(context, ref, tx, isMobile),
-                selectedId: selected?.id,
-              ),
+            child: _TransactionTable(
+              transactions: pageItems,
+              monthTotals: monthTotals,
+              isMobile: isMobile,
+              onSelect: (tx) => _onSelect(context, ref, tx, isMobile),
+              selectedId: selected?.id,
             ),
-          ),
-          _PaginationFooter(
-            page: safePage,
-            totalPages: totalPages,
-            totalCount: transactions.length,
-            start: start,
-            end: end,
           ),
         ],
       ),
@@ -793,117 +1134,6 @@ class _MonthTotals {
     income: income ?? this.income,
     expense: expense ?? this.expense,
   );
-}
-
-class _MonthFocusBanner extends StatelessWidget {
-  final bool isMobile;
-  final String monthLabel;
-  final bool showOtherMonths;
-  final VoidCallback onToggle;
-  final VoidCallback onPreviousMonth;
-  final VoidCallback onNextMonth;
-  final bool canGoPrevious;
-  final bool canGoNext;
-
-  const _MonthFocusBanner({
-    required this.isMobile,
-    required this.monthLabel,
-    required this.showOtherMonths,
-    required this.onToggle,
-    required this.onPreviousMonth,
-    required this.onNextMonth,
-    required this.canGoPrevious,
-    required this.canGoNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 10 : 12,
-        vertical: 8,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.filter_alt_outlined,
-                size: 15,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                showOtherMonths ? 'Navigation mensuelle' : 'Focus: $monthLabel',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          TextButton.icon(
-            onPressed: onToggle,
-            icon: Icon(
-              showOtherMonths ? Icons.center_focus_strong : Icons.unfold_more,
-            ),
-            label: Text(
-              showOtherMonths
-                  ? 'Revenir au mois courant'
-                  : 'Naviguer les autres mois',
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              textStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-          ),
-          if (showOtherMonths)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: canGoPrevious ? onPreviousMonth : null,
-                  icon: const Icon(Icons.chevron_left),
-                  color: AppColors.textSecondary,
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                ),
-                Text(
-                  monthLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                IconButton(
-                  onPressed: canGoNext ? onNextMonth : null,
-                  icon: const Icon(Icons.chevron_right),
-                  color: AppColors.textSecondary,
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _DesktopDetailOverlay extends StatelessWidget {
@@ -981,14 +1211,14 @@ class _TransactionTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = _buildRows(transactions);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.borderSubtle),
-        borderRadius: BorderRadius.circular(14),
-      ),
+    return AppPanel(
+      padding: EdgeInsets.zero,
+      radius: 0,
+      variant: AppPanelVariant.surface,
+      boxShadow: const [],
       child: Column(
         children: [
+          _JournalFilterBar(isMobile: isMobile),
           _TableHeader(isMobile: isMobile),
           const Divider(height: 1, color: AppColors.borderSubtle),
           Expanded(
@@ -1114,7 +1344,7 @@ class _MonthHeaderRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Gagné ${AppFormats.currency.format(totals.income)}',
+                      'GagnÃ© ${AppFormats.currency.format(totals.income)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1123,7 +1353,7 @@ class _MonthHeaderRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      'Dépensé ${AppFormats.currency.format(totals.expense)}',
+                      'DÃ©pensÃ© ${AppFormats.currency.format(totals.expense)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1173,7 +1403,7 @@ class _TableHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(flex: 2, child: Text('DATE', style: style)),
-          Expanded(flex: 4, child: Text('LIBELLE', style: style)),
+          Expanded(flex: 4, child: Text('LIBELLÃ‰', style: style)),
           Expanded(flex: 3, child: Text('COMPTE', style: style)),
           Expanded(flex: 2, child: Text('STATUT', style: style)),
           Expanded(
@@ -1360,69 +1590,6 @@ class _TransactionRowState extends State<_TransactionRow> {
   }
 }
 
-class _PaginationFooter extends ConsumerWidget {
-  final int page;
-  final int totalPages;
-  final int totalCount;
-  final int start;
-  final int end;
-
-  const _PaginationFooter({
-    required this.page,
-    required this.totalPages,
-    required this.totalCount,
-    required this.start,
-    required this.end,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final hasData = totalCount > 0;
-    final displayStart = hasData ? start + 1 : 0;
-    final displayEnd = hasData ? end : 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border(top: BorderSide(color: AppColors.borderSubtle)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Affichage $displayStart-$displayEnd sur $totalCount',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: hasData && page > 0
-                ? () => ref.read(_currentPageProvider.notifier).state = page - 1
-                : null,
-            icon: const Icon(Icons.chevron_left),
-          ),
-          Text(
-            'Page ${hasData ? page + 1 : 0}/${totalPages == 0 ? 0 : totalPages}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          IconButton(
-            onPressed: hasData && page < totalPages - 1
-                ? () => ref.read(_currentPageProvider.notifier).state = page + 1
-                : null,
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _DetailView extends ConsumerStatefulWidget {
   final Transaction transaction;
   final VoidCallback? onClose;
@@ -1548,7 +1715,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 InkWell(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -1568,7 +1735,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceCard,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                       border: Border.all(color: AppColors.borderSubtle),
                     ),
                     child: Row(
@@ -1677,21 +1844,11 @@ class _DetailViewState extends ConsumerState<_DetailView> {
     final amountPrefix = tx.isIncome ? '+' : '-';
     final amountColor = tx.isIncome ? AppColors.primary : AppColors.textPrimary;
 
-    return Container(
-      width: double.infinity,
+    return AppPanel(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border.all(color: AppColors.borderSubtle),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      radius: AppRadius.r16,
+      variant: AppPanelVariant.elevated,
+      borderColor: AppColors.borderSubtle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1829,13 +1986,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                   'Supprimer',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                 ),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: BorderSide(color: AppColors.danger.withAlpha(50)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
+                style: AppButtonStyles.dangerOutline(radius: AppRadius.r9),
               ),
             ],
           ),
@@ -1846,7 +1997,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: AppColors.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.r10),
                 border: Border.all(color: AppColors.borderSubtle),
               ),
               child: Text(
@@ -1901,7 +2052,7 @@ class _DetailField extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: (chipColor ?? AppColors.primary).withAlpha(24),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.r6),
               ),
               child: Text(
                 value,
@@ -1959,7 +2110,7 @@ class _StatusPill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(AppRadius.r7),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2014,10 +2165,10 @@ class _ActionTextButton extends StatelessWidget {
           label,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
-        style: TextButton.styleFrom(
+        style: AppButtonStyles.tonal(
           foregroundColor: color,
           backgroundColor: color.withAlpha(22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          radius: AppRadius.r8,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
       ),
@@ -2076,7 +2227,7 @@ String _displayLabel(Transaction tx) {
 }
 
 String _statusLabel(Transaction tx) {
-  if (tx.isCompleted) return 'Paye';
+  if (tx.isCompleted) return 'PayÃ©';
   if (tx.isAuto) return 'Auto a venir';
-  return 'A payer';
+  return 'Ã€ payer';
 }

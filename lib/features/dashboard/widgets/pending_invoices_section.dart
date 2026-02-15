@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
@@ -70,11 +71,7 @@ class _PendingInvoicesSectionState
                   ),
                   TextButton(
                     onPressed: () => setState(() => _showAll = !_showAll),
-                    style: TextButton.styleFrom(
-                      minimumSize: Size.zero,
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+                    style: AppButtonStyles.inline(),
                     child: Text(
                       _showAll ? 'Manuelles' : 'Tout afficher',
                       style: const TextStyle(
@@ -160,7 +157,7 @@ class _PendingInvoicesSectionState
                                     ),
                                   ),
                                   Text(
-                                    'Echeance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
+                                    'Échéance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
@@ -232,7 +229,7 @@ class _PendingInvoicesSectionState
       final late = days.abs();
       return 'En retard de $late jour${late > 1 ? 's' : ''}';
     }
-    if (days == 0) return 'Echeance aujourd hui';
+    if (days == 0) return 'Échéance aujourd\'hui';
     if (days == 1) return 'Dans 1 jour';
     return 'Dans $days jours';
   }

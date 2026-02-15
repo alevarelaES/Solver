@@ -3,14 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/services/api_client.dart';
+import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
+import 'package:solver/shared/widgets/app_panel.dart';
 
-// ── Toggle provider ─────────────────────────────────────────────────────────
 final _viewModeProvider = StateProvider<bool>((ref) => true); // true = grid
 
-// ── Category colours & icons (cycle) ────────────────────────────────────────
 const _catColors = <Color>[
   Color(0xFFF97316), // orange
   Color(0xFF3B82F6), // blue
@@ -88,9 +88,7 @@ class BudgetView extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // HERO SECTION
-// ═══════════════════════════════════════════════════════════════════════════════
 class _HeroSection extends StatelessWidget {
   final BudgetStats stats;
   final double maxWidth;
@@ -105,13 +103,10 @@ class _HeroSection extends StatelessWidget {
         : 0.0;
     final isWide = maxWidth > 700;
 
-    return Container(
+    return AppPanel(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
+      radius: AppRadius.r32,
+      borderColor: AppColors.borderSubtle,
       child: isWide
           ? Row(
               children: [
@@ -236,7 +231,7 @@ class _HeroBar extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               color: const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppRadius.r4),
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
@@ -244,7 +239,7 @@ class _HeroBar extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.r4),
                 ),
               ),
             ),
@@ -264,9 +259,7 @@ class _HeroBar extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TOOLBAR (toggle + add button)
-// ═══════════════════════════════════════════════════════════════════════════════
 class _ToolBar extends ConsumerWidget {
   final BudgetStats stats;
   const _ToolBar({required this.stats});
@@ -292,7 +285,7 @@ class _ToolBar extends ConsumerWidget {
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.r12),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -319,13 +312,11 @@ class _ToolBar extends ConsumerWidget {
             'Ajouter une catégorie',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
-          style: TextButton.styleFrom(
+          style: AppButtonStyles.tonal(
             foregroundColor: Colors.white,
             backgroundColor: AppColors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            radius: AppRadius.r12,
           ),
         ),
       ],
@@ -352,7 +343,7 @@ class _ToggleButton extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.r10),
           boxShadow: isActive
               ? [
                   BoxShadow(
@@ -373,9 +364,7 @@ class _ToggleButton extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // BUDGET BODY (switches between grid and list)
-// ═══════════════════════════════════════════════════════════════════════════════
 class _BudgetBody extends ConsumerWidget {
   final BudgetStats stats;
   final double maxWidth;
@@ -405,7 +394,6 @@ class _BudgetBody extends ConsumerWidget {
   }
 }
 
-// ── GRID VIEW ────────────────────────────────────────────────────────────────
 class _GridView extends StatelessWidget {
   final List<AccountSpending> accounts;
   final double maxWidth;
@@ -469,7 +457,7 @@ class _GridCard extends ConsumerWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.r24),
         border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Column(
@@ -484,7 +472,7 @@ class _GridCard extends ConsumerWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppRadius.r16),
                 ),
                 child: Icon(icon, color: color, size: 24),
               ),
@@ -622,7 +610,7 @@ class _GridCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.r4),
                   child: LinearProgressIndicator(
                     value: barRatio,
                     backgroundColor: const Color(0xFFF9FAFB),
@@ -639,7 +627,6 @@ class _GridCard extends ConsumerWidget {
   }
 }
 
-// ── LIST VIEW ────────────────────────────────────────────────────────────────
 class _ListView extends StatelessWidget {
   final List<AccountSpending> accounts;
   final BudgetStats stats;
@@ -681,13 +668,10 @@ class _ListRow extends ConsumerWidget {
         ? (spending.spent / spending.budget).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
+    return AppPanel(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
+      radius: AppRadius.r16,
+      borderColor: AppColors.borderSubtle,
       child: Row(
         children: [
           // Colour bar
@@ -696,7 +680,7 @@ class _ListRow extends ConsumerWidget {
             height: 40,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppRadius.r4),
             ),
           ),
           const SizedBox(width: 24),
@@ -760,7 +744,7 @@ class _ListRow extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.r4),
                   child: LinearProgressIndicator(
                     value: barRatio,
                     backgroundColor: const Color(0xFFF3F4F6),
@@ -858,7 +842,7 @@ class _QuickPctBtn extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.r8),
       ),
       child: Text(
         label,
@@ -872,9 +856,7 @@ class _QuickPctBtn extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // FOOTER CTA
-// ═══════════════════════════════════════════════════════════════════════════════
 class _FooterCta extends StatelessWidget {
   final BudgetStats stats;
   const _FooterCta({required this.stats});
@@ -890,12 +872,12 @@ class _FooterCta extends StatelessWidget {
         ? (remaining / stats.disposableIncome * 100)
         : 0.0;
 
-    return Container(
+    return AppPanel(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-      decoration: BoxDecoration(
-        color: AppColors.primaryDarker,
-        borderRadius: BorderRadius.circular(32),
-      ),
+      radius: AppRadius.r32,
+      backgroundColor: AppColors.primaryDarker,
+      border: Border.all(color: Colors.transparent),
+      boxShadow: const [],
       child: Row(
         children: [
           Container(
@@ -903,7 +885,7 @@ class _FooterCta extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               color: AppColors.primary.withAlpha(50),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               border: Border.all(color: AppColors.primary.withAlpha(75)),
             ),
             child: const Icon(
@@ -952,13 +934,11 @@ class _FooterCta extends StatelessWidget {
           const SizedBox(width: 16),
           OutlinedButton(
             onPressed: () {},
-            style: OutlinedButton.styleFrom(
+            style: AppButtonStyles.outline(
               foregroundColor: Colors.white,
               side: BorderSide(color: Colors.white.withAlpha(25)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              radius: AppRadius.r12,
             ),
             child: const Text(
               'Reset',
@@ -968,13 +948,10 @@ class _FooterCta extends StatelessWidget {
           const SizedBox(width: 12),
           ElevatedButton(
             onPressed: () {},
-            style: ElevatedButton.styleFrom(
+            style: AppButtonStyles.primary(
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              radius: AppRadius.r12,
             ),
             child: const Text(
               'Auto-Allocation',
@@ -986,3 +963,4 @@ class _FooterCta extends StatelessWidget {
     );
   }
 }
+

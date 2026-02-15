@@ -8,12 +8,12 @@ import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 
-// ── View toggle ─────────────────────────────────────────────────────────────
+// -- View toggle -------------------------------------------------------------
 final _calendarModeProvider = StateProvider<bool>(
   (ref) => false,
 ); // false = list
 
-// ── Colours ─────────────────────────────────────────────────────────────────
+// -- Colours -----------------------------------------------------------------
 const _autoColor = AppColors.primary;
 const _manualColor = Color(0xFFF97316); // orange
 const _overdueColor = AppColors.danger;
@@ -39,12 +39,10 @@ class ScheduleView extends ConsumerWidget {
             padding: const EdgeInsets.all(32),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
+                constraints: const BoxConstraints(maxWidth: 1440),
                 child: Column(
                   children: [
                     _HeroHeader(data: data),
-                    const SizedBox(height: 24),
-                    _Toolbar(data: data),
                     const SizedBox(height: 24),
                     _Body(data: data, maxWidth: constraints.maxWidth),
                     const SizedBox(height: 40),
@@ -59,22 +57,25 @@ class ScheduleView extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // HERO HEADER
-// ═══════════════════════════════════════════════════════════════════════════════
-class _HeroHeader extends StatelessWidget {
+// -------------------------------------------------------------------------------
+class _HeroHeader extends ConsumerWidget {
   final UpcomingData data;
   const _HeroHeader({required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isCalendar = ref.watch(_calendarModeProvider);
+    final isDesktop = MediaQuery.sizeOf(context).width >= 980;
     final now = DateTime.now();
     final monthLabel = DateFormat(
       'MMMM yyyy',
       'fr_FR',
     ).format(now).toUpperCase();
 
-    return Column(
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'TOTAL A PAYER · $monthLabel',
@@ -96,15 +97,15 @@ class _HeroHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          spacing: 24,
+          runSpacing: 6,
           children: [
             _DotLabel(
               label: 'Prélèvements Auto:',
               amount: AppFormats.currency.format(data.totalAuto),
               color: _autoColor,
             ),
-            const SizedBox(width: 32),
             _DotLabel(
               label: 'Factures Manuelles:',
               amount: AppFormats.currency.format(data.totalManual),
@@ -112,6 +113,49 @@ class _HeroHeader extends StatelessWidget {
             ),
           ],
         ),
+      ],
+    );
+
+    final modeToggle = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleChip(
+            label: 'Liste',
+            isActive: !isCalendar,
+            onTap: () => ref.read(_calendarModeProvider.notifier).state = false,
+          ),
+          _ToggleChip(
+            label: 'Calendrier',
+            isActive: isCalendar,
+            onTap: () => ref.read(_calendarModeProvider.notifier).state = true,
+          ),
+        ],
+      ),
+    );
+
+    if (!isDesktop) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          summary,
+          const SizedBox(height: 16),
+          Align(alignment: Alignment.centerRight, child: modeToggle),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(child: summary),
+        const SizedBox(width: 16),
+        modeToggle,
       ],
     );
   }
@@ -153,67 +197,6 @@ class _DotLabel extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TOOLBAR
-// ═══════════════════════════════════════════════════════════════════════════════
-class _Toolbar extends ConsumerWidget {
-  final UpcomingData data;
-  const _Toolbar({required this.data});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isCalendar = ref.watch(_calendarModeProvider);
-
-    return Row(
-      children: [
-        // Toggle List / Calendar
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _ToggleChip(
-                label: 'Liste',
-                isActive: !isCalendar,
-                onTap: () =>
-                    ref.read(_calendarModeProvider.notifier).state = false,
-              ),
-              _ToggleChip(
-                label: 'Calendrier',
-                isActive: isCalendar,
-                onTap: () =>
-                    ref.read(_calendarModeProvider.notifier).state = true,
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        // Nouvelle échéance button
-        TextButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text(
-            'Nouvelle échéance',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-          ),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: AppColors.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
           ),
         ),
       ],
@@ -264,9 +247,9 @@ class _ToggleChip extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // BODY (switches list / calendar)
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 class _Body extends ConsumerWidget {
   final UpcomingData data;
   final double maxWidth;
@@ -282,9 +265,9 @@ class _Body extends ConsumerWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // LIST VIEW
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 class _ListViewBody extends ConsumerWidget {
   final UpcomingData data;
   final double maxWidth;
@@ -292,7 +275,7 @@ class _ListViewBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isWide = maxWidth > 700;
+    final isWide = maxWidth > 960;
     void onChanged() => ref.invalidate(upcomingTransactionsProvider);
 
     if (isWide) {
@@ -411,7 +394,7 @@ class _SectionColumn extends StatelessWidget {
             ),
           )
         else
-          ...transactions.map(
+          ...([...transactions]..sort((a, b) => a.date.compareTo(b.date))).map(
             (t) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _TransactionCard(
@@ -419,32 +402,6 @@ class _SectionColumn extends StatelessWidget {
                 color: color,
                 showValidate: showValidate,
                 onChanged: onChanged,
-              ),
-            ),
-          ),
-        if (showValidate)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderSubtle),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, size: 18, color: AppColors.textDisabled),
-                  SizedBox(width: 8),
-                  Text(
-                    'Ajouter une facture manuelle',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDisabled,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -473,16 +430,42 @@ class _TransactionCard extends ConsumerStatefulWidget {
 class _TransactionCardState extends ConsumerState<_TransactionCard> {
   bool _loading = false;
 
+  DateTime get _today {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  DateTime get _dueDateOnly {
+    final date = widget.transaction.date;
+    return DateTime(date.year, date.month, date.day);
+  }
+
   bool get _isOverdue {
-    return widget.transaction.date.isBefore(DateTime.now()) &&
-        widget.transaction.isPending;
+    return widget.transaction.isPending && _dueDateOnly.isBefore(_today);
   }
 
   int get _overdueDays {
-    return DateTime.now().difference(widget.transaction.date).inDays;
+    return _today.difference(_dueDateOnly).inDays;
   }
 
   bool get _isPaid => widget.transaction.isCompleted;
+
+  bool get _isDueToday =>
+      widget.transaction.isPending && _dueDateOnly.isAtSameMomentAs(_today);
+
+  int get _daysUntilDue {
+    return _dueDateOnly.difference(_today).inDays;
+  }
+
+  String get _timingLabel {
+    if (_isPaid) return 'Payé';
+    if (_isOverdue) {
+      return 'En retard de $_overdueDays jour${_overdueDays > 1 ? 's' : ''}';
+    }
+    if (_isDueToday) return 'Échéance aujourd\'hui';
+    final days = _daysUntilDue;
+    return 'Dans $days jour${days > 1 ? 's' : ''}';
+  }
 
   Future<void> _validate() async {
     setState(() => _loading = true);
@@ -523,117 +506,114 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
               : AppColors.borderSubtle,
         ),
       ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _isPaid
-                  ? const Color(0xFFF3F4F6)
-                  : cardColor.withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 104),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _isPaid
+                    ? const Color(0xFFF3F4F6)
+                    : cardColor.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _isOverdue
+                    ? Icons.warning_amber_rounded
+                    : _getAccountIcon(t.accountName ?? ''),
+                color: _isPaid ? AppColors.textDisabled : cardColor,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              _isOverdue
-                  ? Icons.warning_amber_rounded
-                  : _getAccountIcon(t.accountName ?? ''),
-              color: _isPaid ? AppColors.textDisabled : cardColor,
-              size: 20,
+            const SizedBox(width: 16),
+            // Name + date
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.accountName ?? t.accountId,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _isPaid
+                          ? AppColors.textDisabled
+                          : AppColors.textPrimary,
+                      decoration: _isPaid ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} · $_timingLabel',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: _isOverdue
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: _isOverdue
+                          ? _overdueColor
+                          : AppColors.textDisabled,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          // Name + date
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Amount + validate button
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  t.accountName ?? t.accountId,
+                  AppFormats.currency.format(t.amount),
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: _isPaid
                         ? AppColors.textDisabled
+                        : _isOverdue
+                        ? _overdueColor
                         : AppColors.textPrimary,
-                    decoration: _isPaid ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                const SizedBox(height: 2),
-                if (_isOverdue)
-                  Text(
-                    'En retard de $_overdueDays jours',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _overdueColor,
+                if (widget.showValidate && !_isPaid) ...[
+                  const SizedBox(height: 8),
+                  if (_loading)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    SizedBox(
+                      height: 30,
+                      child: ElevatedButton(
+                        onPressed: _validate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isOverdue
+                              ? _overdueColor
+                              : AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: Text(_isOverdue ? 'Payer' : 'Valider'),
+                      ),
                     ),
-                  )
-                else
-                  Text(
-                    _isPaid
-                        ? '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} · Payé'
-                        : '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} · ${t.note ?? (t.isAuto ? "Automatique" : "Manuel")}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDisabled,
-                    ),
-                  ),
+                ],
               ],
             ),
-          ),
-          // Amount + validate button
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                AppFormats.currency.format(t.amount),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: _isPaid
-                      ? AppColors.textDisabled
-                      : _isOverdue
-                      ? _overdueColor
-                      : AppColors.textPrimary,
-                ),
-              ),
-              if (widget.showValidate && !_isPaid) ...[
-                const SizedBox(height: 8),
-                if (_loading)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  SizedBox(
-                    height: 30,
-                    child: ElevatedButton(
-                      onPressed: _validate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isOverdue
-                            ? _overdueColor
-                            : AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      child: Text(_isOverdue ? 'Payer' : 'Valider'),
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -668,18 +648,18 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// -------------------------------------------------------------------------------
 // CALENDAR VIEW
-// ═══════════════════════════════════════════════════════════════════════════════
-class _CalendarView extends StatefulWidget {
+// -------------------------------------------------------------------------------
+class _CalendarView extends ConsumerStatefulWidget {
   final UpcomingData data;
   const _CalendarView({required this.data});
 
   @override
-  State<_CalendarView> createState() => _CalendarViewState();
+  ConsumerState<_CalendarView> createState() => _CalendarViewState();
 }
 
-class _CalendarViewState extends State<_CalendarView> {
+class _CalendarViewState extends ConsumerState<_CalendarView> {
   late DateTime _currentMonth;
 
   @override
@@ -694,6 +674,91 @@ class _CalendarViewState extends State<_CalendarView> {
   ];
 
   int get _pendingCount => _allTransactions.where((t) => t.isPending).length;
+
+  Future<void> _openTransactionDetails(Transaction transaction) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final txDate = DateTime(
+      transaction.date.year,
+      transaction.date.month,
+      transaction.date.day,
+    );
+    final isOverdue = transaction.isPending && txDate.isBefore(today);
+    final isDueToday = transaction.isPending && txDate.isAtSameMomentAs(today);
+    final dateLabel = DateFormat(
+      'dd MMM yyyy',
+      'fr_FR',
+    ).format(transaction.date);
+    String stateLabel;
+    if (transaction.isCompleted) {
+      stateLabel = 'Payé';
+    } else if (isOverdue) {
+      final days = today.difference(txDate).inDays;
+      stateLabel = 'En retard de $days jour${days > 1 ? 's' : ''}';
+    } else if (isDueToday) {
+      stateLabel = 'Échéance aujourd\'hui';
+    } else {
+      final days = txDate.difference(today).inDays;
+      stateLabel = 'Dans $days jour${days > 1 ? 's' : ''}';
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.accountName ?? transaction.accountId,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$dateLabel · $stateLabel',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isOverdue ? _overdueColor : AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppFormats.currency.format(transaction.amount),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if ((transaction.note ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    transaction.note!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -718,7 +783,11 @@ class _CalendarViewState extends State<_CalendarView> {
         ),
         const SizedBox(height: 16),
         // Calendar grid
-        _CalendarGrid(month: _currentMonth, transactions: _allTransactions),
+        _CalendarGrid(
+          month: _currentMonth,
+          transactions: _allTransactions,
+          onTapTransaction: _openTransactionDetails,
+        ),
       ],
     );
   }
@@ -751,7 +820,7 @@ class _MonthNav extends StatelessWidget {
         Text(
           label[0].toUpperCase() + label.substring(1),
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 24,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
@@ -766,7 +835,7 @@ class _MonthNav extends StatelessWidget {
           Text(
             '$pendingCount facture${pendingCount > 1 ? 's' : ''} en attente',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: AppColors.textDisabled,
             ),
@@ -779,8 +848,13 @@ class _MonthNav extends StatelessWidget {
 class _CalendarGrid extends StatelessWidget {
   final DateTime month;
   final List<Transaction> transactions;
+  final ValueChanged<Transaction> onTapTransaction;
 
-  const _CalendarGrid({required this.month, required this.transactions});
+  const _CalendarGrid({
+    required this.month,
+    required this.transactions,
+    required this.onTapTransaction,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -824,7 +898,7 @@ class _CalendarGrid extends StatelessWidget {
                         child: Text(
                           d,
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textDisabled,
                             letterSpacing: 0.5,
@@ -905,7 +979,7 @@ class _CalendarGrid extends StatelessWidget {
 
     return Expanded(
       child: Container(
-        constraints: const BoxConstraints(minHeight: 80),
+        constraints: const BoxConstraints(minHeight: 120),
         decoration: BoxDecoration(
           color: isToday ? AppColors.primary.withAlpha(12) : null,
           border: col < 6
@@ -919,7 +993,7 @@ class _CalendarGrid extends StatelessWidget {
             Text(
               displayDay,
               style: TextStyle(
-                fontSize: isToday ? 14 : 12,
+                fontSize: isToday ? 16 : 13,
                 fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                 color: isCurrentMonth
                     ? (isToday ? AppColors.primary : AppColors.textPrimary)
@@ -930,14 +1004,17 @@ class _CalendarGrid extends StatelessWidget {
               const Text(
                 'AUJOURD\'HUI',
                 style: TextStyle(
-                  fontSize: 7,
+                  fontSize: 8,
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
                   letterSpacing: 0.5,
                 ),
               ),
             if (dayTxns.isNotEmpty) const SizedBox(height: 4),
-            ...dayTxns.map((t) => _EventChip(transaction: t)),
+            ...dayTxns.map(
+              (t) =>
+                  _EventChip(transaction: t, onTap: () => onTapTransaction(t)),
+            ),
           ],
         ),
       ),
@@ -947,7 +1024,8 @@ class _CalendarGrid extends StatelessWidget {
 
 class _EventChip extends StatelessWidget {
   final Transaction transaction;
-  const _EventChip({required this.transaction});
+  final VoidCallback onTap;
+  const _EventChip({required this.transaction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -957,37 +1035,41 @@ class _EventChip extends StatelessWidget {
         ? _overdueColor
         : (transaction.isAuto ? _autoColor : _manualColor);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withAlpha(40)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              (transaction.accountName ?? '').toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: 0.3,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withAlpha(20),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: color.withAlpha(40)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                (transaction.accountName ?? '').toUpperCase(),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

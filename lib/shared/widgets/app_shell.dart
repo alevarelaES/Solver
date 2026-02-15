@@ -68,7 +68,7 @@ class _TopHeader extends StatelessWidget {
             height: 32,
             decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.r8),
             ),
             alignment: Alignment.center,
             child: const Text(
@@ -222,7 +222,7 @@ class _CurrencyMenuButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.r18),
           border: Border.all(
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
           ),
@@ -272,7 +272,7 @@ class _NavTab extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.r20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
@@ -281,7 +281,7 @@ class _NavTab extends StatelessWidget {
                     ? Colors.white.withValues(alpha: 0.1)
                     : AppColors.primaryDarker)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.r20),
         ),
         child: Text(
           label,
@@ -299,3 +299,4 @@ class _NavTab extends StatelessWidget {
     );
   }
 }
+

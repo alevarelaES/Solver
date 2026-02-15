@@ -26,7 +26,6 @@ class DesktopSidebar extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 16),
-          // ── Nav icons ───────────────────────────────────────────────
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -64,7 +63,7 @@ class _SidebarIcon extends StatelessWidget {
         message: item.label,
         preferBelow: false,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: () => context.go(item.route),
           child: Container(
             width: 40,
@@ -73,7 +72,7 @@ class _SidebarIcon extends StatelessWidget {
               color: isActive
                   ? AppColors.primary.withValues(alpha: 0.1)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.r12),
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -89,3 +88,4 @@ class _SidebarIcon extends StatelessWidget {
     );
   }
 }
+

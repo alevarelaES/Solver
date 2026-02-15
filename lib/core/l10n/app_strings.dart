@@ -46,7 +46,7 @@ class _Dashboard {
   String get filter => 'Filtrer';
   String get filterAll => 'Toutes';
   String get filterIncome => 'Revenus';
-  String get filterExpense => 'Depenses';
+  String get filterExpense => 'Dépenses';
   String get noTransactions => 'Aucune transaction récente';
 
   // Spending limit

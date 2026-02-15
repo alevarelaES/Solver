@@ -184,10 +184,11 @@ class _TypeChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? color.withAlpha(40) : Colors.transparent,
           border: Border.all(color: selected ? color : AppColors.borderSubtle),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.r10),
         ),
         child: Text(label, style: TextStyle(color: selected ? color : AppColors.textSecondary, fontWeight: FontWeight.w500)),
       ),
     );
   }
 }
+

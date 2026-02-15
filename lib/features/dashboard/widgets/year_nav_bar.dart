@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
@@ -75,13 +76,11 @@ class _NavButton extends StatelessWidget {
       child: IconButton(
         padding: EdgeInsets.zero,
         icon: Icon(icon, size: 18),
-        style: IconButton.styleFrom(
+        style: AppButtonStyles.iconSurface(
           backgroundColor: onPressed != null
               ? (isDark ? AppColors.borderDark : const Color(0xFFF3F4F6))
               : Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
+          radius: AppRadius.sm,
         ),
         onPressed: onPressed,
       ),

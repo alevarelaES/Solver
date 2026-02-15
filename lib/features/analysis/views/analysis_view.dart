@@ -33,7 +33,6 @@ class AnalysisView extends ConsumerWidget {
 
     return Column(
       children: [
-        // ── Year nav ────────────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
@@ -83,7 +82,6 @@ class AnalysisView extends ConsumerWidget {
             ],
           ),
         ),
-        // ── Content ─────────────────────────────────────────────────────
         Expanded(
           child: dataAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -100,15 +98,12 @@ class AnalysisView extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── 3 KPI cards ──────────────────────────────────
                     _StrategicKpiRow(data: data, year: year),
                     const SizedBox(height: 32),
 
-                    // ── Line chart: YoY Income vs Expense Growth ─────
                     _YoYLineChartCard(data: data),
                     const SizedBox(height: 32),
 
-                    // ── Bottom 2-col cards ───────────────────────────
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 768;
@@ -145,7 +140,6 @@ class AnalysisView extends ConsumerWidget {
   }
 }
 
-// ─── Year nav button ──────────────────────────────────────────────────────────
 class _NavBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -175,7 +169,6 @@ class _NavBtn extends StatelessWidget {
   }
 }
 
-// ─── 3 Strategic KPI cards ────────────────────────────────────────────────────
 class _StrategicKpiRow extends StatelessWidget {
   final AnalysisData data;
   final int year;
@@ -381,7 +374,7 @@ class _MiniProgressBar extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppRadius.r4),
             child: LinearProgressIndicator(
               value: value.clamp(0.0, 1.0),
               minHeight: 6,
@@ -399,7 +392,6 @@ class _MiniProgressBar extends StatelessWidget {
   }
 }
 
-// ─── YoY Line Chart Card ──────────────────────────────────────────────────────
 class _YoYLineChartCard extends StatelessWidget {
   final AnalysisData data;
   const _YoYLineChartCard({required this.data});
@@ -584,7 +576,7 @@ class _YoYLineChartCard extends StatelessWidget {
                         getTooltipItems: (spots) => spots.map((spot) {
                           final isIncome = spot.barIndex == 0;
                           return LineTooltipItem(
-                            '${isIncome ? "Revenus" : "Depenses"}\n${AppFormats.currencySymbol} ${AppFormats.currencyRaw.format(spot.y)}',
+                            '${isIncome ? "Revenus" : "Dépenses"}\n${AppFormats.currencySymbol} ${AppFormats.currencyRaw.format(spot.y)}',
                             TextStyle(
                               color: isIncome
                                   ? AppColors.primary
@@ -609,7 +601,7 @@ class _YoYLineChartCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(AppRadius.r6),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primary.withValues(alpha: 0.3),
@@ -715,7 +707,6 @@ class _DashedLinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ─── Projected Savings Growth Card ────────────────────────────────────────────
 class _ProjectedSavingsCard extends StatelessWidget {
   final AnalysisData data;
   const _ProjectedSavingsCard({required this.data});
@@ -765,7 +756,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppRadius.r20),
                 ),
                 child: Text(
                   'Aggressive Strategy',
@@ -788,7 +779,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppRadius.r4),
             child: LinearProgressIndicator(
               value: progressVal,
               minHeight: 8,
@@ -812,7 +803,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.05)
                         : const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.r16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,7 +839,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.05)
                         : const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.r16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,7 +881,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                 color: isDark ? AppColors.borderDark : const Color(0xFFF3F4F6),
                 width: 2,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.r16),
             ),
             child: Row(
               children: [
@@ -944,7 +935,6 @@ class _ProjectedSavingsCard extends StatelessWidget {
   }
 }
 
-// ─── Peer Comparison Index Card ───────────────────────────────────────────────
 class _PeerComparisonCard extends StatelessWidget {
   final AnalysisData data;
   const _PeerComparisonCard({required this.data});
@@ -1045,7 +1035,7 @@ class _PeerComparisonCard extends StatelessWidget {
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.08)
                       : const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.r4),
                 ),
                 child: Text(
                   'TOP 10% SEGMENT',
@@ -1152,7 +1142,7 @@ class _PeerComparisonRow extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color: item.iconBg,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.r12),
           ),
           child: Icon(item.icon, color: item.iconColor, size: 20),
         ),
@@ -1200,7 +1190,7 @@ class _PeerComparisonRow extends StatelessWidget {
             SizedBox(
               width: 96,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.r4),
                 child: LinearProgressIndicator(
                   value: item.barValue.clamp(0.0, 1.0),
                   minHeight: 4,
@@ -1217,3 +1207,4 @@ class _PeerComparisonRow extends StatelessWidget {
     );
   }
 }
+

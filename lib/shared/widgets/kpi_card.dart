@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
@@ -38,7 +39,7 @@ class KpiCard extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.r10),
             ),
             child: Icon(icon, color: color, size: 18),
           ),
@@ -58,3 +59,5 @@ class KpiCard extends StatelessWidget {
     );
   }
 }
+
+

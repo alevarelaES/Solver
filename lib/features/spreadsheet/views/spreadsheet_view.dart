@@ -54,7 +54,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
 
     return Column(
       children: [
-        // ── Header ─────────────────────────────────────────────────────
         Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -86,7 +85,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppRadius.r4),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.2),
                   ),
@@ -131,7 +130,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
           ),
         ),
 
-        // ── Toolbar ────────────────────────────────────────────────────
         Container(
           height: 36,
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -170,7 +168,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white10 : const Color(0xFFF3F4F6),
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(AppRadius.r3),
                 ),
                 child: Text(
                   _selectedCellId != null && _selectedMonth != null
@@ -186,7 +184,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
           ),
         ),
 
-        // ── Table ──────────────────────────────────────────────────────
         Expanded(
           child: Container(
             margin: const EdgeInsets.all(12),
@@ -216,7 +213,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                     mutedColor,
                   ),
                 ),
-                // ── Footer status bar ─────────────────────────────────
                 _StatusBar(
                   data: data,
                   borderColor: borderColor,
@@ -231,7 +227,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
     );
   }
 
-  // ─── Build the spreadsheet table ─────────────────────────────────────────
   Widget _buildTable(
     SpreadsheetData data,
     bool isDark,
@@ -273,7 +268,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
             width: catWidth + (cellWidth * 12) + totalWidth,
             child: Column(
               children: [
-                // ── Column headers ─────────────────────────────────
                 Container(
                   height: 40,
                   decoration: BoxDecoration(
@@ -309,7 +303,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                   ),
                 ),
 
-                // ── Body rows ──────────────────────────────────────
                 Expanded(
                   child: ListView(
                     children: [
@@ -367,7 +360,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                         // Spacer
                         SizedBox(height: 12),
                       ],
-                      // ── NET CASH FLOW ────────────────────────────────
                       _NetCashFlowRow(
                         monthValues: data.netCashFlowMonths,
                         grandTotal: data.netCashFlowTotal,
@@ -388,7 +380,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
   }
 }
 
-// ─── Header cell ──────────────────────────────────────────────────────────────
 class _HeaderCell extends StatelessWidget {
   final String text;
   final double width;
@@ -437,7 +428,6 @@ class _HeaderCell extends StatelessWidget {
   }
 }
 
-// ─── Section header row ───────────────────────────────────────────────────────
 class _SectionHeaderRow extends StatelessWidget {
   final String label;
   final Color color;
@@ -507,7 +497,6 @@ class _SectionHeaderRow extends StatelessWidget {
   }
 }
 
-// ─── Data row ─────────────────────────────────────────────────────────────────
 class _DataRow extends StatelessWidget {
   final SpreadsheetRow row;
   final double catWidth;
@@ -609,7 +598,6 @@ class _DataRow extends StatelessWidget {
   }
 }
 
-// ─── Editable cell ────────────────────────────────────────────────────────────
 class _EditableCell extends StatefulWidget {
   final double value;
   final double width;
@@ -730,7 +718,6 @@ class _EditableCellState extends State<_EditableCell> {
   }
 }
 
-// ─── Section total row ────────────────────────────────────────────────────────
 class _TotalRow extends StatelessWidget {
   final String label;
   final List<double> totals;
@@ -831,7 +818,6 @@ class _TotalRow extends StatelessWidget {
   }
 }
 
-// ─── NET CASH FLOW row ────────────────────────────────────────────────────────
 class _NetCashFlowRow extends StatelessWidget {
   final List<double> monthValues;
   final double grandTotal;
@@ -915,7 +901,6 @@ class _NetCashFlowRow extends StatelessWidget {
   }
 }
 
-// ─── Toolbar button ───────────────────────────────────────────────────────────
 class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -925,7 +910,7 @@ class _ToolbarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(AppRadius.r4),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(6),
@@ -956,7 +941,6 @@ class _ToolbarDivider extends StatelessWidget {
   }
 }
 
-// ─── Footer status bar ────────────────────────────────────────────────────────
 class _StatusBar extends StatelessWidget {
   final SpreadsheetData data;
   final Color borderColor;
@@ -1032,3 +1016,4 @@ class _StatusBar extends StatelessWidget {
     );
   }
 }
+

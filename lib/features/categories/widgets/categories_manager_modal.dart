@@ -34,7 +34,7 @@ class _CategoriesManagerDialogState
 
     return Dialog(
       backgroundColor: AppColors.surfaceDialog,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
         child: Padding(
@@ -46,7 +46,7 @@ class _CategoriesManagerDialogState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Gerer groupes et categories',
+                    'Gérer groupes et catégories',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   IconButton(
@@ -66,13 +66,13 @@ class _CategoriesManagerDialogState
                   TextButton.icon(
                     onPressed: _saving ? null : _createCategory,
                     icon: const Icon(Icons.add),
-                    label: const Text('Nouvelle categorie'),
+                    label: const Text('Nouvelle catégorie'),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               const Text(
-                'Un groupe organise les depenses/revenus. Une categorie sert a accumuler les operations dans ce groupe.',
+                'Un groupe organise les dépenses/revenus. Une catégorie sert à accumuler les opérations dans ce groupe.',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 10),
@@ -82,7 +82,7 @@ class _CategoriesManagerDialogState
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      'Erreur categories: $e',
+                      'Erreur catégories: $e',
                       style: const TextStyle(color: AppColors.softRed),
                     ),
                   ),
@@ -123,7 +123,7 @@ class _CategoriesManagerDialogState
       children: [
         ..._buildTypeSections(
           type: 'expense',
-          title: 'Depenses',
+          title: 'Dépenses',
           groups: activeGroups,
           categories: activeCategories,
         ),
@@ -150,7 +150,7 @@ class _CategoriesManagerDialogState
           ...archivedGroups.map(
             (g) => ListTile(
               dense: true,
-              title: Text('${g.name} (${g.isIncome ? 'Revenu' : 'Depense'})'),
+              title: Text('${g.name} (${g.isIncome ? 'Revenu' : 'Dépense'})'),
               subtitle: const Text('Groupe archive'),
               trailing: IconButton(
                 onPressed: _saving ? null : () => _archiveGroup(g, false),
@@ -218,7 +218,7 @@ class _CategoriesManagerDialogState
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.borderSubtle),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.r12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,7 +263,7 @@ class _CategoriesManagerDialogState
                 const Padding(
                   padding: EdgeInsets.all(12),
                   child: Text(
-                    'Aucune categorie dans ce groupe',
+                    'Aucune catégorie dans ce groupe',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.textSecondary,
@@ -327,7 +327,7 @@ class _CategoriesManagerDialogState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Creation de groupe indisponible: mets a jour/redemarre le backend.',
+            'Création de groupe indisponible: mets à jour/redémarre le backend.',
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -515,7 +515,7 @@ class _CategoriesManagerDialogState
           final availableGroups = groupsForType();
           return AlertDialog(
             title: Text(
-              initial == null ? 'Nouvelle categorie' : 'Modifier categorie',
+              initial == null ? 'Nouvelle catégorie' : 'Modifier catégorie',
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -529,7 +529,7 @@ class _CategoriesManagerDialogState
                   initialValue: type,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Depense')),
+                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
                     DropdownMenuItem(value: 'income', child: Text('Revenu')),
                   ],
                   onChanged: (v) {
@@ -568,7 +568,7 @@ class _CategoriesManagerDialogState
                     label: Text(
                       creatingNewGroup
                           ? 'Utiliser un groupe existant'
-                          : 'Creer un nouveau groupe',
+                          : 'Créer un nouveau groupe',
                     ),
                   ),
                 ),
@@ -662,7 +662,7 @@ class _CategoriesManagerDialogState
                   initialValue: type,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Depense')),
+                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
                     DropdownMenuItem(value: 'income', child: Text('Revenu')),
                   ],
                   onChanged: (v) => setLocalState(() => type = v ?? 'expense'),
@@ -733,3 +733,4 @@ class _GroupDraft {
 
   const _GroupDraft({required this.name, required this.type});
 }
+

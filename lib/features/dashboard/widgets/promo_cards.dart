@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solver/core/l10n/app_strings.dart';
+import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 
@@ -62,12 +63,8 @@ class SolverAiCard extends StatelessWidget {
               onPressed: () {
                 // TODO: navigate to AI feature
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
+              style: AppButtonStyles.primary(
+                radius: AppRadius.sm,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 elevation: 4,
                 shadowColor: const Color(0xFF1E2E11).withValues(alpha: 0.4),
@@ -137,14 +134,12 @@ class UpgradeProCard extends StatelessWidget {
               onPressed: () {
                 // TODO: navigate to upgrade page
               },
-              style: OutlinedButton.styleFrom(
+              style: AppButtonStyles.outline(
                 foregroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                 side: BorderSide(
                   color: isDark ? AppColors.borderDark : AppColors.borderLight,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
+                radius: AppRadius.sm,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
