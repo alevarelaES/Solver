@@ -13,10 +13,133 @@ final _calendarModeProvider = StateProvider<bool>(
   (ref) => false,
 ); // false = list
 
+enum _InvoiceScope { month, all }
+
+final _invoiceScopeProvider = StateProvider<_InvoiceScope>(
+  (ref) => _InvoiceScope.month,
+);
+final _calendarMonthProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month);
+});
+
 // -- Colours -----------------------------------------------------------------
 const _autoColor = AppColors.primary;
 const _manualColor = Color(0xFFF97316); // orange
 const _overdueColor = AppColors.danger;
+const _calendarAccent = Color(0xFF4C9A2A);
+const _calendarAutoColor = Color(0xFF4C9A2A);
+const _calendarManualColor = Color(0xFFEA7A1D);
+
+class _ScopedUpcomingData {
+  final List<Transaction> autoAll;
+  final List<Transaction> manualAll;
+  final List<Transaction> autoList;
+  final List<Transaction> manualList;
+  final int hiddenAuto;
+  final int hiddenManual;
+  final double totalAuto;
+  final double totalManual;
+  final double grandTotal;
+
+  const _ScopedUpcomingData({
+    required this.autoAll,
+    required this.manualAll,
+    required this.autoList,
+    required this.manualList,
+    required this.hiddenAuto,
+    required this.hiddenManual,
+    required this.totalAuto,
+    required this.totalManual,
+    required this.grandTotal,
+  });
+}
+
+_ScopedUpcomingData _scopeUpcomingData(UpcomingData data, _InvoiceScope scope) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  bool isPast(DateTime d) {
+    final day = DateTime(d.year, d.month, d.day);
+    return day.isBefore(today);
+  }
+
+  bool isCurrentMonth(Transaction t) =>
+      t.date.year == now.year && t.date.month == now.month;
+
+  var autoAll = [...data.auto];
+  var manualAll = [...data.manual];
+
+  // Safety net: auto debits already past due should not be shown in schedule list.
+  autoAll = autoAll
+      .where((t) => !(t.isAuto && t.isPending && isPast(t.date)))
+      .toList();
+
+  autoAll.sort((a, b) => a.date.compareTo(b.date));
+  manualAll.sort((a, b) => a.date.compareTo(b.date));
+
+  if (scope == _InvoiceScope.month) {
+    autoAll = autoAll.where(isCurrentMonth).toList();
+    manualAll = manualAll.where(isCurrentMonth).toList();
+  }
+
+  final totalAuto = autoAll.fold<double>(0, (sum, t) => sum + t.amount);
+  final totalManual = manualAll.fold<double>(0, (sum, t) => sum + t.amount);
+
+  List<Transaction> autoList = autoAll;
+  List<Transaction> manualList = manualAll;
+  var hiddenAuto = 0;
+  var hiddenManual = 0;
+
+  if (scope == _InvoiceScope.all) {
+    if (autoList.length > 10) {
+      hiddenAuto = autoList.length - 10;
+      autoList = autoList.take(10).toList();
+    }
+    if (manualList.length > 10) {
+      hiddenManual = manualList.length - 10;
+      manualList = manualList.take(10).toList();
+    }
+  }
+
+  return _ScopedUpcomingData(
+    autoAll: autoAll,
+    manualAll: manualAll,
+    autoList: autoList,
+    manualList: manualList,
+    hiddenAuto: hiddenAuto,
+    hiddenManual: hiddenManual,
+    totalAuto: totalAuto,
+    totalManual: totalManual,
+    grandTotal: totalAuto + totalManual,
+  );
+}
+
+_ScopedUpcomingData _scopeUpcomingDataToMonth(
+  _ScopedUpcomingData data,
+  DateTime month,
+) {
+  bool inMonth(Transaction t) =>
+      t.date.year == month.year && t.date.month == month.month;
+
+  final auto = data.autoAll.where(inMonth).toList()
+    ..sort((a, b) => a.date.compareTo(b.date));
+  final manual = data.manualAll.where(inMonth).toList()
+    ..sort((a, b) => a.date.compareTo(b.date));
+  final totalAuto = auto.fold<double>(0, (sum, t) => sum + t.amount);
+  final totalManual = manual.fold<double>(0, (sum, t) => sum + t.amount);
+
+  return _ScopedUpcomingData(
+    autoAll: auto,
+    manualAll: manual,
+    autoList: auto,
+    manualList: manual,
+    hiddenAuto: 0,
+    hiddenManual: 0,
+    totalAuto: totalAuto,
+    totalManual: totalManual,
+    grandTotal: totalAuto + totalManual,
+  );
+}
 
 class ScheduleView extends ConsumerWidget {
   const ScheduleView({super.key});
@@ -24,6 +147,9 @@ class ScheduleView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final upcomingAsync = ref.watch(upcomingTransactionsProvider);
+    final isCalendar = ref.watch(_calendarModeProvider);
+    final scope = ref.watch(_invoiceScopeProvider);
+    final calendarMonth = ref.watch(_calendarMonthProvider);
 
     return upcomingAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -33,26 +159,34 @@ class ScheduleView extends ConsumerWidget {
           style: const TextStyle(color: AppColors.danger),
         ),
       ),
-      data: (data) => LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1440),
-                child: Column(
-                  children: [
-                    _HeroHeader(data: data),
-                    const SizedBox(height: 24),
-                    _Body(data: data, maxWidth: constraints.maxWidth),
-                    const SizedBox(height: 40),
-                  ],
+      data: (data) {
+        final listData = _scopeUpcomingData(data, scope);
+        final calendarData = _scopeUpcomingData(data, _InvoiceScope.all);
+        final headerData = isCalendar
+            ? _scopeUpcomingDataToMonth(calendarData, calendarMonth)
+            : listData;
+        final bodyData = isCalendar ? calendarData : listData;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1440),
+                  child: Column(
+                    children: [
+                      _HeroHeader(data: headerData),
+                      const SizedBox(height: 24),
+                      _Body(data: bodyData, maxWidth: constraints.maxWidth),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -61,14 +195,16 @@ class ScheduleView extends ConsumerWidget {
 // HERO HEADER
 // -------------------------------------------------------------------------------
 class _HeroHeader extends ConsumerWidget {
-  final UpcomingData data;
+  final _ScopedUpcomingData data;
   const _HeroHeader({required this.data});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isCalendar = ref.watch(_calendarModeProvider);
+    final scope = ref.watch(_invoiceScopeProvider);
+    final calendarMonth = ref.watch(_calendarMonthProvider);
     final isDesktop = MediaQuery.sizeOf(context).width >= 980;
-    final now = DateTime.now();
+    final now = isCalendar ? calendarMonth : DateTime.now();
     final monthLabel = DateFormat(
       'MMMM yyyy',
       'fr_FR',
@@ -78,7 +214,7 @@ class _HeroHeader extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TOTAL A PAYER · $monthLabel',
+          'TOTAL A PAYER - $monthLabel',
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -97,46 +233,29 @@ class _HeroHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 24,
-          runSpacing: 6,
-          children: [
-            _DotLabel(
-              label: 'Prélèvements Auto:',
-              amount: AppFormats.currency.format(data.totalAuto),
-              color: _autoColor,
-            ),
-            _DotLabel(
-              label: 'Factures Manuelles:',
-              amount: AppFormats.currency.format(data.totalManual),
-              color: _manualColor,
-            ),
-          ],
+        Text(
+          isCalendar
+              ? 'Calendrier du mois'
+              : scope == _InvoiceScope.month
+              ? 'Factures du mois'
+              : 'Toutes les factures',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
 
-    final modeToggle = Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ToggleChip(
-            label: 'Liste',
-            isActive: !isCalendar,
-            onTap: () => ref.read(_calendarModeProvider.notifier).state = false,
-          ),
-          _ToggleChip(
-            label: 'Calendrier',
-            isActive: isCalendar,
-            onTap: () => ref.read(_calendarModeProvider.notifier).state = true,
-          ),
-        ],
-      ),
+    final controlsPanel = _ControlsPanel(
+      isCalendar: isCalendar,
+      scope: scope,
+      showScope: !isCalendar,
+      onModeChanged: (calendar) =>
+          ref.read(_calendarModeProvider.notifier).state = calendar,
+      onScopeChanged: (nextScope) =>
+          ref.read(_invoiceScopeProvider.notifier).state = nextScope,
     );
 
     if (!isDesktop) {
@@ -145,7 +264,7 @@ class _HeroHeader extends ConsumerWidget {
         children: [
           summary,
           const SizedBox(height: 16),
-          Align(alignment: Alignment.centerRight, child: modeToggle),
+          Align(alignment: Alignment.centerRight, child: controlsPanel),
         ],
       );
     }
@@ -155,51 +274,121 @@ class _HeroHeader extends ConsumerWidget {
       children: [
         Expanded(child: summary),
         const SizedBox(width: 16),
-        modeToggle,
+        controlsPanel,
       ],
     );
   }
 }
 
-class _DotLabel extends StatelessWidget {
-  final String label;
-  final String amount;
-  final Color color;
-  const _DotLabel({
-    required this.label,
-    required this.amount,
-    required this.color,
+class _ControlsPanel extends StatelessWidget {
+  final bool isCalendar;
+  final _InvoiceScope scope;
+  final bool showScope;
+  final ValueChanged<bool> onModeChanged;
+  final ValueChanged<_InvoiceScope> onScopeChanged;
+
+  const _ControlsPanel({
+    required this.isCalendar,
+    required this.scope,
+    required this.showScope,
+    required this.onModeChanged,
+    required this.onScopeChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD7DEE8)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          amount,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        ],
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _FilterGroup(
+            title: 'Vue',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ToggleChip(
+                  label: 'Liste',
+                  isActive: !isCalendar,
+                  onTap: () => onModeChanged(false),
+                ),
+                _ToggleChip(
+                  label: 'Calendrier',
+                  isActive: isCalendar,
+                  onTap: () => onModeChanged(true),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          if (showScope)
+            _FilterGroup(
+              title: 'Periode',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ToggleChip(
+                    label: 'Mois',
+                    isActive: scope == _InvoiceScope.month,
+                    onTap: () => onScopeChanged(_InvoiceScope.month),
+                  ),
+                  _ToggleChip(
+                    label: 'Toutes',
+                    isActive: scope == _InvoiceScope.all,
+                    onTap: () => onScopeChanged(_InvoiceScope.all),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterGroup extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _FilterGroup({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -216,14 +405,20 @@ class _ToggleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground = isActive ? AppColors.primary : AppColors.textSecondary;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive
+                ? AppColors.primary.withAlpha(60)
+                : Colors.transparent,
+          ),
           boxShadow: isActive
               ? [
                   BoxShadow(
@@ -237,9 +432,9 @@ class _ToggleChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: isActive ? AppColors.primary : AppColors.textDisabled,
+            color: foreground,
           ),
         ),
       ),
@@ -251,7 +446,7 @@ class _ToggleChip extends StatelessWidget {
 // BODY (switches list / calendar)
 // -------------------------------------------------------------------------------
 class _Body extends ConsumerWidget {
-  final UpcomingData data;
+  final _ScopedUpcomingData data;
   final double maxWidth;
   const _Body({required this.data, required this.maxWidth});
 
@@ -269,13 +464,15 @@ class _Body extends ConsumerWidget {
 // LIST VIEW
 // -------------------------------------------------------------------------------
 class _ListViewBody extends ConsumerWidget {
-  final UpcomingData data;
+  final _ScopedUpcomingData data;
   final double maxWidth;
   const _ListViewBody({required this.data, required this.maxWidth});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isWide = maxWidth > 960;
+    final scope = ref.watch(_invoiceScopeProvider);
+    final maxVisible = scope == _InvoiceScope.all ? 10 : null;
     void onChanged() => ref.invalidate(upcomingTransactionsProvider);
 
     if (isWide) {
@@ -284,11 +481,13 @@ class _ListViewBody extends ConsumerWidget {
         children: [
           Expanded(
             child: _SectionColumn(
-              title: 'Prélèvements Auto',
+              title: 'Prelevements auto',
               icon: Icons.bolt,
               color: _autoColor,
-              transactions: data.auto,
+              transactions: data.autoList,
               total: data.totalAuto,
+              hiddenCount: data.hiddenAuto,
+              maxVisible: maxVisible,
               showValidate: false,
               onChanged: onChanged,
             ),
@@ -296,11 +495,13 @@ class _ListViewBody extends ConsumerWidget {
           const SizedBox(width: 24),
           Expanded(
             child: _SectionColumn(
-              title: 'Factures Manuelles',
+              title: 'Factures manuelles',
               icon: Icons.description_outlined,
               color: _manualColor,
-              transactions: data.manual,
+              transactions: data.manualList,
               total: data.totalManual,
+              hiddenCount: data.hiddenManual,
+              maxVisible: maxVisible,
               showValidate: true,
               onChanged: onChanged,
             ),
@@ -313,21 +514,25 @@ class _ListViewBody extends ConsumerWidget {
     return Column(
       children: [
         _SectionColumn(
-          title: 'Prélèvements Auto',
+          title: 'Prelevements auto',
           icon: Icons.bolt,
           color: _autoColor,
-          transactions: data.auto,
+          transactions: data.autoList,
           total: data.totalAuto,
+          hiddenCount: data.hiddenAuto,
+          maxVisible: maxVisible,
           showValidate: false,
           onChanged: onChanged,
         ),
         const SizedBox(height: 24),
         _SectionColumn(
-          title: 'Factures Manuelles',
+          title: 'Factures manuelles',
           icon: Icons.description_outlined,
           color: _manualColor,
-          transactions: data.manual,
+          transactions: data.manualList,
           total: data.totalManual,
+          hiddenCount: data.hiddenManual,
+          maxVisible: maxVisible,
           showValidate: true,
           onChanged: onChanged,
         ),
@@ -342,6 +547,8 @@ class _SectionColumn extends StatelessWidget {
   final Color color;
   final List<Transaction> transactions;
   final double total;
+  final int hiddenCount;
+  final int? maxVisible;
   final bool showValidate;
   final VoidCallback onChanged;
 
@@ -351,12 +558,22 @@ class _SectionColumn extends StatelessWidget {
     required this.color,
     required this.transactions,
     required this.total,
+    required this.hiddenCount,
+    this.maxVisible,
     required this.showValidate,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sortedTransactions = [...transactions]
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final visibleTransactions = maxVisible == null
+        ? sortedTransactions
+        : sortedTransactions.take(maxVisible!).toList();
+    final extraHidden = sortedTransactions.length - visibleTransactions.length;
+    final totalHidden = hiddenCount + (extraHidden > 0 ? extraHidden : 0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -370,7 +587,7 @@ class _SectionColumn extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: 16,
               ),
             ),
             const Spacer(),
@@ -379,7 +596,7 @@ class _SectionColumn extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: 16,
               ),
             ),
           ],
@@ -389,12 +606,12 @@ class _SectionColumn extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Text(
-              'Aucune échéance',
+              'Aucune echeance',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           )
         else
-          ...([...transactions]..sort((a, b) => a.date.compareTo(b.date))).map(
+          ...visibleTransactions.map(
             (t) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _TransactionCard(
@@ -402,6 +619,18 @@ class _SectionColumn extends StatelessWidget {
                 color: color,
                 showValidate: showValidate,
                 onChanged: onChanged,
+              ),
+            ),
+          ),
+        if (totalHidden > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 2),
+            child: Text(
+              '+$totalHidden echeance${totalHidden > 1 ? 's' : ''} suivante${totalHidden > 1 ? 's' : ''} plus tard',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -429,6 +658,7 @@ class _TransactionCard extends ConsumerStatefulWidget {
 
 class _TransactionCardState extends ConsumerState<_TransactionCard> {
   bool _loading = false;
+  bool _isHovering = false;
 
   DateTime get _today {
     final now = DateTime.now();
@@ -441,7 +671,9 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
   }
 
   bool get _isOverdue {
-    return widget.transaction.isPending && _dueDateOnly.isBefore(_today);
+    return !widget.transaction.isAuto &&
+        widget.transaction.isPending &&
+        _dueDateOnly.isBefore(_today);
   }
 
   int get _overdueDays {
@@ -458,12 +690,17 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
   }
 
   String get _timingLabel {
-    if (_isPaid) return 'Payé';
+    if (_isPaid) return 'Paye';
     if (_isOverdue) {
       return 'En retard de $_overdueDays jour${_overdueDays > 1 ? 's' : ''}';
     }
-    if (_isDueToday) return 'Échéance aujourd\'hui';
+    if (_isDueToday) return 'Echeance aujourd\'hui';
     final days = _daysUntilDue;
+    if (days < 0) {
+      return widget.transaction.isAuto
+          ? 'Prelevement auto deja passe'
+          : 'Echeance depassee';
+    }
     return 'Dans $days jour${days > 1 ? 's' : ''}';
   }
 
@@ -494,125 +731,140 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
   Widget build(BuildContext context) {
     final t = widget.transaction;
     final cardColor = _isOverdue ? _overdueColor : widget.color;
+    final borderColor = _isHovering
+        ? cardColor.withAlpha(120)
+        : (_isOverdue ? _overdueColor.withAlpha(60) : const Color(0xFFD7DEE8));
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _isPaid ? const Color(0xFFF9FAFB) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isOverdue
-              ? _overdueColor.withAlpha(60)
-              : AppColors.borderSubtle,
-        ),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 104),
-        child: Row(
-          children: [
-            // Icon
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _isPaid
-                    ? const Color(0xFFF3F4F6)
-                    : cardColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _isOverdue
-                    ? Icons.warning_amber_rounded
-                    : _getAccountIcon(t.accountName ?? ''),
-                color: _isPaid ? AppColors.textDisabled : cardColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Name + date
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.accountName ?? t.accountId,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _isPaid
-                          ? AppColors.textDisabled
-                          : AppColors.textPrimary,
-                      decoration: _isPaid ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} · $_timingLabel',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: _isOverdue
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      color: _isOverdue
-                          ? _overdueColor
-                          : AppColors.textDisabled,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Amount + validate button
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  AppFormats.currency.format(t.amount),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: _isPaid
-                        ? AppColors.textDisabled
-                        : _isOverdue
-                        ? _overdueColor
-                        : AppColors.textPrimary,
-                  ),
-                ),
-                if (widget.showValidate && !_isPaid) ...[
-                  const SizedBox(height: 8),
-                  if (_loading)
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    SizedBox(
-                      height: 30,
-                      child: ElevatedButton(
-                        onPressed: _validate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isOverdue
-                              ? _overdueColor
-                              : AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: Text(_isOverdue ? 'Payer' : 'Valider'),
-                      ),
-                    ),
-                ],
-              ],
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 170),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _isHovering ? -2.0 : 0, 0),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _isPaid
+              ? const Color(0xFFF9FAFB)
+              : (_isHovering ? const Color(0xFFF7FBF4) : Colors.white),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: borderColor,
+            width: _isHovering ? 1.25 : 1.15,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x14000000),
+              blurRadius: _isHovering ? 16 : 10,
+              offset: Offset(0, _isHovering ? 6 : 3),
             ),
           ],
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 104),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _isPaid
+                      ? const Color(0xFFF3F4F6)
+                      : cardColor.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _isOverdue
+                      ? Icons.warning_amber_rounded
+                      : _getAccountIcon(t.accountName ?? ''),
+                  color: _isPaid ? AppColors.textDisabled : cardColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.accountName ?? t.accountId,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _isPaid
+                            ? AppColors.textDisabled
+                            : AppColors.textPrimary,
+                        decoration: _isPaid ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} - $_timingLabel',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: _isOverdue
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: _isOverdue
+                            ? _overdueColor
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    AppFormats.currency.format(t.amount),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: _isPaid
+                          ? AppColors.textDisabled
+                          : _isOverdue
+                          ? _overdueColor
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  if (widget.showValidate && !_isPaid) ...[
+                    const SizedBox(height: 8),
+                    if (_loading)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      SizedBox(
+                        height: 30,
+                        child: ElevatedButton(
+                          onPressed: _validate,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isOverdue
+                                ? _overdueColor
+                                : AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: Text(_isOverdue ? 'Payer' : 'Valider'),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -652,7 +904,7 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
 // CALENDAR VIEW
 // -------------------------------------------------------------------------------
 class _CalendarView extends ConsumerStatefulWidget {
-  final UpcomingData data;
+  final _ScopedUpcomingData data;
   const _CalendarView({required this.data});
 
   @override
@@ -665,15 +917,191 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
   @override
   void initState() {
     super.initState();
-    _currentMonth = DateTime(DateTime.now().year, DateTime.now().month);
+    final storedMonth = ref.read(_calendarMonthProvider);
+    _currentMonth = DateTime(storedMonth.year, storedMonth.month);
   }
 
   List<Transaction> get _allTransactions => [
-    ...widget.data.auto,
-    ...widget.data.manual,
+    ...widget.data.autoAll,
+    ...widget.data.manualAll,
   ];
 
-  int get _pendingCount => _allTransactions.where((t) => t.isPending).length;
+  int get _pendingCount => _allTransactions
+      .where(
+        (t) =>
+            t.isPending &&
+            t.date.year == _currentMonth.year &&
+            t.date.month == _currentMonth.month,
+      )
+      .length;
+
+  Future<void> _markAsPaid(Transaction transaction) async {
+    final client = ref.read(apiClientProvider);
+    await client.put(
+      '/api/transactions/${transaction.id}',
+      data: {
+        'accountId': transaction.accountId,
+        'date': DateFormat('yyyy-MM-dd').format(transaction.date),
+        'amount': transaction.amount,
+        'note': transaction.note,
+        'status': 0,
+        'isAuto': transaction.isAuto,
+      },
+    );
+    invalidateAfterTransactionMutation(ref);
+    ref.invalidate(upcomingTransactionsProvider);
+  }
+
+  Future<void> _updateTransaction({
+    required Transaction transaction,
+    required DateTime date,
+    required double amount,
+    required String? note,
+  }) async {
+    final client = ref.read(apiClientProvider);
+    await client.put(
+      '/api/transactions/${transaction.id}',
+      data: {
+        'accountId': transaction.accountId,
+        'date': DateFormat('yyyy-MM-dd').format(date),
+        'amount': amount,
+        'note': note,
+        'status': transaction.isCompleted ? 0 : 1,
+        'isAuto': transaction.isAuto,
+      },
+    );
+    invalidateAfterTransactionMutation(ref);
+    ref.invalidate(upcomingTransactionsProvider);
+  }
+
+  Future<void> _openEditDialog(Transaction transaction) async {
+    var selectedDate = DateTime(
+      transaction.date.year,
+      transaction.date.month,
+      transaction.date.day,
+    );
+    final amountCtrl = TextEditingController(
+      text: transaction.amount.toStringAsFixed(2).replaceAll('.', ','),
+    );
+    final noteCtrl = TextEditingController(text: transaction.note ?? '');
+    var saving = false;
+    String? error;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Modifier l\'echeance'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => selectedDate = picked);
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(
+                      DateFormat('dd MMM yyyy', 'fr_FR').format(selectedDate),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Montant',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Note',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error!,
+                      style: const TextStyle(
+                        color: AppColors.danger,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          final parsed = double.tryParse(
+                            amountCtrl.text.replaceAll(',', '.').trim(),
+                          );
+                          if (parsed == null || parsed <= 0) {
+                            setDialogState(() => error = 'Montant invalide');
+                            return;
+                          }
+                          setDialogState(() {
+                            saving = true;
+                            error = null;
+                          });
+                          try {
+                            await _updateTransaction(
+                              transaction: transaction,
+                              date: selectedDate,
+                              amount: parsed,
+                              note: noteCtrl.text.trim().isEmpty
+                                  ? null
+                                  : noteCtrl.text.trim(),
+                            );
+                            if (!dialogContext.mounted) return;
+                            Navigator.of(dialogContext).pop();
+                          } catch (_) {
+                            setDialogState(() {
+                              saving = false;
+                              error = 'Erreur de modification';
+                            });
+                          }
+                        },
+                  child: saving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Enregistrer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _openTransactionDetails(Transaction transaction) async {
     final now = DateTime.now();
@@ -683,7 +1111,8 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
       transaction.date.month,
       transaction.date.day,
     );
-    final isOverdue = transaction.isPending && txDate.isBefore(today);
+    final isOverdue =
+        !transaction.isAuto && transaction.isPending && txDate.isBefore(today);
     final isDueToday = transaction.isPending && txDate.isAtSameMomentAs(today);
     final dateLabel = DateFormat(
       'dd MMM yyyy',
@@ -691,17 +1120,24 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
     ).format(transaction.date);
     String stateLabel;
     if (transaction.isCompleted) {
-      stateLabel = 'Payé';
+      stateLabel = 'Paye';
     } else if (isOverdue) {
       final days = today.difference(txDate).inDays;
       stateLabel = 'En retard de $days jour${days > 1 ? 's' : ''}';
     } else if (isDueToday) {
-      stateLabel = 'Échéance aujourd\'hui';
+      stateLabel = 'Echeance aujourd\'hui';
     } else {
       final days = txDate.difference(today).inDays;
-      stateLabel = 'Dans $days jour${days > 1 ? 's' : ''}';
+      if (days < 0) {
+        stateLabel = transaction.isAuto
+            ? 'Prelevement auto deja passe'
+            : 'Echeance depassee';
+      } else {
+        stateLabel = 'Dans $days jour${days > 1 ? 's' : ''}';
+      }
     }
 
+    var loadingAction = false;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -709,52 +1145,107 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.accountName ?? transaction.accountId,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$dateLabel · $stateLabel',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isOverdue ? _overdueColor : AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  AppFormats.currency.format(transaction.amount),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                if ((transaction.note ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    transaction.note!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transaction.accountName ?? transaction.accountId,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$dateLabel - $stateLabel',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isOverdue
+                            ? _overdueColor
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppFormats.currency.format(transaction.amount),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if ((transaction.note ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        transaction.note!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        if (transaction.isPending && !transaction.isAuto) ...[
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: loadingAction
+                                  ? null
+                                  : () async {
+                                      setSheetState(() => loadingAction = true);
+                                      try {
+                                        await _markAsPaid(transaction);
+                                        if (!context.mounted) return;
+                                        Navigator.of(context).pop();
+                                      } finally {
+                                        if (context.mounted) {
+                                          setSheetState(
+                                            () => loadingAction = false,
+                                          );
+                                        }
+                                      }
+                                    },
+                              child: loadingAction
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Valider'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: loadingAction
+                                ? null
+                                : () async {
+                                    Navigator.of(context).pop();
+                                    await _openEditDialog(transaction);
+                                  },
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            label: const Text('Modifier'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -773,15 +1264,19 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
               _currentMonth.year,
               _currentMonth.month - 1,
             );
+            ref.read(_calendarMonthProvider.notifier).state = _currentMonth;
           }),
           onNext: () => setState(() {
             _currentMonth = DateTime(
               _currentMonth.year,
               _currentMonth.month + 1,
             );
+            ref.read(_calendarMonthProvider.notifier).state = _currentMonth;
           }),
         ),
         const SizedBox(height: 16),
+        const _CalendarLegend(),
+        const SizedBox(height: 12),
         // Calendar grid
         _CalendarGrid(
           month: _currentMonth,
@@ -837,9 +1332,73 @@ class _MonthNav extends StatelessWidget {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppColors.textDisabled,
+              color: AppColors.textSecondary,
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  const _CalendarLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAF4),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFDCE7D3)),
+      ),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: const [
+          Text(
+            'Legende calendrier:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          _LegendItem(label: 'Prelevement auto', color: _calendarAutoColor),
+          _LegendItem(label: 'Facture manuelle', color: _calendarManualColor),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _LegendItem({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
       ],
     );
   }
@@ -879,8 +1438,16 @@ class _CalendarGrid extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.borderSubtle),
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFD7DEE8), width: 1.15),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -900,7 +1467,7 @@ class _CalendarGrid extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textDisabled,
+                            color: AppColors.textSecondary,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -981,7 +1548,8 @@ class _CalendarGrid extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 120),
         decoration: BoxDecoration(
-          color: isToday ? AppColors.primary.withAlpha(12) : null,
+          color: isToday ? _calendarAccent.withAlpha(28) : null,
+          borderRadius: isToday ? BorderRadius.circular(8) : null,
           border: col < 6
               ? const Border(right: BorderSide(color: AppColors.borderSubtle))
               : null,
@@ -996,7 +1564,7 @@ class _CalendarGrid extends StatelessWidget {
                 fontSize: isToday ? 16 : 13,
                 fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                 color: isCurrentMonth
-                    ? (isToday ? AppColors.primary : AppColors.textPrimary)
+                    ? (isToday ? _calendarAccent : AppColors.textPrimary)
                     : AppColors.textDisabled.withAlpha(100),
               ),
             ),
@@ -1006,7 +1574,7 @@ class _CalendarGrid extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 8,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: _calendarAccent,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -1030,10 +1598,13 @@ class _EventChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOverdue =
-        transaction.date.isBefore(DateTime.now()) && transaction.isPending;
+        !transaction.isAuto &&
+        transaction.date.isBefore(DateTime.now()) &&
+        transaction.isPending;
     final color = isOverdue
         ? _overdueColor
-        : (transaction.isAuto ? _autoColor : _manualColor);
+        : (transaction.isAuto ? _calendarAutoColor : _calendarManualColor);
+    final tag = transaction.isAuto ? 'AUTO' : 'MANUEL';
 
     return InkWell(
       onTap: onTap,
@@ -1042,9 +1613,9 @@ class _EventChip extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 2),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
+          color: color.withAlpha(24),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withAlpha(40)),
+          border: Border.all(color: color.withAlpha(70)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1057,7 +1628,7 @@ class _EventChip extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                (transaction.accountName ?? '').toUpperCase(),
+                '$tag ${(transaction.accountName ?? '').toUpperCase()}',
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: TextStyle(

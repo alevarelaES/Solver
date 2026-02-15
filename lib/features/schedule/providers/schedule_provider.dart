@@ -34,7 +34,7 @@ final upcomingTransactionsProvider = FutureProvider<UpcomingData>((ref) async {
   final client = ref.watch(apiClientProvider);
   final response = await client.get<Map<String, dynamic>>(
     '/api/transactions/upcoming',
-    queryParameters: const {'days': 30},
+    queryParameters: const {'days': 365},
   );
   return UpcomingData.fromJson(response.data as Map<String, dynamic>);
 });

@@ -80,7 +80,8 @@ public static class TransactionsEndpoints
             return Results.Ok(new { items, totalCount, page, pageSize });
         });
 
-        // GET /api/transactions/upcoming — includes overdue pending items up to limit
+        // GET /api/transactions/upcoming — includes pending items up to limit.
+        // Overdue automatic debits are excluded from upcoming (assumed already collected).
         group.MapGet("/upcoming", async (
             SolverDbContext db,
             HttpContext ctx,
@@ -88,11 +89,13 @@ public static class TransactionsEndpoints
         {
             var userId = GetUserId(ctx);
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var limit = today.AddDays(Math.Min(days, 90));
+            var clampedDays = Math.Clamp(days, 1, 3650);
+            var limit = today.AddDays(clampedDays);
 
             var upcoming = await db.Transactions
                 .Where(t => t.UserId == userId
                     && t.Status == TransactionStatus.Pending
+                    && (!t.IsAuto || t.Date >= today)
                     && t.Date <= limit)
                 .OrderBy(t => t.Date)
                 .Select(t => new {

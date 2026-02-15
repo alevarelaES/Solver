@@ -19,17 +19,17 @@ import 'package:solver/shared/widgets/app_panel.dart';
 const _months = <String>[
   '',
   'Janvier',
-  'FÃ©vrier',
+  'Fevrier',
   'Mars',
   'Avril',
   'Mai',
   'Juin',
   'Juillet',
-  'AoÃ»t',
+  'Aout',
   'Septembre',
   'Octobre',
   'Novembre',
-  'DÃ©cembre',
+  'Decembre',
 ];
 
 final _selectedTxIdProvider = StateProvider<String?>((ref) => null);
@@ -174,7 +174,7 @@ class _TitleBlock extends StatelessWidget {
         ),
         SizedBox(height: 2),
         Text(
-          'Suivre les transactions, puis ouvrir le dÃ©tail au clic.',
+          'Suivre les transactions, puis ouvrir le detail au clic.',
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
       ],
@@ -226,7 +226,7 @@ class _AddEntryButton extends ConsumerWidget {
       onPressed: () => showTransactionFormModal(context, ref),
       icon: const Icon(Icons.add, size: 16),
       label: Text(
-        compact ? 'Ajouter' : 'Nouvelle Ã©criture',
+        compact ? 'Ajouter' : 'Nouvelle ecriture',
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
       style: AppButtonStyles.tonal(
@@ -1344,7 +1344,7 @@ class _MonthHeaderRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'GagnÃ© ${AppFormats.currency.format(totals.income)}',
+                      'Gagne ${AppFormats.currency.format(totals.income)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1353,7 +1353,7 @@ class _MonthHeaderRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      'DÃ©pensÃ© ${AppFormats.currency.format(totals.expense)}',
+                      'Depense ${AppFormats.currency.format(totals.expense)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1403,7 +1403,7 @@ class _TableHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(flex: 2, child: Text('DATE', style: style)),
-          Expanded(flex: 4, child: Text('LIBELLÃ‰', style: style)),
+          Expanded(flex: 4, child: Text('LIBELLE', style: style)),
           Expanded(flex: 3, child: Text('COMPTE', style: style)),
           Expanded(flex: 2, child: Text('STATUT', style: style)),
           Expanded(
@@ -2227,7 +2227,7 @@ String _displayLabel(Transaction tx) {
 }
 
 String _statusLabel(Transaction tx) {
-  if (tx.isCompleted) return 'PayÃ©';
+  if (tx.isCompleted) return 'Paye';
   if (tx.isAuto) return 'Auto a venir';
-  return 'Ã€ payer';
+  return 'A payer';
 }
