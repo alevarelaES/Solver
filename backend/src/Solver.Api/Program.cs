@@ -121,6 +121,74 @@ using (var scope = app.Services.CreateScope())
         );
         CREATE INDEX IF NOT EXISTS ix_category_preferences_user_id
             ON category_preferences (user_id);
+
+        CREATE TABLE IF NOT EXISTS budget_plan_months (
+            id uuid PRIMARY KEY,
+            user_id uuid NOT NULL,
+            year integer NOT NULL,
+            month integer NOT NULL,
+            forecast_disposable_income numeric(14,2) NOT NULL DEFAULT 0,
+            created_at timestamp with time zone NOT NULL DEFAULT now(),
+            updated_at timestamp with time zone NOT NULL DEFAULT now(),
+            CONSTRAINT ck_budget_plan_months_month CHECK (month BETWEEN 1 AND 12)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_budget_plan_months_user_year_month
+            ON budget_plan_months (user_id, year, month);
+        CREATE INDEX IF NOT EXISTS ix_budget_plan_months_user_id
+            ON budget_plan_months (user_id);
+
+        CREATE TABLE IF NOT EXISTS budget_plan_group_allocations (
+            id uuid PRIMARY KEY,
+            user_id uuid NOT NULL,
+            plan_month_id uuid NOT NULL REFERENCES budget_plan_months(id) ON DELETE CASCADE,
+            group_id uuid NOT NULL REFERENCES category_groups(id) ON DELETE CASCADE,
+            input_mode text NOT NULL DEFAULT 'percent',
+            planned_percent numeric(8,4) NOT NULL DEFAULT 0,
+            planned_amount numeric(14,2) NOT NULL DEFAULT 0,
+            priority integer NOT NULL DEFAULT 0,
+            created_at timestamp with time zone NOT NULL DEFAULT now(),
+            updated_at timestamp with time zone NOT NULL DEFAULT now(),
+            CONSTRAINT ck_budget_plan_group_allocations_mode CHECK (input_mode IN ('percent', 'amount'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_budget_plan_allocations_month_group
+            ON budget_plan_group_allocations (plan_month_id, group_id);
+        CREATE INDEX IF NOT EXISTS ix_budget_plan_group_allocations_user_id
+            ON budget_plan_group_allocations (user_id);
+
+        CREATE TABLE IF NOT EXISTS saving_goals (
+            id uuid PRIMARY KEY,
+            user_id uuid NOT NULL,
+            name text NOT NULL,
+            target_amount numeric(14,2) NOT NULL,
+            target_date date NOT NULL,
+            initial_amount numeric(14,2) NOT NULL DEFAULT 0,
+            monthly_contribution numeric(14,2) NOT NULL DEFAULT 0,
+            priority integer NOT NULL DEFAULT 0,
+            is_archived boolean NOT NULL DEFAULT false,
+            created_at timestamp with time zone NOT NULL DEFAULT now(),
+            updated_at timestamp with time zone NOT NULL DEFAULT now()
+        );
+        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_id
+            ON saving_goals (user_id);
+        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_priority
+            ON saving_goals (user_id, priority);
+
+        CREATE TABLE IF NOT EXISTS saving_goal_entries (
+            id uuid PRIMARY KEY,
+            goal_id uuid NOT NULL REFERENCES saving_goals(id) ON DELETE CASCADE,
+            user_id uuid NOT NULL,
+            entry_date date NOT NULL,
+            amount numeric(14,2) NOT NULL,
+            note text NULL,
+            is_auto boolean NOT NULL DEFAULT false,
+            created_at timestamp with time zone NOT NULL DEFAULT now()
+        );
+        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_user_id
+            ON saving_goal_entries (user_id);
+        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_goal_id
+            ON saving_goal_entries (goal_id);
+        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_user_date
+            ON saving_goal_entries (user_id, entry_date);
         """);
     await CategoryResetMigration.ApplyAsync(db);
     await CategoryGroupBackfillMigration.ApplyAsync(db);
@@ -139,6 +207,7 @@ app.MapCategoriesEndpoints();
 app.MapTransactionsEndpoints();
 app.MapDashboardEndpoints();
 app.MapBudgetEndpoints();
+app.MapGoalsEndpoints();
 app.MapAnalysisEndpoints();
 
 app.Run();

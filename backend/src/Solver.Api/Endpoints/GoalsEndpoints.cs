@@ -1,0 +1,298 @@
+using Microsoft.EntityFrameworkCore;
+using Solver.Api.Data;
+using Solver.Api.Models;
+
+namespace Solver.Api.Endpoints;
+
+public static class GoalsEndpoints
+{
+    public static void MapGoalsEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/goals");
+
+        group.MapGet("/", GetGoalsAsync);
+        group.MapPost("/", CreateGoalAsync);
+        group.MapPut("/{id:guid}", UpdateGoalAsync);
+        group.MapPatch("/{id:guid}/archive", ArchiveGoalAsync);
+        group.MapGet("/{id:guid}/entries", GetGoalEntriesAsync);
+        group.MapPost("/{id:guid}/entries", AddGoalEntryAsync);
+    }
+
+    private static async Task<IResult> GetGoalsAsync(
+        bool includeArchived,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var goals = await db.SavingGoals
+            .Where(g => g.UserId == userId && (includeArchived || !g.IsArchived))
+            .OrderBy(g => g.Priority)
+            .ThenBy(g => g.TargetDate)
+            .ToListAsync();
+
+        var goalIds = goals.Select(g => g.Id).ToList();
+        var sumsByGoal = await db.SavingGoalEntries
+            .Where(e => e.UserId == userId && goalIds.Contains(e.GoalId))
+            .GroupBy(e => e.GoalId)
+            .Select(g => new { GoalId = g.Key, Amount = g.Sum(e => e.Amount) })
+            .ToDictionaryAsync(x => x.GoalId, x => x.Amount);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var payload = goals.Select(g => ToGoalPayload(g, today, sumsByGoal.GetValueOrDefault(g.Id, 0m)));
+        return Results.Ok(payload);
+    }
+
+    private static async Task<IResult> CreateGoalAsync(
+        CreateGoalDto dto,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return Results.BadRequest(new { error = "Name is required." });
+        }
+        if (dto.TargetAmount <= 0)
+        {
+            return Results.BadRequest(new { error = "TargetAmount must be > 0." });
+        }
+
+        var maxPriority = await db.SavingGoals
+            .Where(g => g.UserId == userId)
+            .Select(g => (int?)g.Priority)
+            .MaxAsync() ?? -1;
+
+        var now = DateTime.UtcNow;
+        var goal = new SavingGoal
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = dto.Name.Trim(),
+            TargetAmount = dto.TargetAmount,
+            TargetDate = dto.TargetDate,
+            InitialAmount = Math.Max(0m, dto.InitialAmount ?? 0m),
+            MonthlyContribution = Math.Max(0m, dto.MonthlyContribution ?? 0m),
+            Priority = dto.Priority ?? (maxPriority + 1),
+            IsArchived = false,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        db.SavingGoals.Add(goal);
+        await db.SaveChangesAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return Results.Created($"/api/goals/{goal.Id}", ToGoalPayload(goal, today, 0m));
+    }
+
+    private static async Task<IResult> UpdateGoalAsync(
+        Guid id,
+        UpdateGoalDto dto,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var goal = await db.SavingGoals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+        if (goal is null) return Results.NotFound();
+
+        if (string.IsNullOrWhiteSpace(dto.Name))
+        {
+            return Results.BadRequest(new { error = "Name is required." });
+        }
+        if (dto.TargetAmount <= 0)
+        {
+            return Results.BadRequest(new { error = "TargetAmount must be > 0." });
+        }
+
+        goal.Name = dto.Name.Trim();
+        goal.TargetAmount = dto.TargetAmount;
+        goal.TargetDate = dto.TargetDate;
+        goal.InitialAmount = Math.Max(0m, dto.InitialAmount);
+        goal.MonthlyContribution = Math.Max(0m, dto.MonthlyContribution);
+        goal.Priority = dto.Priority;
+        goal.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        var entriesSum = await db.SavingGoalEntries
+            .Where(e => e.UserId == userId && e.GoalId == goal.Id)
+            .SumAsync(e => e.Amount);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return Results.Ok(ToGoalPayload(goal, today, entriesSum));
+    }
+
+    private static async Task<IResult> ArchiveGoalAsync(
+        Guid id,
+        ArchiveGoalDto dto,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var goal = await db.SavingGoals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+        if (goal is null) return Results.NotFound();
+
+        goal.IsArchived = dto.IsArchived;
+        goal.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return Results.Ok(new { id, isArchived = dto.IsArchived });
+    }
+
+    private static async Task<IResult> GetGoalEntriesAsync(
+        Guid id,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var exists = await db.SavingGoals.AnyAsync(g => g.Id == id && g.UserId == userId);
+        if (!exists) return Results.NotFound();
+
+        var entries = await db.SavingGoalEntries
+            .Where(e => e.UserId == userId && e.GoalId == id)
+            .OrderByDescending(e => e.EntryDate)
+            .ThenByDescending(e => e.CreatedAt)
+            .Select(e => new
+            {
+                id = e.Id,
+                goalId = e.GoalId,
+                entryDate = e.EntryDate,
+                amount = e.Amount,
+                note = e.Note,
+                isAuto = e.IsAuto,
+                createdAt = e.CreatedAt,
+            })
+            .ToListAsync();
+
+        return Results.Ok(entries);
+    }
+
+    private static async Task<IResult> AddGoalEntryAsync(
+        Guid id,
+        CreateGoalEntryDto dto,
+        SolverDbContext db,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var goal = await db.SavingGoals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+        if (goal is null) return Results.NotFound();
+        if (dto.Amount == 0m)
+        {
+            return Results.BadRequest(new { error = "Amount cannot be 0." });
+        }
+
+        var entry = new SavingGoalEntry
+        {
+            Id = Guid.NewGuid(),
+            GoalId = id,
+            UserId = userId,
+            EntryDate = dto.EntryDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount = dto.Amount,
+            Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
+            IsAuto = dto.IsAuto ?? false,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        db.SavingGoalEntries.Add(entry);
+        goal.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/goals/{id}/entries/{entry.Id}", new
+        {
+            id = entry.Id,
+            goalId = entry.GoalId,
+            entryDate = entry.EntryDate,
+            amount = entry.Amount,
+            note = entry.Note,
+            isAuto = entry.IsAuto,
+            createdAt = entry.CreatedAt,
+        });
+    }
+
+    private static object ToGoalPayload(SavingGoal goal, DateOnly today, decimal entriesSum)
+    {
+        var currentAmount = goal.InitialAmount + entriesSum;
+        var remaining = Math.Max(0m, goal.TargetAmount - currentAmount);
+        var monthsRemaining = GetMonthsRemaining(today, goal.TargetDate);
+        var recommendedMonthly = remaining <= 0
+            ? 0m
+            : monthsRemaining > 0
+                ? remaining / monthsRemaining
+                : remaining;
+
+        string status;
+        if (remaining <= 0) status = "achieved";
+        else if (goal.TargetDate < today) status = "overdue";
+        else status = goal.MonthlyContribution >= recommendedMonthly ? "on_track" : "behind";
+
+        DateOnly? projectedDate = null;
+        if (remaining <= 0)
+        {
+            projectedDate = today;
+        }
+        else if (goal.MonthlyContribution > 0)
+        {
+            var monthStart = new DateOnly(today.Year, today.Month, 1);
+            var monthsToGoal = (int)Math.Ceiling(remaining / goal.MonthlyContribution);
+            projectedDate = monthStart.AddMonths(Math.Max(0, monthsToGoal - 1));
+        }
+
+        var progressPct = goal.TargetAmount > 0
+            ? Math.Min(100m, currentAmount / goal.TargetAmount * 100m)
+            : 0m;
+
+        return new
+        {
+            id = goal.Id,
+            name = goal.Name,
+            targetAmount = goal.TargetAmount,
+            targetDate = goal.TargetDate,
+            initialAmount = goal.InitialAmount,
+            monthlyContribution = goal.MonthlyContribution,
+            priority = goal.Priority,
+            isArchived = goal.IsArchived,
+            currentAmount,
+            remainingAmount = remaining,
+            recommendedMonthly = Math.Round(recommendedMonthly, 2),
+            progressPercent = Math.Round(progressPct, 2),
+            monthsRemaining,
+            projectedDate,
+            status,
+            createdAt = goal.CreatedAt,
+            updatedAt = goal.UpdatedAt,
+        };
+    }
+
+    private static int GetMonthsRemaining(DateOnly from, DateOnly target)
+    {
+        var monthDelta = (target.Year - from.Year) * 12 + (target.Month - from.Month) + 1;
+        return Math.Max(0, monthDelta);
+    }
+
+    private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;
+
+    public sealed record CreateGoalDto(
+        string Name,
+        decimal TargetAmount,
+        DateOnly TargetDate,
+        decimal? InitialAmount,
+        decimal? MonthlyContribution,
+        int? Priority
+    );
+
+    public sealed record UpdateGoalDto(
+        string Name,
+        decimal TargetAmount,
+        DateOnly TargetDate,
+        decimal InitialAmount,
+        decimal MonthlyContribution,
+        int Priority
+    );
+
+    public sealed record ArchiveGoalDto(bool IsArchived);
+
+    public sealed record CreateGoalEntryDto(
+        decimal Amount,
+        DateOnly? EntryDate,
+        string? Note,
+        bool? IsAuto
+    );
+}
+
