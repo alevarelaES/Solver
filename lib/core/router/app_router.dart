@@ -8,6 +8,7 @@ import 'package:solver/features/journal/views/journal_view.dart';
 import 'package:solver/features/schedule/views/schedule_view.dart';
 import 'package:solver/features/budget/views/budget_view.dart';
 import 'package:solver/features/goals/views/goals_view.dart';
+import 'package:solver/features/portfolio/views/portfolio_view.dart';
 import 'package:solver/features/analysis/views/analysis_view.dart';
 import 'package:solver/features/spreadsheet/views/spreadsheet_view.dart';
 import 'package:solver/shared/widgets/app_shell.dart';
@@ -65,6 +66,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/goals',
             pageBuilder: (context, state) =>
                 _fadePage(const GoalsView(), state),
+          ),
+          GoRoute(
+            path: '/portfolio',
+            pageBuilder: (context, state) =>
+                _fadePage(const PortfolioView(), state),
           ),
           GoRoute(
             path: '/analysis',

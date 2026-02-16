@@ -58,6 +58,8 @@ if (!string.IsNullOrEmpty(twelveDataApiKey) && twelveDataApiKey != "your_twelve_
 builder.Services.AddSingleton(new TwelveDataConfig(twelveDataApiKey, tdCacheMinutes));
 builder.Services.AddSingleton<TwelveDataRateLimiter>();
 builder.Services.AddScoped<TwelveDataService>();
+builder.Services.AddSingleton<TwelveDataWebSocketService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<TwelveDataWebSocketService>());
 
 // Finnhub (company profile, news, recommendations)
 var finnhubApiKey = Environment.GetEnvironmentVariable("FINNHUB_API_KEY") ?? "";

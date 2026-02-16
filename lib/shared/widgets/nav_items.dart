@@ -14,6 +14,7 @@ final navItems = [
   NavItem('Echeancier', Icons.calendar_today_outlined, '/schedule'),
   NavItem('Budget', Icons.pie_chart_outline, '/budget'),
   NavItem('Objectifs', Icons.flag_outlined, '/goals'),
+  NavItem('Portfolio', Icons.candlestick_chart_outlined, '/portfolio'),
   NavItem('Analyse', Icons.analytics_outlined, '/analysis'),
   NavItem('Tableau', Icons.table_view, '/spreadsheet'),
 ];

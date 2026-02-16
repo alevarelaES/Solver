@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using Solver.Api.Data;
 using Solver.Api.Models;
@@ -11,6 +12,7 @@ public class TwelveDataService
     private readonly TwelveDataConfig _config;
     private readonly SolverDbContext _db;
     private readonly TwelveDataRateLimiter _rateLimiter;
+    private readonly IMemoryCache _memoryCache;
     private readonly ILogger<TwelveDataService> _logger;
 
     public TwelveDataService(
@@ -18,12 +20,14 @@ public class TwelveDataService
         TwelveDataConfig config,
         SolverDbContext db,
         TwelveDataRateLimiter rateLimiter,
+        IMemoryCache memoryCache,
         ILogger<TwelveDataService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _config = config;
         _db = db;
         _rateLimiter = rateLimiter;
+        _memoryCache = memoryCache;
         _logger = logger;
     }
 
@@ -123,6 +127,88 @@ public class TwelveDataService
         }
     }
 
+    public async Task<Dictionary<string, List<PriceHistoryPoint>>> GetHistoryBatchAsync(
+        IEnumerable<string> symbols,
+        string interval = "1day",
+        int outputSize = 7)
+    {
+        var normalizedSymbols = symbols
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim().ToUpperInvariant())
+            .Distinct()
+            .ToList();
+
+        if (normalizedSymbols.Count == 0)
+            return [];
+
+        var result = new Dictionary<string, List<PriceHistoryPoint>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var symbol in normalizedSymbols)
+        {
+            var cacheKey = $"td:history:{symbol}:{interval}:{outputSize}";
+            if (_memoryCache.TryGetValue(cacheKey, out List<PriceHistoryPoint>? cachedPoints) && cachedPoints != null)
+            {
+                result[symbol] = cachedPoints;
+                continue;
+            }
+
+            var series = await GetTimeSeriesAsync(symbol, interval, outputSize);
+            var points = series
+                .Select(p =>
+                {
+                    if (!decimal.TryParse(
+                            p.Close,
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var close))
+                    {
+                        return null;
+                    }
+
+                    return new PriceHistoryPoint(p.Datetime, close);
+                })
+                .Where(p => p != null)
+                .Select(p => p!)
+                .ToList();
+
+            result[symbol] = points;
+            _memoryCache.Set(cacheKey, points, TimeSpan.FromHours(1));
+        }
+
+        return result;
+    }
+
+    public async Task UpdateCachedPriceAsync(string symbol, decimal price, CancellationToken ct = default)
+    {
+        var normalized = symbol.Trim().ToUpperInvariant();
+        var existing = await _db.AssetPriceCache.FindAsync([normalized], ct);
+        if (existing != null)
+        {
+            var previousPrice = existing.Price;
+            existing.Price = price;
+            if (previousPrice > 0)
+            {
+                existing.ChangePercent = Math.Round((price - previousPrice) / previousPrice * 100m, 4);
+            }
+
+            existing.FetchedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _db.AssetPriceCache.Add(new AssetPriceCache
+            {
+                Symbol = normalized,
+                Price = price,
+                PreviousClose = null,
+                ChangePercent = null,
+                Currency = "USD",
+                FetchedAt = DateTime.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     private async Task<Dictionary<string, QuoteData>> FetchQuoteBatchAsync(string[] symbols)
     {
         var client = _httpClientFactory.CreateClient("TwelveData");
@@ -215,3 +301,4 @@ public class TwelveDataService
 }
 
 public record QuoteData(decimal Price, decimal? PreviousClose, decimal? ChangePercent, string Currency, bool IsStale);
+public record PriceHistoryPoint(string Datetime, decimal Close);
