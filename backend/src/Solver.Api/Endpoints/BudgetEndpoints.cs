@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Solver.Api.Data;
 using Solver.Api.Models;
 
@@ -30,7 +31,13 @@ public static class BudgetEndpoints
 
         var monthStart = new DateOnly(selectedYear, selectedMonth, 1);
         var (averageIncome, fixedExpensesTotal) = await GetIncomeAndFixedExpensesAsync(db, userId, monthStart);
-        var defaultDisposableIncome = averageIncome - fixedExpensesTotal;
+        var (committedManualAmount, committedAutoAmount) = await GetCommittedExpensesAsync(
+            db,
+            userId,
+            selectedYear,
+            selectedMonth);
+        var committedTotalAmount = committedManualAmount + committedAutoAmount;
+        var defaultDisposableIncome = Math.Max(0m, averageIncome - committedTotalAmount);
 
         var expenseGroups = await db.CategoryGroups
             .Where(g => g.UserId == userId && g.Type == AccountType.Expense && !g.IsArchived)
@@ -50,6 +57,12 @@ public static class BudgetEndpoints
             selectedYear,
             selectedMonth);
         var manualSpendingMap = await GetSpentByAccountAsync(
+            db,
+            userId,
+            selectedYear,
+            selectedMonth,
+            isAuto: false);
+        var manualPendingMap = await GetPendingByAccountAsync(
             db,
             userId,
             selectedYear,
@@ -83,6 +96,7 @@ public static class BudgetEndpoints
             selectedYear,
             selectedMonth,
             defaultDisposableIncome,
+            defaultUseGrossIncomeBase: false,
             reusePlan);
 
         var categoriesByGroup = expenseAccounts
@@ -100,6 +114,7 @@ public static class BudgetEndpoints
                         isFixed = a.IsFixed,
                         budget = a.Budget,
                         spent,
+                        pending = manualPendingMap.GetValueOrDefault(a.Id, 0m),
                         percentage = a.Budget > 0 ? Math.Round(spent / a.Budget * 100, 1) : 0m
                     };
                 }).OrderByDescending(x => x.spent).ToList());
@@ -131,6 +146,7 @@ public static class BudgetEndpoints
                 isFixedGroup = categories.Count > 0 && categories.All(c => c.isFixed),
                 categories,
                 spentActual,
+                pendingAmount = Math.Round(categories.Sum(c => c.pending), 2),
                 autoPlannedAmount = Math.Round(autoPlannedAmount, 2),
                 autoPlannedPercent = Math.Round(autoPlannedPercent, 4),
                 plannedPercent = Math.Round(plannedPercent, 4),
@@ -146,10 +162,10 @@ public static class BudgetEndpoints
         var autoReservePercent = planMonth.ForecastDisposableIncome > 0
             ? autoReserveAmount / planMonth.ForecastDisposableIncome * 100m
             : 0m;
-        var totalAllocatedPercent = manualAllocatedPercent + autoReservePercent;
-        var totalAllocatedAmount = manualAllocatedAmount + autoReserveAmount;
-        var manualAllocatablePercent = Math.Max(0m, 100m - autoReservePercent);
-        var manualAllocatableAmount = Math.Max(0m, planMonth.ForecastDisposableIncome - autoReserveAmount);
+        var totalAllocatedPercent = manualAllocatedPercent;
+        var totalAllocatedAmount = manualAllocatedAmount;
+        var manualAllocatablePercent = 100m;
+        var manualAllocatableAmount = Math.Max(0m, planMonth.ForecastDisposableIncome);
         var remainingPercent = Math.Max(0, 100 - totalAllocatedPercent);
         var remainingAmount = Math.Max(0, planMonth.ForecastDisposableIncome - totalAllocatedAmount);
 
@@ -165,6 +181,12 @@ public static class BudgetEndpoints
             {
                 id = planMonth.Id,
                 forecastDisposableIncome = planMonth.ForecastDisposableIncome,
+                useGrossIncomeBase = planMonth.UseGrossIncomeBase,
+                grossIncomeReference = Math.Round(averageIncome, 2),
+                committedManualAmount = Math.Round(committedManualAmount, 2),
+                committedAutoAmount = Math.Round(committedAutoAmount, 2),
+                committedTotalAmount = Math.Round(committedTotalAmount, 2),
+                recommendedNetIncome = Math.Round(defaultDisposableIncome, 2),
                 manualAllocatedPercent = Math.Round(manualAllocatedPercent, 2),
                 manualAllocatedAmount = Math.Round(manualAllocatedAmount, 2),
                 manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
@@ -191,6 +213,49 @@ public static class BudgetEndpoints
         int year,
         int month,
         UpsertBudgetPlanDto dto,
+        IServiceScopeFactory scopeFactory,
+        HttpContext ctx)
+    {
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
+
+            try
+            {
+                return await UpsertBudgetPlanCoreAsync(
+                    year,
+                    month,
+                    dto,
+                    db,
+                    ctx);
+            }
+            catch (Exception ex) when (IsNpgsqlDisposedConnector(ex))
+            {
+                if (attempt < 3)
+                {
+                    NpgsqlConnection.ClearAllPools();
+                    await Task.Delay(120 * attempt);
+                    continue;
+                }
+
+                return Results.Problem(
+                    title: "Erreur temporaire base de donnees",
+                    detail: "Echec de sauvegarde du plan budget. Reessayez dans quelques secondes.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        }
+
+        return Results.Problem(
+            title: "Erreur temporaire base de donnees",
+            detail: "Echec de sauvegarde du plan budget. Reessayez dans quelques secondes.",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    private static async Task<IResult> UpsertBudgetPlanCoreAsync(
+        int year,
+        int month,
+        UpsertBudgetPlanDto dto,
         SolverDbContext db,
         HttpContext ctx)
     {
@@ -202,7 +267,13 @@ public static class BudgetEndpoints
         var userId = GetUserId(ctx);
         var monthStart = new DateOnly(year, month, 1);
         var (averageIncome, fixedExpensesTotal) = await GetIncomeAndFixedExpensesAsync(db, userId, monthStart);
-        var defaultDisposableIncome = averageIncome - fixedExpensesTotal;
+        var (committedManualAmount, committedAutoAmount) = await GetCommittedExpensesAsync(
+            db,
+            userId,
+            year,
+            month);
+        var committedTotalAmount = committedManualAmount + committedAutoAmount;
+        var defaultDisposableIncome = Math.Max(0m, averageIncome - committedTotalAmount);
 
         var (planMonth, _) = await GetOrCreatePlanMonthAsync(
             db,
@@ -210,6 +281,7 @@ public static class BudgetEndpoints
             year,
             month,
             defaultDisposableIncome,
+            defaultUseGrossIncomeBase: false,
             reusePreviousMonth: false);
 
         var requestedDisposableIncome = dto.ForecastDisposableIncome ?? planMonth.ForecastDisposableIncome;
@@ -217,7 +289,9 @@ public static class BudgetEndpoints
         {
             return Results.BadRequest(new { error = "ForecastDisposableIncome must be >= 0." });
         }
+        var requestedUseGrossIncomeBase = dto.UseGrossIncomeBase ?? planMonth.UseGrossIncomeBase;
         planMonth.ForecastDisposableIncome = requestedDisposableIncome;
+        planMonth.UseGrossIncomeBase = requestedUseGrossIncomeBase;
         planMonth.UpdatedAt = DateTime.UtcNow;
 
         var autoByGroup = await GetAutoByGroupAsync(
@@ -229,8 +303,8 @@ public static class BudgetEndpoints
         var autoReservePercent = requestedDisposableIncome > 0
             ? autoReserveAmount / requestedDisposableIncome * 100m
             : 0m;
-        var manualAllocatablePercent = Math.Max(0m, 100m - autoReservePercent);
-        var manualAllocatableAmount = Math.Max(0m, requestedDisposableIncome - autoReserveAmount);
+        var manualAllocatablePercent = 100m;
+        var manualAllocatableAmount = Math.Max(0m, requestedDisposableIncome);
 
         var requested = dto.Groups ?? [];
         var requestedGroupIds = requested.Select(x => x.GroupId).Distinct().ToList();
@@ -296,10 +370,9 @@ public static class BudgetEndpoints
         {
             return Results.BadRequest(new
             {
-                error = "Manual allocation exceeds available share after automatic debits.",
+                error = "Manual allocation exceeds the available share.",
                 manualTotalPercent = Math.Round(manualTotalPercent, 2),
-                manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
-                autoReservePercent = Math.Round(autoReservePercent, 2)
+                manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2)
             });
         }
 
@@ -307,10 +380,9 @@ public static class BudgetEndpoints
         {
             return Results.BadRequest(new
             {
-                error = "Manual allocation amount exceeds available disposable income after automatic debits.",
+                error = "Manual allocation amount exceeds available disposable income.",
                 manualTotalAmount = Math.Round(manualTotalAmount, 2),
-                manualAllocatableAmount = Math.Round(manualAllocatableAmount, 2),
-                autoReserveAmount = Math.Round(autoReserveAmount, 2)
+                manualAllocatableAmount = Math.Round(manualAllocatableAmount, 2)
             });
         }
 
@@ -322,13 +394,14 @@ public static class BudgetEndpoints
 
         await db.SaveChangesAsync();
 
-        var totalAllocatedAmount = manualTotalAmount + autoReserveAmount;
-        var totalAllocatedPercent = manualTotalPercent + autoReservePercent;
+        var totalAllocatedAmount = manualTotalAmount;
+        var totalAllocatedPercent = manualTotalPercent;
         return Results.Ok(new
         {
             year,
             month,
             forecastDisposableIncome = planMonth.ForecastDisposableIncome,
+            useGrossIncomeBase = planMonth.UseGrossIncomeBase,
             manualAllocatedPercent = Math.Round(manualTotalPercent, 2),
             manualAllocatedAmount = Math.Round(manualTotalAmount, 2),
             manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
@@ -358,6 +431,7 @@ public static class BudgetEndpoints
         int year,
         int month,
         decimal defaultDisposableIncome,
+        bool defaultUseGrossIncomeBase,
         bool reusePreviousMonth)
     {
         var existing = await db.BudgetPlanMonths
@@ -373,6 +447,7 @@ public static class BudgetEndpoints
             Year = year,
             Month = month,
             ForecastDisposableIncome = defaultDisposableIncome,
+            UseGrossIncomeBase = defaultUseGrossIncomeBase,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -391,6 +466,7 @@ public static class BudgetEndpoints
             if (previous is not null)
             {
                 created.ForecastDisposableIncome = previous.ForecastDisposableIncome;
+                created.UseGrossIncomeBase = previous.UseGrossIncomeBase;
                 created.GroupAllocations = previous.GroupAllocations.Select(a => new BudgetPlanGroupAllocation
                 {
                     Id = Guid.NewGuid(),
@@ -444,6 +520,33 @@ public static class BudgetEndpoints
         return (averageIncome, fixedExpensesTotal);
     }
 
+    private static async Task<(decimal manualAmount, decimal autoAmount)> GetCommittedExpensesAsync(
+        SolverDbContext db,
+        Guid userId,
+        int year,
+        int month)
+    {
+        var rows = await db.Transactions
+            .Where(t => t.UserId == userId
+                && t.Date.Year == year
+                && t.Date.Month == month
+                && (t.Status == TransactionStatus.Completed || t.Status == TransactionStatus.Pending))
+            .Join(
+                db.Accounts.Where(a => a.Type == AccountType.Expense),
+                t => t.AccountId,
+                a => a.Id,
+                (t, _) => new
+                {
+                    t.IsAuto,
+                    t.Amount
+                })
+            .ToListAsync();
+
+        var manualAmount = rows.Where(x => !x.IsAuto).Sum(x => x.Amount);
+        var autoAmount = rows.Where(x => x.IsAuto).Sum(x => x.Amount);
+        return (manualAmount, autoAmount);
+    }
+
     private static async Task<Dictionary<Guid, decimal>> GetSpentByAccountAsync(
         SolverDbContext db,
         Guid userId,
@@ -470,6 +573,34 @@ public static class BudgetEndpoints
             .ToListAsync();
 
         return spentByAccount.ToDictionary(x => x.AccountId, x => x.Spent);
+    }
+
+    private static async Task<Dictionary<Guid, decimal>> GetPendingByAccountAsync(
+        SolverDbContext db,
+        Guid userId,
+        int year,
+        int month,
+        bool? isAuto = null)
+    {
+        var query = db.Transactions
+            .Where(t => t.UserId == userId
+                && t.Status == TransactionStatus.Pending
+                && t.Date.Month == month
+                && t.Date.Year == year);
+
+        if (isAuto.HasValue)
+        {
+            query = query.Where(t => t.IsAuto == isAuto.Value);
+        }
+
+        var pendingByAccount = await query
+            .Join(db.Accounts.Where(a => a.Type == AccountType.Expense),
+                t => t.AccountId, a => a.Id, (t, _) => t)
+            .GroupBy(t => t.AccountId)
+            .Select(g => new { AccountId = g.Key, Spent = g.Sum(t => t.Amount) })
+            .ToListAsync();
+
+        return pendingByAccount.ToDictionary(x => x.AccountId, x => x.Spent);
     }
 
     private static async Task<Dictionary<Guid, decimal>> GetAutoByGroupAsync(
@@ -503,10 +634,36 @@ public static class BudgetEndpoints
         return rows.ToDictionary(x => x.GroupId, x => x.Amount);
     }
 
+    private static bool IsNpgsqlDisposedConnector(Exception ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is ObjectDisposedException disposed)
+            {
+                var objectName = disposed.ObjectName ?? string.Empty;
+                if (objectName.Contains("ManualResetEventSlim", StringComparison.Ordinal)
+                    || objectName.Contains("Npgsql", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            var msg = current.Message ?? string.Empty;
+            if (msg.Contains("Cannot access a disposed object", StringComparison.OrdinalIgnoreCase)
+                && msg.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;
 
     public sealed record UpsertBudgetPlanDto(
         decimal? ForecastDisposableIncome,
+        bool? UseGrossIncomeBase,
         List<UpsertBudgetPlanGroupDto>? Groups
     );
 

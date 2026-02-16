@@ -130,6 +130,7 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.Property(e => e.Year).HasColumnName("year");
             entity.Property(e => e.Month).HasColumnName("month");
             entity.Property(e => e.ForecastDisposableIncome).HasColumnName("forecast_disposable_income");
+            entity.Property(e => e.UseGrossIncomeBase).HasColumnName("use_gross_income_base");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
@@ -178,6 +179,8 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.Property(e => e.TargetDate).HasColumnName("target_date");
             entity.Property(e => e.InitialAmount).HasColumnName("initial_amount");
             entity.Property(e => e.MonthlyContribution).HasColumnName("monthly_contribution");
+            entity.Property(e => e.AutoContributionEnabled).HasColumnName("auto_contribution_enabled");
+            entity.Property(e => e.AutoContributionStartDate).HasColumnName("auto_contribution_start_date");
             entity.Property(e => e.Priority).HasColumnName("priority");
             entity.Property(e => e.IsArchived).HasColumnName("is_archived");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");

@@ -52,6 +52,43 @@ bool _isDebtType(String value) => value.toLowerCase() == 'debt';
 String _typeLabel(String value) =>
     _isDebtType(value) ? 'Remboursement' : 'Objectif';
 
+bool _isAchievedStatus(String status) => status.toLowerCase() == 'achieved';
+
+bool _isLateStatus(String status) {
+  final normalized = status.toLowerCase();
+  return normalized == 'overdue' || normalized == 'behind';
+}
+
+String _formatDateShort(DateTime date) {
+  final d = date.day.toString().padLeft(2, '0');
+  final m = date.month.toString().padLeft(2, '0');
+  return '$d.$m.${date.year}';
+}
+
+int _daysUntil(DateTime date) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final target = DateTime(date.year, date.month, date.day);
+  return target.difference(today).inDays;
+}
+
+bool _isUrgentGoal(SavingGoal goal) {
+  if (_isAchievedStatus(goal.status)) return false;
+  if (_isLateStatus(goal.status)) return true;
+  return _daysUntil(goal.targetDate) <= 45;
+}
+
+String _deadlineLabel(SavingGoal goal) {
+  final days = _daysUntil(goal.targetDate);
+  if (_isAchievedStatus(goal.status)) {
+    return 'Atteint - cible ${_formatDateShort(goal.targetDate)}';
+  }
+  if (days < 0) return 'Retard de ${days.abs()} jours';
+  if (days == 0) return 'Echeance aujourd\'hui';
+  if (days == 1) return 'Echeance demain';
+  return 'Echeance dans $days jours';
+}
+
 int _monthsRemaining(DateTime from, DateTime target) {
   final monthDelta =
       (target.year - from.year) * 12 + (target.month - from.month) + 1;
@@ -174,6 +211,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
     DateTime targetDate =
         goal?.targetDate ?? DateTime.now().add(const Duration(days: 365));
     var goalType = goal?.goalType ?? forcedType ?? _activeType;
+    var autoContributionEnabled = goal?.autoContributionEnabled ?? false;
+    DateTime? autoContributionStartDate = goal?.autoContributionStartDate;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -293,6 +332,69 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                       ],
                       decoration: InputDecoration(labelText: monthlyLabel),
                     ),
+                    const SizedBox(height: 4),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      value: autoContributionEnabled,
+                      onChanged: (value) => setLocalState(() {
+                        autoContributionEnabled = value;
+                        if (value && autoContributionStartDate == null) {
+                          autoContributionStartDate = DateTime.now();
+                        }
+                      }),
+                      title: Text(
+                        isDebt
+                            ? 'Paiement automatique mensuel'
+                            : 'Depot automatique mensuel',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Si active, une entree auto est ajoutee chaque mois selon le montant mensuel.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (autoContributionEnabled)
+                      Row(
+                        children: [
+                          const Text(
+                            'Date du premier depot auto',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate:
+                                    autoContributionStartDate ?? DateTime.now(),
+                                firstDate: DateTime(2020, 1, 1),
+                                lastDate: DateTime(2100, 12, 31),
+                              );
+                              if (picked != null) {
+                                setLocalState(
+                                  () => autoContributionStartDate = picked,
+                                );
+                              }
+                            },
+                            child: Text(
+                              autoContributionStartDate == null
+                                  ? 'Choisir une date'
+                                  : '${autoContributionStartDate!.day.toString().padLeft(2, '0')}.${autoContributionStartDate!.month.toString().padLeft(2, '0')}.${autoContributionStartDate!.year}',
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: priorityCtrl,
@@ -395,6 +497,10 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
           targetDate: targetDate,
           initialAmount: _parseNumber(initialCtrl.text),
           monthlyContribution: _parseNumber(monthlyCtrl.text),
+          autoContributionEnabled: autoContributionEnabled,
+          autoContributionStartDate: autoContributionEnabled
+              ? autoContributionStartDate
+              : null,
           priority: int.tryParse(priorityCtrl.text),
         );
       } else {
@@ -406,6 +512,10 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
           targetDate: targetDate,
           initialAmount: _parseNumber(initialCtrl.text),
           monthlyContribution: _parseNumber(monthlyCtrl.text),
+          autoContributionEnabled: autoContributionEnabled,
+          autoContributionStartDate: autoContributionEnabled
+              ? autoContributionStartDate
+              : null,
           priority: int.tryParse(priorityCtrl.text) ?? goal.priority,
         );
       }
@@ -727,15 +837,111 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                 style: const TextStyle(color: AppColors.danger),
               ),
               data: (goals) {
-                final filtered = goals
-                    .where((g) => g.goalType.toLowerCase() == _activeType)
+                final filtered =
+                    goals
+                        .where((g) => g.goalType.toLowerCase() == _activeType)
+                        .toList()
+                      ..sort((a, b) {
+                        final aAchieved = _isAchievedStatus(a.status);
+                        final bAchieved = _isAchievedStatus(b.status);
+                        if (aAchieved != bAchieved) {
+                          return aAchieved ? 1 : -1;
+                        }
+                        final dateCmp = a.targetDate.compareTo(b.targetDate);
+                        if (dateCmp != 0) return dateCmp;
+                        return a.priority.compareTo(b.priority);
+                      });
+                final pending = filtered
+                    .where((g) => !_isAchievedStatus(g.status))
                     .toList();
+                final achieved = filtered
+                    .where((g) => _isAchievedStatus(g.status))
+                    .toList();
+                final urgent = pending.where(_isUrgentGoal).toList();
+                final regular = pending
+                    .where((g) => !_isUrgentGoal(g))
+                    .toList();
+                final totalTarget = filtered.fold<double>(
+                  0,
+                  (sum, g) => sum + g.targetAmount,
+                );
+                final totalCurrent = filtered.fold<double>(
+                  0,
+                  (sum, g) => sum + g.currentAmount,
+                );
+                final totalMonthly = filtered.fold<double>(
+                  0,
+                  (sum, g) => sum + g.monthlyContribution,
+                );
+                final averageProgress = filtered.isEmpty
+                    ? 0.0
+                    : filtered.fold<double>(
+                            0,
+                            (sum, g) => sum + g.progressPercent,
+                          ) /
+                          filtered.length;
+                final overdueCount = pending
+                    .where(
+                      (g) =>
+                          _daysUntil(g.targetDate) < 0 ||
+                          g.status.toLowerCase() == 'overdue',
+                    )
+                    .length;
+                final typeColor = _isDebtType(_activeType)
+                    ? AppColors.danger
+                    : AppColors.primary;
+
+                Widget buildSection({
+                  required String title,
+                  required String subtitle,
+                  required IconData icon,
+                  required Color accent,
+                  required List<SavingGoal> sectionGoals,
+                }) {
+                  return _GoalsSection(
+                    title: title,
+                    subtitle: subtitle,
+                    icon: icon,
+                    accent: accent,
+                    child: Column(
+                      children: [
+                        for (int i = 0; i < sectionGoals.length; i++)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              bottom: i == sectionGoals.length - 1 ? 0 : 10,
+                            ),
+                            child: _GoalCard(
+                              goal: sectionGoals[i],
+                              monthlyMarginAvailable: monthlyMarginAvailable,
+                              onEdit: () =>
+                                  _showGoalEditor(goal: sectionGoals[i]),
+                              onMove: () =>
+                                  _showGoalEntryEditor(sectionGoals[i]),
+                              onHistory: () =>
+                                  _showGoalHistory(sectionGoals[i]),
+                              onArchive: () async {
+                                await ref
+                                    .read(goalsApiProvider)
+                                    .archiveGoal(
+                                      id: sectionGoals[i].id,
+                                      isArchived: !sectionGoals[i].isArchived,
+                                    );
+                                ref.invalidate(goalsProvider);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Column(
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 980;
+                        final titleBlock = const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -749,81 +955,231 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Planifie tes objectifs et tes credits long terme',
+                              'Trie automatiquement par echeance la plus proche',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(AppRadius.r12),
-                          ),
-                          child: Row(
-                            children: [
-                              _TypeButton(
-                                label: 'Objectifs',
-                                isActive: !_isDebtType(_activeType),
-                                activeColor: AppColors.primary,
-                                onTap: () =>
-                                    setState(() => _activeType = 'savings'),
+                        );
+                        final controls = Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.r12,
+                                ),
                               ),
-                              _TypeButton(
-                                label: 'Remboursements',
-                                isActive: _isDebtType(_activeType),
-                                activeColor: AppColors.danger,
-                                onTap: () =>
-                                    setState(() => _activeType = 'debt'),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _TypeButton(
+                                    label: 'Objectifs',
+                                    isActive: !_isDebtType(_activeType),
+                                    activeColor: AppColors.primary,
+                                    onTap: () =>
+                                        setState(() => _activeType = 'savings'),
+                                  ),
+                                  _TypeButton(
+                                    label: 'Remboursements',
+                                    isActive: _isDebtType(_activeType),
+                                    activeColor: AppColors.danger,
+                                    onTap: () =>
+                                        setState(() => _activeType = 'debt'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () =>
+                                  _showGoalEditor(forcedType: _activeType),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(
+                                _isDebtType(_activeType)
+                                    ? 'Nouveau remboursement'
+                                    : 'Nouvel objectif',
+                              ),
+                            ),
+                          ],
+                        );
+
+                        if (compact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              titleBlock,
+                              const SizedBox(height: 10),
+                              controls,
+                            ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: titleBlock),
+                            const SizedBox(width: 14),
+                            Flexible(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: controls,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            typeColor.withAlpha(24),
+                            const Color(0xFFF8FAFC),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.r16),
+                        border: Border.all(color: typeColor.withAlpha(70)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _isDebtType(_activeType)
+                                      ? 'Pilotage des remboursements'
+                                      : 'Tableau de pilotage des objectifs',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 17,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: typeColor.withAlpha(26),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.r8,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${filtered.length} carte${filtered.length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    color: typeColor,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        ElevatedButton.icon(
-                          onPressed: () =>
-                              _showGoalEditor(forcedType: _activeType),
-                          icon: const Icon(Icons.add, size: 18),
-                          label: Text(
-                            _isDebtType(_activeType)
-                                ? 'Nouveau remboursement'
-                                : 'Nouvel objectif',
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _OverviewMetric(
+                                icon: Icons.flag_rounded,
+                                label: 'Cible totale',
+                                value: AppFormats.currencyCompact.format(
+                                  totalTarget,
+                                ),
+                                accent: typeColor,
+                              ),
+                              _OverviewMetric(
+                                icon: Icons.account_balance_wallet_rounded,
+                                label: 'Capital actuel',
+                                value: AppFormats.currencyCompact.format(
+                                  totalCurrent,
+                                ),
+                                accent: const Color(0xFF15803D),
+                              ),
+                              _OverviewMetric(
+                                icon: Icons.trending_up_rounded,
+                                label: 'Progression moyenne',
+                                value: '${averageProgress.toStringAsFixed(1)}%',
+                                accent: AppColors.info,
+                              ),
+                              _OverviewMetric(
+                                icon: Icons.payments_rounded,
+                                label: 'Mensuel cumule',
+                                value: AppFormats.currencyCompact.format(
+                                  totalMonthly,
+                                ),
+                                accent: AppColors.warning,
+                              ),
+                              _OverviewMetric(
+                                icon: Icons.notifications_active_rounded,
+                                label: 'Prioritaires',
+                                value:
+                                    '$overdueCount retard / ${urgent.length} urgent',
+                                accent: AppColors.danger,
+                              ),
+                              _OverviewMetric(
+                                icon: Icons.task_alt_rounded,
+                                label: 'Atteints',
+                                value: '${achieved.length}',
+                                accent: AppColors.primary,
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          if (_isDebtType(_activeType)) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(170),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.r10,
+                                ),
+                                border: Border.all(
+                                  color: AppColors.borderSubtle,
+                                ),
+                              ),
+                              child: Text(
+                                monthlyMarginAvailable == null
+                                    ? 'Marge mensuelle restante: indisponible (ouvre Budget pour initialiser le mois).'
+                                    : 'Marge mensuelle restante apres allocations: ${AppFormats.currencyCompact.format(monthlyMarginAvailable)}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    if (_isDebtType(_activeType))
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(AppRadius.r10),
-                          border: Border.all(color: AppColors.borderSubtle),
-                        ),
-                        child: Text(
-                          monthlyMarginAvailable == null
-                              ? 'Marge mensuelle restante: indisponible (ouvre Budget pour initialiser le mois).'
-                              : 'Marge mensuelle restante (apres allocations): ${AppFormats.currencyCompact.format(monthlyMarginAvailable)}',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
                     if (filtered.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      AppPanel(
+                        radius: AppRadius.r16,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 16,
+                        ),
+                        borderColor: AppColors.borderSubtle,
                         child: Text(
                           _isDebtType(_activeType)
                               ? 'Aucun remboursement pour le moment.'
@@ -833,33 +1189,43 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      )
-                    else
+                      ),
+                    if (filtered.isNotEmpty)
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (int i = 0; i < filtered.length; i++)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: i == filtered.length - 1 ? 0 : 10,
-                              ),
-                              child: _GoalCard(
-                                goal: filtered[i],
-                                monthlyMarginAvailable: monthlyMarginAvailable,
-                                onEdit: () =>
-                                    _showGoalEditor(goal: filtered[i]),
-                                onMove: () => _showGoalEntryEditor(filtered[i]),
-                                onHistory: () => _showGoalHistory(filtered[i]),
-                                onArchive: () async {
-                                  await ref
-                                      .read(goalsApiProvider)
-                                      .archiveGoal(
-                                        id: filtered[i].id,
-                                        isArchived: !filtered[i].isArchived,
-                                      );
-                                  ref.invalidate(goalsProvider);
-                                },
-                              ),
+                          if (urgent.isNotEmpty)
+                            buildSection(
+                              title: 'A traiter en priorite',
+                              subtitle:
+                                  'Objectifs proches ou en retard, tries par date la plus proche.',
+                              icon: Icons.priority_high_rounded,
+                              accent: AppColors.danger,
+                              sectionGoals: urgent,
                             ),
+                          if (regular.isNotEmpty) ...[
+                            if (urgent.isNotEmpty) const SizedBox(height: 10),
+                            buildSection(
+                              title: 'En cours',
+                              subtitle:
+                                  'Progression normale, tries par date de cible.',
+                              icon: Icons.timelapse_rounded,
+                              accent: typeColor,
+                              sectionGoals: regular,
+                            ),
+                          ],
+                          if (achieved.isNotEmpty) ...[
+                            if (urgent.isNotEmpty || regular.isNotEmpty)
+                              const SizedBox(height: 10),
+                            buildSection(
+                              title: 'Atteints',
+                              subtitle:
+                                  'Objectifs finalises, gardes ici pour suivi et historique.',
+                              icon: Icons.verified_rounded,
+                              accent: AppColors.primary,
+                              sectionGoals: achieved,
+                            ),
+                          ],
                         ],
                       ),
                   ],
@@ -868,6 +1234,136 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OverviewMetric extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accent;
+
+  const _OverviewMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(185),
+        borderRadius: BorderRadius.circular(AppRadius.r10),
+        border: Border.all(color: accent.withAlpha(60)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: accent.withAlpha(22),
+              borderRadius: BorderRadius.circular(AppRadius.r8),
+            ),
+            child: Icon(icon, size: 16, color: accent),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalsSection extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+  final Widget child;
+
+  const _GoalsSection({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      radius: AppRadius.r16,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      borderColor: accent.withAlpha(70),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: accent.withAlpha(20),
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
+                ),
+                child: Icon(icon, size: 16, color: accent),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
       ),
     );
   }
@@ -933,10 +1429,30 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDebt = _isDebtType(goal.goalType);
+    final isAchieved = _isAchievedStatus(goal.status);
+    final daysToTarget = _daysUntil(goal.targetDate);
+    final isLate = _isLateStatus(goal.status) || daysToTarget < 0;
     final statusColor = _statusColor(goal.status);
     final progress = (goal.progressPercent / 100).clamp(0.0, 1.0);
     final projected = goal.projectedDate;
     final typeColor = isDebt ? AppColors.danger : AppColors.primary;
+    final progressColor = isAchieved
+        ? AppColors.primary
+        : isLate
+        ? AppColors.danger
+        : typeColor;
+    final cardBackground = isAchieved
+        ? const Color(0xFFF1FAEE)
+        : isLate
+        ? const Color(0xFFFFF5F5)
+        : const Color(0xFFFAFCF8);
+    final deadlineColor = isAchieved
+        ? AppColors.primary
+        : daysToTarget <= 7
+        ? AppColors.danger
+        : daysToTarget <= 30
+        ? AppColors.warning
+        : AppColors.info;
     final risk = isDebt ? _assessDebtRisk(goal, monthlyMarginAvailable) : null;
     final delayText = risk == null
         ? null
@@ -950,88 +1466,175 @@ class _GoalCard extends StatelessWidget {
         : risk.marginAfterPayment! >= 0
         ? 'Marge restante apres mensualite: ${AppFormats.currencyCompact.format(risk.marginAfterPayment)}'
         : 'Marge restante apres mensualite: -${AppFormats.currencyCompact.format(risk.marginAfterPayment!.abs())}';
+    final style = OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+      visualDensity: VisualDensity.compact,
+    );
+
+    Widget badge(String text, Color color, {IconData? icon}) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withAlpha(20),
+          borderRadius: BorderRadius.circular(AppRadius.r8),
+          border: Border.all(color: color.withAlpha(80)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: color),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return AppPanel(
+      backgroundColor: cardBackground,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       radius: AppRadius.r16,
-      borderColor: typeColor.withAlpha(90),
+      borderColor: progressColor.withAlpha(110),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: progressColor.withAlpha(22),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
+                ),
+                child: Icon(
+                  isDebt ? Icons.payments_rounded : Icons.savings_rounded,
+                  color: progressColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  goal.name,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.name,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        badge(
+                          _typeLabel(goal.goalType),
+                          typeColor,
+                          icon: isDebt
+                              ? Icons.account_balance_wallet_rounded
+                              : Icons.flag_rounded,
+                        ),
+                        badge(
+                          _statusLabel(goal.status),
+                          statusColor,
+                          icon: isAchieved
+                              ? Icons.check_circle_rounded
+                              : Icons.track_changes_rounded,
+                        ),
+                        badge(
+                          _deadlineLabel(goal),
+                          deadlineColor,
+                          icon: Icons.event_rounded,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: typeColor.withAlpha(20),
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                child: Text(
-                  _typeLabel(goal.goalType),
-                  style: TextStyle(
-                    color: typeColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${goal.progressPercent.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: progressColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withAlpha(26),
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                child: Text(
-                  _statusLabel(goal.status),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
+                  const Text(
+                    'complete',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                '${goal.progressPercent.toStringAsFixed(1)}% - ${AppFormats.currencyCompact.format(goal.currentAmount)} / ${AppFormats.currencyCompact.format(goal.targetAmount)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(170),
+              borderRadius: BorderRadius.circular(AppRadius.r10),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                Text(
+                  'Actuel ${AppFormats.currencyCompact.format(goal.currentAmount)} / Cible ${AppFormats.currencyCompact.format(goal.targetAmount)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                isDebt
-                    ? 'Reste a rembourser ${AppFormats.currencyCompact.format(goal.remainingAmount)}'
-                    : 'Reste ${AppFormats.currencyCompact.format(goal.remainingAmount)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: isDebt ? AppColors.danger : AppColors.textPrimary,
+                Text(
+                  isDebt
+                      ? 'Reste a rembourser ${AppFormats.currencyCompact.format(goal.remainingAmount)}'
+                      : 'Reste ${AppFormats.currencyCompact.format(goal.remainingAmount)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: isAchieved
+                        ? AppColors.primary
+                        : isDebt
+                        ? AppColors.danger
+                        : AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.r8),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: AlwaysStoppedAnimation<Color>(typeColor),
+              minHeight: 9,
+              backgroundColor: const Color(0xFFE7ECF3),
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
           if (risk != null) ...[
@@ -1080,62 +1683,82 @@ class _GoalCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 9),
           Wrap(
-            spacing: 12,
-            runSpacing: 6,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Text(
-                '${isDebt ? 'Mensuel de remboursement' : 'Mensuel actuel'}: ${AppFormats.currencyCompact.format(goal.monthlyContribution)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
+              badge(
+                '${isDebt ? 'Mensuel remboursement' : 'Mensuel actuel'}: ${AppFormats.currencyCompact.format(goal.monthlyContribution)}',
+                AppColors.textSecondary,
+                icon: Icons.repeat_rounded,
               ),
-              Text(
-                'Mensuel recommande: ${AppFormats.currencyCompact.format(goal.recommendedMonthly)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              if (goal.autoContributionEnabled && goal.monthlyContribution > 0)
+                badge(
+                  goal.autoContributionStartDate == null
+                      ? (isDebt ? 'Paiement auto actif' : 'Depot auto actif')
+                      : (isDebt
+                            ? 'Auto le ${goal.autoContributionStartDate!.day} de chaque mois'
+                            : 'Depot le ${goal.autoContributionStartDate!.day} de chaque mois'),
+                  AppColors.primary,
+                  icon: Icons.bolt_rounded,
                 ),
+              badge(
+                'Recommande: ${AppFormats.currencyCompact.format(goal.recommendedMonthly)}',
+                AppColors.textPrimary,
+                icon: Icons.calculate_rounded,
               ),
-              Text(
+              badge(
                 'Mois restants: ${goal.monthsRemaining}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
+                AppColors.textSecondary,
+                icon: Icons.date_range_rounded,
               ),
-              Text(
+              badge(
                 projected == null
                     ? 'Projection: non calculee'
                     : 'Projection: ${projected.month.toString().padLeft(2, '0')}.${projected.year}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
+                AppColors.textSecondary,
+                icon: Icons.auto_graph_rounded,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: onMove,
-                child: Text(isDebt ? 'Paiement' : 'Depot/Retrait'),
+                icon: Icon(
+                  isDebt ? Icons.credit_score_rounded : Icons.sync_alt_rounded,
+                  size: 16,
+                ),
+                style: style,
+                label: Text(isDebt ? 'Paiement' : 'Depot / Retrait'),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: onHistory,
-                child: const Text('Historique'),
+                icon: const Icon(Icons.history_rounded, size: 16),
+                style: style,
+                label: const Text('Historique'),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(onPressed: onEdit, child: const Text('Modifier')),
-              const SizedBox(width: 8),
-              TextButton(
+              OutlinedButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_rounded, size: 16),
+                style: style,
+                label: const Text('Modifier'),
+              ),
+              TextButton.icon(
                 onPressed: onArchive,
-                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: Text(goal.isArchived ? 'Desarchiver' : 'Archiver'),
+                icon: const Icon(Icons.archive_rounded, size: 16),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                label: Text(goal.isArchived ? 'Desarchiver' : 'Archiver'),
               ),
             ],
           ),

@@ -9,6 +9,8 @@ class SavingGoal {
   final DateTime targetDate;
   final double initialAmount;
   final double monthlyContribution;
+  final bool autoContributionEnabled;
+  final DateTime? autoContributionStartDate;
   final int priority;
   final bool isArchived;
   final double currentAmount;
@@ -27,6 +29,8 @@ class SavingGoal {
     required this.targetDate,
     required this.initialAmount,
     required this.monthlyContribution,
+    required this.autoContributionEnabled,
+    required this.autoContributionStartDate,
     required this.priority,
     required this.isArchived,
     required this.currentAmount,
@@ -46,6 +50,11 @@ class SavingGoal {
     targetDate: DateTime.parse(json['targetDate'] as String),
     initialAmount: (json['initialAmount'] as num).toDouble(),
     monthlyContribution: (json['monthlyContribution'] as num).toDouble(),
+    autoContributionEnabled:
+        (json['autoContributionEnabled'] as bool?) ?? false,
+    autoContributionStartDate: json['autoContributionStartDate'] == null
+        ? null
+        : DateTime.parse(json['autoContributionStartDate'] as String),
     priority: (json['priority'] as num).toInt(),
     isArchived: json['isArchived'] as bool,
     currentAmount: (json['currentAmount'] as num).toDouble(),
@@ -120,6 +129,8 @@ class GoalsApi {
     required DateTime targetDate,
     required double initialAmount,
     required double monthlyContribution,
+    bool autoContributionEnabled = false,
+    DateTime? autoContributionStartDate,
     int? priority,
   }) async {
     await _client.post<Map<String, dynamic>>(
@@ -131,6 +142,10 @@ class GoalsApi {
         'targetDate': _formatDateOnly(targetDate),
         'initialAmount': initialAmount,
         'monthlyContribution': monthlyContribution,
+        'autoContributionEnabled': autoContributionEnabled,
+        'autoContributionStartDate': autoContributionStartDate == null
+            ? null
+            : _formatDateOnly(autoContributionStartDate),
         'priority': priority,
       },
     );
@@ -144,6 +159,8 @@ class GoalsApi {
     required DateTime targetDate,
     required double initialAmount,
     required double monthlyContribution,
+    bool autoContributionEnabled = false,
+    DateTime? autoContributionStartDate,
     required int priority,
   }) async {
     await _client.put<Map<String, dynamic>>(
@@ -155,6 +172,10 @@ class GoalsApi {
         'targetDate': _formatDateOnly(targetDate),
         'initialAmount': initialAmount,
         'monthlyContribution': monthlyContribution,
+        'autoContributionEnabled': autoContributionEnabled,
+        'autoContributionStartDate': autoContributionStartDate == null
+            ? null
+            : _formatDateOnly(autoContributionStartDate),
         'priority': priority,
       },
     );

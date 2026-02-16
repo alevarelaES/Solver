@@ -83,6 +83,7 @@ class BudgetPlanGroup {
   final bool isFixedGroup;
   final List<BudgetPlanGroupCategory> categories;
   final double spentActual;
+  final double pendingAmount;
   final double autoPlannedAmount;
   final double autoPlannedPercent;
   final double plannedPercent;
@@ -97,6 +98,7 @@ class BudgetPlanGroup {
     required this.isFixedGroup,
     required this.categories,
     required this.spentActual,
+    required this.pendingAmount,
     required this.autoPlannedAmount,
     required this.autoPlannedPercent,
     required this.plannedPercent,
@@ -116,6 +118,7 @@ class BudgetPlanGroup {
         .map((c) => BudgetPlanGroupCategory.fromJson(c as Map<String, dynamic>))
         .toList(),
     spentActual: (json['spentActual'] as num).toDouble(),
+    pendingAmount: (json['pendingAmount'] as num?)?.toDouble() ?? 0,
     autoPlannedAmount: (json['autoPlannedAmount'] as num?)?.toDouble() ?? 0,
     autoPlannedPercent: (json['autoPlannedPercent'] as num?)?.toDouble() ?? 0,
     plannedPercent: (json['plannedPercent'] as num).toDouble(),
@@ -128,6 +131,12 @@ class BudgetPlanGroup {
 class BudgetPlan {
   final String id;
   final double forecastDisposableIncome;
+  final bool useGrossIncomeBase;
+  final double grossIncomeReference;
+  final double committedManualAmount;
+  final double committedAutoAmount;
+  final double committedTotalAmount;
+  final double recommendedNetIncome;
   final double manualAllocatedPercent;
   final double manualAllocatedAmount;
   final double manualAllocatablePercent;
@@ -146,6 +155,12 @@ class BudgetPlan {
   const BudgetPlan({
     required this.id,
     required this.forecastDisposableIncome,
+    required this.useGrossIncomeBase,
+    required this.grossIncomeReference,
+    required this.committedManualAmount,
+    required this.committedAutoAmount,
+    required this.committedTotalAmount,
+    required this.recommendedNetIncome,
     required this.manualAllocatedPercent,
     required this.manualAllocatedAmount,
     required this.manualAllocatablePercent,
@@ -180,12 +195,10 @@ class BudgetPlan {
         (json['autoReserveAmount'] as num?)?.toDouble() ??
         (totalAllocatedAmount - manualAllocatedAmount);
     final manualAllocatablePercent =
-        (json['manualAllocatablePercent'] as num?)?.toDouble() ??
-        (100 - autoReservePercent);
+        (json['manualAllocatablePercent'] as num?)?.toDouble() ?? 100;
     final manualAllocatableAmount =
         (json['manualAllocatableAmount'] as num?)?.toDouble() ??
-        ((json['forecastDisposableIncome'] as num).toDouble() -
-            autoReserveAmount);
+        (json['forecastDisposableIncome'] as num).toDouble();
     final manualRemainingPercent =
         (json['manualRemainingPercent'] as num?)?.toDouble() ??
         (manualAllocatablePercent - manualAllocatedPercent);
@@ -197,6 +210,18 @@ class BudgetPlan {
       id: json['id'] as String,
       forecastDisposableIncome: (json['forecastDisposableIncome'] as num)
           .toDouble(),
+      useGrossIncomeBase: json['useGrossIncomeBase'] as bool? ?? false,
+      grossIncomeReference:
+          (json['grossIncomeReference'] as num?)?.toDouble() ?? 0,
+      committedManualAmount:
+          (json['committedManualAmount'] as num?)?.toDouble() ?? 0,
+      committedAutoAmount:
+          (json['committedAutoAmount'] as num?)?.toDouble() ?? 0,
+      committedTotalAmount:
+          (json['committedTotalAmount'] as num?)?.toDouble() ?? 0,
+      recommendedNetIncome:
+          (json['recommendedNetIncome'] as num?)?.toDouble() ??
+          (json['forecastDisposableIncome'] as num).toDouble(),
       manualAllocatedPercent: manualAllocatedPercent,
       manualAllocatedAmount: manualAllocatedAmount,
       manualAllocatablePercent: manualAllocatablePercent,
@@ -316,12 +341,14 @@ class BudgetPlanApi {
     required int year,
     required int month,
     required double forecastDisposableIncome,
+    required bool useGrossIncomeBase,
     required List<BudgetPlanGroupUpdate> groups,
   }) async {
     await _client.put<Map<String, dynamic>>(
       '/api/budget/plan/$year/$month',
       data: {
         'forecastDisposableIncome': forecastDisposableIncome,
+        'useGrossIncomeBase': useGrossIncomeBase,
         'groups': groups.map((g) => g.toJson()).toList(),
       },
     );

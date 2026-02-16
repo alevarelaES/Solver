@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
+import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
 final _viewModeProvider = StateProvider<bool>(
@@ -112,8 +115,12 @@ double _parseNumber(String raw) =>
 
 String _editableInputValue(double value, {int maxDecimals = 1}) {
   if (value.abs() < 0.000001) return '';
+  if (maxDecimals <= 0) {
+    return value.toStringAsFixed(0);
+  }
   final text = value.toStringAsFixed(maxDecimals);
-  return text.replaceFirst(RegExp(r'\.?0+$'), '');
+  if (!text.contains('.')) return text;
+  return text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
 }
 
 bool _isFixedLikeGroup(BudgetPlanGroup g) {
@@ -133,8 +140,42 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
   String? _draftToken;
   bool _dirty = false;
   bool _savingPlan = false;
+  bool _useGrossIncomeBase = false;
   double? _draftDisposableIncome;
   String? _draftError;
+
+  double _manualCommittedAmount(BudgetStats stats) =>
+      stats.budgetPlan.committedManualAmount;
+
+  double _totalCommittedAmount(BudgetStats stats) =>
+      stats.budgetPlan.committedTotalAmount;
+
+  double _recommendedDisposableInput(BudgetStats stats, {required bool gross}) {
+    final grossBase =
+        (stats.budgetPlan.grossIncomeReference > 0
+                ? stats.budgetPlan.grossIncomeReference
+                : stats.averageIncome)
+            .clamp(0, double.infinity)
+            .toDouble();
+    if (gross) return grossBase;
+    return (grossBase - _totalCommittedAmount(stats))
+        .clamp(0, double.infinity)
+        .toDouble();
+  }
+
+  void _applyDisposablePreset(
+    BudgetStats stats, {
+    required bool grossMode,
+    bool markDirty = true,
+  }) {
+    final value = _recommendedDisposableInput(stats, gross: grossMode);
+    setState(() {
+      _useGrossIncomeBase = grossMode;
+      _draftDisposableIncome = value;
+      _draftError = null;
+      if (markDirty) _dirty = true;
+    });
+  }
 
   void _syncDraft(BudgetStats stats, {bool force = false}) {
     final token =
@@ -142,6 +183,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     if (!force && _draftToken == token) return;
 
     _draftToken = token;
+    _useGrossIncomeBase = stats.budgetPlan.useGrossIncomeBase;
     _draftDisposableIncome = stats.budgetPlan.forecastDisposableIncome;
     _draftError = null;
     _dirty = false;
@@ -167,15 +209,8 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
         (_draftDisposableIncome ?? stats.budgetPlan.forecastDisposableIncome)
             .clamp(0, double.infinity)
             .toDouble();
-    final autoReserveAmount = stats.budgetPlan.autoReserveAmount
-        .clamp(0, double.infinity)
-        .toDouble();
-    final manualCapacityAmount = (disposable - autoReserveAmount)
-        .clamp(0, double.infinity)
-        .toDouble();
-    final manualCapacityPercent = disposable > 0
-        ? (manualCapacityAmount / disposable) * 100
-        : 0.0;
+    final manualCapacityAmount = disposable;
+    final manualCapacityPercent = 100.0;
 
     final baseRows = stats.budgetPlan.groups
         .where((g) => !_isFixedLikeGroup(g))
@@ -189,22 +224,33 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                 priority: group.priority,
               );
 
-          final plannedPercent = draft.inputMode == 'amount'
-              ? (disposable > 0 ? (draft.amount / disposable) * 100 : 0.0)
-              : draft.percent;
-          final plannedAmount = draft.inputMode == 'amount'
+          final committedAmount = (group.spentActual + group.pendingAmount)
+              .clamp(0, double.infinity)
+              .toDouble();
+          final plannedAmountRaw = draft.inputMode == 'amount'
               ? draft.amount
               : disposable * draft.percent / 100;
+          final plannedAmount = plannedAmountRaw > committedAmount
+              ? plannedAmountRaw
+              : committedAmount;
+          final plannedPercent = disposable > 0
+              ? (plannedAmount / disposable) * 100
+              : (plannedAmount > 0 ? 100.0 : 0.0);
+          final minAllowedPercent = disposable > 0
+              ? (committedAmount / disposable) * 100
+              : (committedAmount > 0 ? 100.0 : 0.0);
 
           return _RenderedGroup(
             group: group,
             draft: draft,
             plannedPercent: plannedPercent.clamp(0, double.infinity),
             plannedAmount: plannedAmount.clamp(0, double.infinity),
-            minAllowedPercent: 0,
-            minAllowedAmount: 0,
+            minAllowedPercent: minAllowedPercent.clamp(0, double.infinity),
+            minAllowedAmount: committedAmount,
             maxAllowedPercent: 100,
-            maxAllowedAmount: disposable,
+            maxAllowedAmount: disposable > committedAmount
+                ? disposable
+                : committedAmount,
           );
         })
         .toList();
@@ -218,26 +264,31 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
       (sum, r) => sum + r.plannedAmount,
     );
 
-    final rows = baseRows
-        .map(
-          (row) => _RenderedGroup(
-            group: row.group,
-            draft: row.draft,
-            plannedPercent: row.plannedPercent,
-            plannedAmount: row.plannedAmount,
-            minAllowedPercent: row.minAllowedPercent,
-            minAllowedAmount: row.minAllowedAmount,
-            maxAllowedPercent:
-                (manualCapacityPercent - (totalPercent - row.plannedPercent))
-                    .clamp(0, 100)
-                    .toDouble(),
-            maxAllowedAmount:
-                (manualCapacityAmount - (totalAmount - row.plannedAmount))
-                    .clamp(0, double.infinity)
-                    .toDouble(),
-          ),
-        )
-        .toList();
+    final rows = baseRows.map((row) {
+      final dynamicMaxPercent =
+          (manualCapacityPercent - (totalPercent - row.plannedPercent))
+              .clamp(0, double.infinity)
+              .toDouble();
+      final dynamicMaxAmount =
+          (manualCapacityAmount - (totalAmount - row.plannedAmount))
+              .clamp(0, double.infinity)
+              .toDouble();
+
+      return _RenderedGroup(
+        group: row.group,
+        draft: row.draft,
+        plannedPercent: row.plannedPercent,
+        plannedAmount: row.plannedAmount,
+        minAllowedPercent: row.minAllowedPercent,
+        minAllowedAmount: row.minAllowedAmount,
+        maxAllowedPercent: dynamicMaxPercent > row.minAllowedPercent
+            ? dynamicMaxPercent
+            : row.minAllowedPercent,
+        maxAllowedAmount: dynamicMaxAmount > row.minAllowedAmount
+            ? dynamicMaxAmount
+            : row.minAllowedAmount,
+      );
+    }).toList();
 
     rows.sort((a, b) {
       final p = a.draft.priority.compareTo(b.draft.priority);
@@ -266,14 +317,12 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     final autoPercent = disposable > 0
         ? (safeAutoAmount / disposable) * 100
         : 0.0;
-    final manualCapacityAmount = (disposable - safeAutoAmount)
+    final manualCapacityAmount = disposable
         .clamp(0, double.infinity)
         .toDouble();
-    final manualCapacityPercent = disposable > 0
-        ? (manualCapacityAmount / disposable) * 100
-        : 0.0;
-    final totalPercent = manualPercent + autoPercent;
-    final totalAmount = manualAmount + safeAutoAmount;
+    final manualCapacityPercent = 100.0;
+    final totalPercent = manualPercent;
+    final totalAmount = manualAmount;
     final remainingPercent = 100 - totalPercent;
     final remainingAmount = disposable - totalAmount;
     return _PlanTotals(
@@ -332,6 +381,22 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     });
   }
 
+  String _saveErrorMessage(Object error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map<String, dynamic>) {
+        final message = data['error'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message.trim();
+        }
+      }
+      if (error.response?.statusCode == 503) {
+        return 'Serveur temporairement indisponible. Reessayez dans quelques secondes.';
+      }
+    }
+    return 'Erreur de sauvegarde du plan.';
+  }
+
   Future<void> _savePlan(BudgetStats stats, _PlanTotals totals) async {
     if (totals.overLimit) {
       setState(() {
@@ -354,6 +419,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
             (_draftDisposableIncome ??
                     stats.budgetPlan.forecastDisposableIncome)
                 .toDouble(),
+        useGrossIncomeBase: _useGrossIncomeBase,
         groups: rows
             .map(
               (r) => BudgetPlanGroupUpdate(
@@ -380,9 +446,9 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Plan budget enregistre')));
       }
-    } catch (_) {
+    } catch (error) {
       setState(() {
-        _draftError = 'Erreur de sauvegarde du plan.';
+        _draftError = _saveErrorMessage(error);
       });
     } finally {
       if (mounted) {
@@ -423,6 +489,200 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     );
   }
 
+  Future<void> _createSavingsGoalFromBudget({
+    required DateTime selectedMonth,
+    required double disposableIncome,
+  }) async {
+    if (disposableIncome <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Definis d\'abord un revenu disponible positif pour ce mois.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final nameCtrl = TextEditingController(text: 'Epargne mensuelle');
+    final percentCtrl = TextEditingController(text: '10');
+    final monthsCtrl = TextEditingController(text: '12');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setLocalState) {
+          final pct = _parseNumber(percentCtrl.text).clamp(0, 100).toDouble();
+          final months = int.tryParse(monthsCtrl.text.trim()) ?? 12;
+          final validMonths = months.clamp(1, 120);
+          final monthly = disposableIncome * pct / 100;
+          final target = monthly * validMonths;
+          final targetDate = DateTime(
+            selectedMonth.year,
+            selectedMonth.month + validMonths - 1,
+            1,
+          );
+
+          return AlertDialog(
+            title: const Text('Creer une epargne mensuelle'),
+            content: SizedBox(
+              width: 460,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Le Budget gere les depenses. L\'epargne est geree via Objectifs.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nameCtrl,
+                    onChanged: (_) => setLocalState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Nom de l\'objectif',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: percentCtrl,
+                    onChanged: (_) => setLocalState(() {}),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Pourcentage du revenu disponible (%)',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: monthsCtrl,
+                    onChanged: (_) => setLocalState(() {}),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Horizon (mois)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mensuel: ${AppFormats.currencyCompact.format(monthly)} (${pct.toStringAsFixed(1)}%)',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Objectif cible: ${AppFormats.currencyCompact.format(target)} sur $validMonths mois (jusqu\'a ${_monthNames[targetDate.month - 1]} ${targetDate.year})',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Creer'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final goalName = nameCtrl.text.trim().isEmpty
+        ? 'Epargne mensuelle'
+        : nameCtrl.text.trim();
+    final pct = _parseNumber(percentCtrl.text).clamp(0, 100).toDouble();
+    final months = (int.tryParse(monthsCtrl.text.trim()) ?? 12).clamp(1, 120);
+    final monthly = disposableIncome * pct / 100;
+
+    if (monthly <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Le pourcentage doit etre superieur a 0%.'),
+        ),
+      );
+      return;
+    }
+
+    final targetDate = DateTime(
+      selectedMonth.year,
+      selectedMonth.month + months - 1,
+      1,
+    );
+    final targetAmount = monthly * months;
+
+    try {
+      final api = ref.read(goalsApiProvider);
+      await api.createGoal(
+        name: goalName,
+        goalType: 'savings',
+        targetAmount: targetAmount,
+        targetDate: targetDate,
+        initialAmount: 0,
+        monthlyContribution: monthly,
+      );
+      ref.invalidate(goalsProvider);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Objectif "$goalName" cree (${AppFormats.currencyCompact.format(monthly)}/mois).',
+          ),
+          action: SnackBarAction(
+            label: 'Ouvrir Objectifs',
+            onPressed: () => context.go('/goals'),
+          ),
+        ),
+      );
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      final message = data is Map<String, dynamic> && data['error'] is String
+          ? data['error'] as String
+          : 'Erreur de creation de l\'objectif.';
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedMonth = ref.watch(selectedBudgetMonthProvider);
@@ -443,9 +703,17 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
       ),
       data: (stats) {
         _syncDraft(stats);
+        final grossReferenceIncome = _recommendedDisposableInput(
+          stats,
+          gross: true,
+        );
+        final manualCommittedAmount = _manualCommittedAmount(stats);
         final disposable =
             (_draftDisposableIncome ??
-                    stats.budgetPlan.forecastDisposableIncome)
+                    _recommendedDisposableInput(
+                      stats,
+                      gross: _useGrossIncomeBase,
+                    ))
                 .clamp(0, double.infinity);
         final rows = _buildRenderedGroups(stats);
         final totals = _computeTotals(
@@ -493,8 +761,12 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                     totalAmount: totals.totalAmount,
                     remainingPercent: totals.remainingPercent,
                     remainingAmount: totals.remainingAmount,
-                    averageIncome: stats.averageIncome,
                     copiedFrom: stats.budgetPlan.copiedFrom,
+                    grossReferenceIncome: grossReferenceIncome,
+                    manualCommittedAmount: manualCommittedAmount,
+                    useGrossIncomeBase: _useGrossIncomeBase,
+                    onUseGrossIncomeBaseChanged: (value) =>
+                        _applyDisposablePreset(stats, grossMode: value),
                     onDisposableChanged: (raw) {
                       setState(() {
                         _dirty = true;
@@ -504,6 +776,19 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                         ).clamp(0, double.infinity).toDouble();
                       });
                     },
+                  ),
+                  const SizedBox(height: 10),
+                  _SavingsQuickCard(
+                    disposableIncome: totals.manualCapacityAmount
+                        .clamp(0, double.infinity)
+                        .toDouble(),
+                    onCreateGoal: () => _createSavingsGoalFromBudget(
+                      selectedMonth: selectedMonth,
+                      disposableIncome: totals.manualCapacityAmount
+                          .clamp(0, double.infinity)
+                          .toDouble(),
+                    ),
+                    onOpenGoals: () => context.go('/goals'),
                   ),
                   if (totals.autoAmount > 0) ...[
                     const SizedBox(height: 10),
@@ -524,7 +809,10 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         'ALLOCATION PAR GROUPE (${rows.length})',
@@ -535,7 +823,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(width: 14),
                       Container(
                         padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
@@ -562,7 +849,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                           ],
                         ),
                       ),
-                      const Spacer(),
                       Text(
                         totals.overLimit
                             ? 'Allocation manuelle depasse la capacite restante'
@@ -627,35 +913,24 @@ class _PlannerTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final monthLabel =
+        '${_monthNames[selectedMonth.month - 1]} ${selectedMonth.year}';
+
+    final actions = Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        IconButton(
-          onPressed: onPrevMonth,
-          icon: const Icon(Icons.chevron_left_rounded),
-        ),
-        Text(
-          '${_monthNames[selectedMonth.month - 1]} ${selectedMonth.year}',
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-        ),
-        IconButton(
-          onPressed: onNextMonth,
-          icon: const Icon(Icons.chevron_right_rounded),
-        ),
-        const Spacer(),
         if (dirty)
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Text(
-              'Modifications non sauvegardees',
-              style: TextStyle(
-                color: Color(0xFFB45309),
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
+          const Text(
+            'Modifications non sauvegardees',
+            style: TextStyle(
+              color: Color(0xFFB45309),
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
           ),
         OutlinedButton(onPressed: onReset, child: const Text('Recharger')),
-        const SizedBox(width: 10),
         ElevatedButton.icon(
           onPressed: saving ? null : onSave,
           icon: saving
@@ -669,12 +944,58 @@ class _PlannerTopBar extends StatelessWidget {
         ),
       ],
     );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 980;
+        final monthNav = Row(
+          children: [
+            IconButton(
+              onPressed: onPrevMonth,
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
+            Expanded(
+              child: Text(
+                monthLabel,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: compact ? 22 : 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: onNextMonth,
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [monthNav, const SizedBox(height: 8), actions],
+          );
+        }
+
+        return Row(
+          children: [
+            SizedBox(width: 420, child: monthNav),
+            const Spacer(),
+            actions,
+          ],
+        );
+      },
+    );
   }
 }
 
 class _PlannerHero extends StatelessWidget {
   final String inputVersion;
   final double disposable;
+  final double grossReferenceIncome;
+  final double manualCommittedAmount;
+  final bool useGrossIncomeBase;
   final double manualPercent;
   final double manualAmount;
   final double manualCapacityPercent;
@@ -685,13 +1006,16 @@ class _PlannerHero extends StatelessWidget {
   final double totalAmount;
   final double remainingPercent;
   final double remainingAmount;
-  final double averageIncome;
   final BudgetPlanCopySource? copiedFrom;
+  final ValueChanged<bool> onUseGrossIncomeBaseChanged;
   final ValueChanged<String> onDisposableChanged;
 
   const _PlannerHero({
     required this.inputVersion,
     required this.disposable,
+    required this.grossReferenceIncome,
+    required this.manualCommittedAmount,
+    required this.useGrossIncomeBase,
     required this.manualPercent,
     required this.manualAmount,
     required this.manualCapacityPercent,
@@ -702,8 +1026,8 @@ class _PlannerHero extends StatelessWidget {
     required this.totalAmount,
     required this.remainingPercent,
     required this.remainingAmount,
-    required this.averageIncome,
     required this.copiedFrom,
+    required this.onUseGrossIncomeBaseChanged,
     required this.onDisposableChanged,
   });
 
@@ -711,6 +1035,13 @@ class _PlannerHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final overLimit = totalPercent > 100.0001;
     final ratio = (totalPercent / 100).clamp(0.0, 1.0);
+    final netRecommendedInput = (grossReferenceIncome - manualCommittedAmount)
+        .clamp(0, double.infinity)
+        .toDouble();
+    final fullyNetAvailable =
+        (grossReferenceIncome - manualCommittedAmount - autoAmount)
+            .clamp(0, double.infinity)
+            .toDouble();
 
     return AppPanel(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
@@ -719,21 +1050,43 @@ class _PlannerHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(AppRadius.r10),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Text(
+              'Etape 1: choisis la base du plan.\n'
+              'Par defaut, on recommande ${AppFormats.currencyCompact.format(netRecommendedInput)} '
+              '(revenu ${AppFormats.currencyCompact.format(grossReferenceIncome)} - factures manuelles ${AppFormats.currencyCompact.format(manualCommittedAmount)} - prelevements auto ${AppFormats.currencyCompact.format(autoAmount)}).',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
-                'Revenu disponible du mois',
+                'Base de plan (modifiable)',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 10),
               SizedBox(
                 width: 220,
-                child: TextFormField(
+                child: _SyncedNumericField(
                   key: ValueKey('disposable-$inputVersion'),
-                  initialValue: _editableInputValue(disposable, maxDecimals: 0),
+                  valueText: _editableInputValue(disposable, maxDecimals: 0),
                   onChanged: onDisposableChanged,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -748,17 +1101,46 @@ class _PlannerHero extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
               Text(
-                'Base moyenne 3 mois: ${AppFormats.currencyCompact.format(averageIncome)}',
+                useGrossIncomeBase
+                    ? 'Mode brut: on ne retire pas les factures automatiquement.'
+                    : 'Mode net recommande: base deja nettoyee avant repartition.',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (autoAmount > 0) ...[
-                const SizedBox(width: 12),
+              InkWell(
+                onTap: () => onUseGrossIncomeBaseChanged(!useGrossIncomeBase),
+                borderRadius: BorderRadius.circular(AppRadius.r8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: useGrossIncomeBase,
+                        onChanged: (v) =>
+                            onUseGrossIncomeBaseChanged(v ?? false),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Voir vraie somme brute (sans factures du mois)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (autoAmount > 0)
                 Text(
                   'Prelevements auto reserves: ${AppFormats.currencyCompact.format(autoAmount)} (${autoPercent.toStringAsFixed(1)}%)',
                   style: TextStyle(
@@ -769,8 +1151,6 @@ class _PlannerHero extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-              const Spacer(),
               if (copiedFrom != null)
                 Text(
                   'Plan recopie de ${_monthNames[copiedFrom!.month - 1]} ${copiedFrom!.year}',
@@ -783,7 +1163,10 @@ class _PlannerHero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 '${totalPercent.toStringAsFixed(1)}%',
@@ -793,33 +1176,29 @@ class _PlannerHero extends StatelessWidget {
                   color: overLimit ? AppColors.danger : AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 8),
               const Text(
-                'alloue',
+                'de la base deja repartie',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 20),
               Text(
-                'Manuel ${manualPercent.toStringAsFixed(1)}% / ${manualCapacityPercent.toStringAsFixed(1)}%',
+                'Manual: ${manualPercent.toStringAsFixed(1)}% / ${manualCapacityPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const Spacer(),
               Text(
-                '- ${AppFormats.currencyCompact.format(totalAmount)} alloue',
+                '${AppFormats.currencyCompact.format(totalAmount)} deja repartis',
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   color: AppColors.danger,
                 ),
               ),
-              const SizedBox(width: 16),
               Text(
-                '${remainingAmount >= 0 ? AppFormats.currencyCompact.format(remainingAmount) : '0'} restant',
+                '${remainingAmount >= 0 ? AppFormats.currencyCompact.format(remainingAmount) : '0'} encore libres',
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   color: remainingAmount >= 0
@@ -831,13 +1210,24 @@ class _PlannerHero extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Capacite manuelle: ${AppFormats.currencyCompact.format(manualCapacityAmount)} - alloue manuel: ${AppFormats.currencyCompact.format(manualAmount)}'
+            'Etape 2: capacite de repartition ${AppFormats.currencyCompact.format(manualCapacityAmount)} '
+            '- deja reparti ${AppFormats.currencyCompact.format(manualAmount)}'
             '${remainingPercent < 0 ? ' - deficit global' : ''}',
             style: TextStyle(
               fontSize: 12,
               color: remainingPercent < 0
                   ? AppColors.danger
                   : AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Etape 3: disponible reel apres toutes les factures du mois (payees + a payer + auto): '
+            '${AppFormats.currencyCompact.format(fullyNetAvailable)}',
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -852,6 +1242,77 @@ class _PlannerHero extends StatelessWidget {
                 overLimit ? AppColors.danger : AppColors.primary,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavingsQuickCard extends StatelessWidget {
+  final double disposableIncome;
+  final VoidCallback onCreateGoal;
+  final VoidCallback onOpenGoals;
+
+  const _SavingsQuickCard({
+    required this.disposableIncome,
+    required this.onCreateGoal,
+    required this.onOpenGoals,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final canCreate = disposableIncome > 0;
+
+    return AppPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: AppRadius.r16,
+      borderColor: const Color(0xFFDCE7D3),
+      backgroundColor: const Color(0xFFF7FBF4),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.savings_outlined,
+            color: AppColors.primary,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Epargne mensuelle',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  canCreate
+                      ? 'Definis un % du revenu disponible pour creer un objectif d\'epargne.'
+                      : 'Definis le revenu disponible du mois pour activer l\'epargne mensuelle.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton(
+            onPressed: onOpenGoals,
+            child: const Text('Objectifs'),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            onPressed: canCreate ? onCreateGoal : null,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Creer epargne'),
           ),
         ],
       ),
@@ -913,7 +1374,8 @@ class _AutoReserveCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Ces montants sont exclus des cartes manuelles pour eviter les doublons.',
+            'Ces montants viennent des prelevements automatiques deja prevus.'
+            ' Vous n\'avez rien a ressaisir dans les cartes manuelles.',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -1066,11 +1528,32 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final usagePct = row.plannedAmount > 0
-        ? (row.group.spentActual / row.plannedAmount) * 100
-        : (row.group.spentActual > 0 ? 999.0 : 0.0);
-    final overUsage = usagePct > 100;
-    final progressBarValue = (usagePct / 100).clamp(0, 1);
+    final hasEnvelope = row.plannedAmount > 0.0001;
+    final paidAmount = row.group.spentActual;
+    final pendingAmount = row.group.pendingAmount;
+    final committedAmount = paidAmount + pendingAmount;
+    final usagePct = hasEnvelope
+        ? (committedAmount / row.plannedAmount) * 100
+        : 0.0;
+    final overUsage = hasEnvelope && committedAmount > row.plannedAmount;
+    final overflowAmount = hasEnvelope
+        ? (committedAmount > row.plannedAmount
+              ? committedAmount - row.plannedAmount
+              : 0.0)
+        : committedAmount;
+    final lockedByCommitted =
+        row.minAllowedAmount > 0 &&
+        row.plannedAmount <= row.minAllowedAmount + 0.0001;
+    final paidRatio = hasEnvelope
+        ? (paidAmount / row.plannedAmount).clamp(0.0, 1.0)
+        : 0.0;
+    final pendingRatio = hasEnvelope
+        ? (pendingAmount / row.plannedAmount).clamp(0.0, 1.0 - paidRatio)
+        : 0.0;
+    final freeRatio = hasEnvelope
+        ? (1.0 - paidRatio - pendingRatio).clamp(0.0, 1.0)
+        : 0.0;
+    final spentDelta = row.plannedAmount - committedAmount;
     final sliderMin = row.draft.inputMode == 'amount'
         ? row.minAllowedAmount
         : row.minAllowedPercent;
@@ -1108,13 +1591,27 @@ class _GroupCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                'Depense reelle: ${AppFormats.currencyCompact.format(row.group.spentActual)}',
-                style: const TextStyle(
-                  color: AppColors.danger,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Payees: ${AppFormats.currencyCompact.format(paidAmount)}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (pendingAmount > 0)
+                    Text(
+                      'A payer: ${AppFormats.currencyCompact.format(pendingAmount)}',
+                      style: TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -1144,11 +1641,11 @@ class _GroupCard extends StatelessWidget {
               const SizedBox(width: 12),
               SizedBox(
                 width: 140,
-                child: TextFormField(
+                child: _SyncedNumericField(
                   key: ValueKey(
                     '$inputVersion-${row.group.groupId}-${row.draft.inputMode}',
                   ),
-                  initialValue: row.draft.inputMode == 'amount'
+                  valueText: row.draft.inputMode == 'amount'
                       ? _editableInputValue(row.plannedAmount, maxDecimals: 0)
                       : _editableInputValue(row.plannedPercent, maxDecimals: 1),
                   onChanged: (v) => onValueChanged(row, v),
@@ -1222,13 +1719,13 @@ class _GroupCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                row.plannedAmount <= 0
-                    ? (row.group.spentActual > 0
-                          ? 'Utilise: depense sans enveloppe'
-                          : 'Utilise: 0%')
-                    : 'Utilise: ${usagePct.toStringAsFixed(0)}%',
+                !hasEnvelope && committedAmount > 0
+                    ? 'Montant deja engage ce mois: ${AppFormats.currencyCompact.format(committedAmount)}'
+                    : !hasEnvelope
+                    ? 'Budget non defini'
+                    : 'Deja engage (paye + a payer): ${usagePct.toStringAsFixed(0)}%',
                 style: TextStyle(
-                  color: usagePct >= 100
+                  color: overUsage && hasEnvelope
                       ? AppColors.danger
                       : AppColors.textSecondary,
                   fontWeight: FontWeight.w700,
@@ -1237,31 +1734,171 @@ class _GroupCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                usagePct > 100 && row.plannedAmount > 0
-                    ? 'Depasse de ${AppFormats.currencyCompact.format(row.group.spentActual - row.plannedAmount)}'
-                    : 'Planifie: ${AppFormats.currencyCompact.format(row.plannedAmount)}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
+                !hasEnvelope
+                    ? 'Budget planifie: 0'
+                    : spentDelta >= 0
+                    ? 'Reste libre: ${AppFormats.currencyCompact.format(spentDelta)}'
+                    : 'Depassement deja engage: ${AppFormats.currencyCompact.format(-spentDelta)}',
+                style: TextStyle(
+                  color: hasEnvelope && spentDelta < 0
+                      ? AppColors.danger
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
                   fontSize: 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.r8),
-            child: LinearProgressIndicator(
-              value: progressBarValue.toDouble(),
-              minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                overUsage ? AppColors.danger : AppColors.primary,
+          if (hasEnvelope) ...[
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.r8),
+              child: SizedBox(
+                height: 10,
+                child: Row(
+                  children: [
+                    if (paidRatio > 0)
+                      Expanded(
+                        flex: ((paidRatio * 1000).round())
+                            .clamp(1, 1000)
+                            .toInt(),
+                        child: const ColoredBox(color: AppColors.danger),
+                      ),
+                    if (pendingRatio > 0)
+                      Expanded(
+                        flex: ((pendingRatio * 1000).round())
+                            .clamp(1, 1000)
+                            .toInt(),
+                        child: const ColoredBox(color: AppColors.warning),
+                      ),
+                    if (freeRatio > 0)
+                      Expanded(
+                        flex: ((freeRatio * 1000).round())
+                            .clamp(1, 1000)
+                            .toInt(),
+                        child: const ColoredBox(color: AppColors.primary),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              children: [
+                Text(
+                  'Rouge: deja paye ${AppFormats.currencyCompact.format(paidAmount)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.danger,
+                  ),
+                ),
+                Text(
+                  'Jaune: a payer ${AppFormats.currencyCompact.format(pendingAmount)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.warning,
+                  ),
+                ),
+                Text(
+                  'Vert: libre ${AppFormats.currencyCompact.format(spentDelta > 0 ? spentDelta : 0)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (lockedByCommitted) ...[
+            const SizedBox(height: 6),
+            Text(
+              'On a automatiquement mis ce plan au minimum de ${AppFormats.currencyCompact.format(row.minAllowedAmount)} pour ne pas descendre sous le deja engage.',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (overflowAmount > 0 && hasEnvelope) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Attention: ${AppFormats.currencyCompact.format(overflowAmount)} deja engages au-dessus du plan.',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.danger,
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _SyncedNumericField extends StatefulWidget {
+  final String valueText;
+  final ValueChanged<String> onChanged;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final InputDecoration? decoration;
+
+  const _SyncedNumericField({
+    super.key,
+    required this.valueText,
+    required this.onChanged,
+    this.keyboardType = TextInputType.number,
+    this.inputFormatters,
+    this.decoration,
+  });
+
+  @override
+  State<_SyncedNumericField> createState() => _SyncedNumericFieldState();
+}
+
+class _SyncedNumericFieldState extends State<_SyncedNumericField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.valueText);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SyncedNumericField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.valueText == _controller.text) return;
+    _controller.value = TextEditingValue(
+      text: widget.valueText,
+      selection: TextSelection.collapsed(offset: widget.valueText.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      onChanged: widget.onChanged,
+      keyboardType: widget.keyboardType,
+      inputFormatters: widget.inputFormatters,
+      decoration: widget.decoration,
     );
   }
 }

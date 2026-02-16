@@ -34,6 +34,67 @@ const _months = <String>[
 
 final _selectedTxIdProvider = StateProvider<String?>((ref) => null);
 
+enum _JournalSortColumn { date, label, account, status, amount }
+
+class _JournalSortState {
+  final _JournalSortColumn column;
+  final bool ascending;
+
+  const _JournalSortState({required this.column, required this.ascending});
+
+  _JournalSortState copyWith({_JournalSortColumn? column, bool? ascending}) =>
+      _JournalSortState(
+        column: column ?? this.column,
+        ascending: ascending ?? this.ascending,
+      );
+}
+
+final _journalSortProvider = StateProvider<_JournalSortState>(
+  (ref) => const _JournalSortState(
+    column: _JournalSortColumn.date,
+    ascending: false,
+  ),
+);
+
+List<Transaction> _sortJournalTransactions(
+  List<Transaction> source,
+  _JournalSortState sort,
+) {
+  final sorted = [...source];
+  sorted.sort((a, b) {
+    final cmp = switch (sort.column) {
+      _JournalSortColumn.date => a.date.compareTo(b.date),
+      _JournalSortColumn.label => _displayLabel(
+        a,
+      ).toLowerCase().compareTo(_displayLabel(b).toLowerCase()),
+      _JournalSortColumn.account =>
+        (a.accountName ?? a.accountId).toLowerCase().compareTo(
+          (b.accountName ?? b.accountId).toLowerCase(),
+        ),
+      _JournalSortColumn.status => _statusSortRank(
+        a,
+      ).compareTo(_statusSortRank(b)),
+      _JournalSortColumn.amount => a.amount.compareTo(b.amount),
+    };
+
+    var resolvedCmp = cmp;
+    if (resolvedCmp == 0) {
+      resolvedCmp = b.date.compareTo(a.date);
+    }
+    if (resolvedCmp == 0) {
+      resolvedCmp = a.id.compareTo(b.id);
+    }
+    return sort.ascending ? resolvedCmp : -resolvedCmp;
+  });
+  return sorted;
+}
+
+int _statusSortRank(Transaction tx) {
+  if (tx.isCompleted) return 0;
+  if (tx.isAuto) return 1;
+  return 2;
+}
+
 class JournalView extends ConsumerWidget {
   const JournalView({super.key});
 
@@ -257,6 +318,7 @@ class _JournalFilterBar extends ConsumerWidget {
         ? 'Tous libelles'
         : 'Libelle: ${columnFilters.label.trim()}';
     final amountLabel = _amountFilterLabel(columnFilters);
+    final activeCount = _activeColumnFiltersCount(columnFilters);
     final accountsAsync = ref.watch(accountsProvider);
 
     return Container(
@@ -329,27 +391,63 @@ class _JournalFilterBar extends ConsumerWidget {
             )
           : Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FilterChip(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHeader,
+                          border: Border.all(color: AppColors.borderSubtle),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          activeCount > 0
+                              ? 'Pipeline filtres ($activeCount)'
+                              : 'Pipeline filtres',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textSecondary,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                      _FilterChip(
                         icon: Icons.calendar_today,
                         label: '${filters.year}',
-                        expand: true,
                         onTap: () => _pickYear(context, ref, filters),
                       ),
-                    ),
-                    Expanded(
-                      child: _FilterChip(
+                      _FilterChip(
                         icon: Icons.date_range,
                         label: monthLabel,
-                        expand: true,
                         onTap: () => _pickMonth(context, ref, filters),
                       ),
-                    ),
-                    Expanded(
-                      child: accountsAsync.when(
-                        loading: () => const SizedBox.shrink(),
+                      accountsAsync.when(
+                        loading: () => Container(
+                          width: 34,
+                          height: 34,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceElevated,
+                            border: Border.all(color: AppColors.borderSubtle),
+                          ),
+                          child: const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
                         error: (_, _) => const SizedBox.shrink(),
                         data: (accounts) {
                           final selected = filters.accountId == null
@@ -360,63 +458,41 @@ class _JournalFilterBar extends ConsumerWidget {
                           return _FilterChip(
                             icon: Icons.account_balance_wallet,
                             label: selected?.name ?? 'Tous les comptes',
-                            expand: true,
                             onTap: () =>
                                 _pickAccount(context, ref, filters, accounts),
                           );
                         },
                       ),
-                    ),
-                    Expanded(
-                      child: _FilterChip(
+                      _FilterChip(
                         icon: Icons.fact_check_outlined,
                         label: _statusFilterLabel(filters.status),
-                        expand: true,
                         onTap: () => _pickStatus(context, ref, filters),
                       ),
-                    ),
-                  ],
-                ),
-                const Divider(height: 1, color: AppColors.borderSubtle),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FilterChip(
+                      _FilterChip(
                         icon: Icons.event,
                         label: dateLabel,
-                        expand: true,
                         onTap: () =>
                             _pickDateRange(context, ref, columnFilters),
                       ),
-                    ),
-                    Expanded(
-                      child: _FilterChip(
+                      _FilterChip(
                         icon: Icons.label_outline,
                         label: textLabel,
-                        expand: true,
                         onTap: () => _pickLabel(context, ref, columnFilters),
                       ),
-                    ),
-                    Expanded(
-                      child: _FilterChip(
+                      _FilterChip(
                         icon: Icons.tune,
                         label: amountLabel,
-                        expand: true,
                         onTap: () => _pickAmount(context, ref, columnFilters),
                       ),
-                    ),
-                    if (columnFilters.hasActiveFilters)
-                      SizedBox(
-                        width: 180,
-                        child: _FilterChip(
+                      if (columnFilters.hasActiveFilters)
+                        _FilterChip(
                           icon: Icons.filter_alt_off_outlined,
                           label: 'Reinitialiser',
-                          expand: true,
                           showChevron: false,
                           onTap: () => _clearColumnFilters(ref),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -626,6 +702,14 @@ class _JournalFilterBar extends ConsumerWidget {
     }
     if (min != null) return '>= ${AppFormats.currency.format(min)}';
     return '<= ${AppFormats.currency.format(max!)}';
+  }
+
+  int _activeColumnFiltersCount(JournalColumnFilters filters) {
+    var count = 0;
+    if (filters.fromDate != null || filters.toDate != null) count++;
+    if (filters.label.trim().isNotEmpty) count++;
+    if (filters.minAmount != null || filters.maxAmount != null) count++;
+    return count;
   }
 
   Future<void> _pickDateRange(
@@ -971,14 +1055,12 @@ class _FilterChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool expand;
   final bool showChevron;
 
   const _FilterChip({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.expand = false,
     this.showChevron = true,
   });
 
@@ -988,7 +1070,6 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.zero,
       child: Container(
-        width: expand ? double.infinity : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surfaceElevated,
@@ -996,32 +1077,20 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.zero,
         ),
         child: Row(
-          mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 14, color: AppColors.primary),
             const SizedBox(width: 6),
-            if (expand)
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              )
-            else
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             if (showChevron) ...[
               const SizedBox(width: 4),
               const Icon(
@@ -1050,8 +1119,12 @@ class _JournalBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pageItems = transactions;
-    final monthTotals = _buildMonthTotals(transactions);
+    final sort = ref.watch(_journalSortProvider);
+    final pageItems = _sortJournalTransactions(transactions, sort);
+    final showMonthHeaders = sort.column == _JournalSortColumn.date;
+    final monthTotals = showMonthHeaders
+        ? _buildMonthTotals(pageItems)
+        : const <int, _MonthTotals>{};
 
     return Container(
       color: AppColors.surfaceElevated,
@@ -1061,6 +1134,7 @@ class _JournalBody extends ConsumerWidget {
             child: _TransactionTable(
               transactions: pageItems,
               monthTotals: monthTotals,
+              showMonthHeaders: showMonthHeaders,
               isMobile: isMobile,
               onSelect: (tx) => _onSelect(context, ref, tx, isMobile),
               selectedId: selected?.id,
@@ -1196,6 +1270,7 @@ class _DesktopDetailOverlay extends StatelessWidget {
 class _TransactionTable extends StatelessWidget {
   final List<Transaction> transactions;
   final Map<int, _MonthTotals> monthTotals;
+  final bool showMonthHeaders;
   final bool isMobile;
   final String? selectedId;
   final ValueChanged<Transaction> onSelect;
@@ -1203,6 +1278,7 @@ class _TransactionTable extends StatelessWidget {
   const _TransactionTable({
     required this.transactions,
     required this.monthTotals,
+    required this.showMonthHeaders,
     required this.isMobile,
     required this.onSelect,
     required this.selectedId,
@@ -1210,7 +1286,7 @@ class _TransactionTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _buildRows(transactions);
+    final rows = _buildRows(transactions, showMonthHeaders);
     return AppPanel(
       padding: EdgeInsets.zero,
       radius: 0,
@@ -1267,7 +1343,13 @@ class _TransactionTable extends StatelessWidget {
     );
   }
 
-  List<_TableRowEntry> _buildRows(List<Transaction> txs) {
+  List<_TableRowEntry> _buildRows(
+    List<Transaction> txs,
+    bool withMonthHeaders,
+  ) {
+    if (!withMonthHeaders) {
+      return txs.map(_TableRowEntry.transaction).toList(growable: false);
+    }
     final rows = <_TableRowEntry>[];
     int? month;
     int? year;
@@ -1371,12 +1453,13 @@ class _MonthHeaderRow extends StatelessWidget {
   }
 }
 
-class _TableHeader extends StatelessWidget {
+class _TableHeader extends ConsumerWidget {
   final bool isMobile;
   const _TableHeader({required this.isMobile});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sort = ref.watch(_journalSortProvider);
     const style = TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w700,
@@ -1384,33 +1467,155 @@ class _TableHeader extends StatelessWidget {
       letterSpacing: 1.0,
     );
     if (isMobile) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            Expanded(flex: 4, child: Text('TRANSACTION', style: style)),
+            Expanded(
+              flex: 4,
+              child: _SortableHeaderLabel(
+                label: 'TRANSACTION',
+                style: style,
+                active: sort.column == _JournalSortColumn.date,
+                ascending: sort.ascending,
+                onTap: () => _toggleSort(ref, _JournalSortColumn.date),
+              ),
+            ),
             Expanded(
               flex: 2,
-              child: Text('MONTANT', style: style, textAlign: TextAlign.end),
+              child: _SortableHeaderLabel(
+                label: 'MONTANT',
+                style: style,
+                active: sort.column == _JournalSortColumn.amount,
+                ascending: sort.ascending,
+                alignEnd: true,
+                onTap: () => _toggleSort(ref, _JournalSortColumn.amount),
+              ),
             ),
           ],
         ),
       );
     }
 
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          Expanded(flex: 2, child: Text('DATE', style: style)),
-          Expanded(flex: 4, child: Text('LIBELLE', style: style)),
-          Expanded(flex: 3, child: Text('COMPTE', style: style)),
-          Expanded(flex: 2, child: Text('STATUT', style: style)),
           Expanded(
             flex: 2,
-            child: Text('MONTANT', style: style, textAlign: TextAlign.end),
+            child: _SortableHeaderLabel(
+              label: 'DATE',
+              style: style,
+              active: sort.column == _JournalSortColumn.date,
+              ascending: sort.ascending,
+              onTap: () => _toggleSort(ref, _JournalSortColumn.date),
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: _SortableHeaderLabel(
+              label: 'LIBELLE',
+              style: style,
+              active: sort.column == _JournalSortColumn.label,
+              ascending: sort.ascending,
+              onTap: () => _toggleSort(ref, _JournalSortColumn.label),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: _SortableHeaderLabel(
+              label: 'COMPTE',
+              style: style,
+              active: sort.column == _JournalSortColumn.account,
+              ascending: sort.ascending,
+              onTap: () => _toggleSort(ref, _JournalSortColumn.account),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _SortableHeaderLabel(
+              label: 'STATUT',
+              style: style,
+              active: sort.column == _JournalSortColumn.status,
+              ascending: sort.ascending,
+              onTap: () => _toggleSort(ref, _JournalSortColumn.status),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: _SortableHeaderLabel(
+              label: 'MONTANT',
+              style: style,
+              active: sort.column == _JournalSortColumn.amount,
+              ascending: sort.ascending,
+              alignEnd: true,
+              onTap: () => _toggleSort(ref, _JournalSortColumn.amount),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _toggleSort(WidgetRef ref, _JournalSortColumn column) {
+    final current = ref.read(_journalSortProvider);
+    if (current.column == column) {
+      ref.read(_journalSortProvider.notifier).state = current.copyWith(
+        ascending: !current.ascending,
+      );
+      return;
+    }
+
+    final defaultAscending = column == _JournalSortColumn.date ? false : true;
+    ref.read(_journalSortProvider.notifier).state = _JournalSortState(
+      column: column,
+      ascending: defaultAscending,
+    );
+  }
+}
+
+class _SortableHeaderLabel extends StatelessWidget {
+  final String label;
+  final TextStyle style;
+  final bool active;
+  final bool ascending;
+  final bool alignEnd;
+  final VoidCallback onTap;
+
+  const _SortableHeaderLabel({
+    required this.label,
+    required this.style,
+    required this.active,
+    required this.ascending,
+    required this.onTap,
+    this.alignEnd = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = active
+        ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
+        : Icons.unfold_more;
+    final color = active ? AppColors.textPrimary : AppColors.textDisabled;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: alignEnd
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: style.copyWith(color: color),
+              textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+            ),
+            const SizedBox(width: 4),
+            Icon(icon, size: 13, color: color),
+          ],
+        ),
       ),
     );
   }

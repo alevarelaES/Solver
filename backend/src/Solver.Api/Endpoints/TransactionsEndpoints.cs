@@ -95,6 +95,7 @@ public static class TransactionsEndpoints
             var upcoming = await db.Transactions
                 .Where(t => t.UserId == userId
                     && t.Status == TransactionStatus.Pending
+                    && t.Account!.Type == AccountType.Expense
                     && (!t.IsAuto || t.Date >= today)
                     && t.Date <= limit)
                 .OrderBy(t => t.Date)

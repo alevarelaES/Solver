@@ -10,6 +10,8 @@ public class SavingGoal
     public DateOnly TargetDate { get; set; }
     public decimal InitialAmount { get; set; }
     public decimal MonthlyContribution { get; set; }
+    public bool AutoContributionEnabled { get; set; }
+    public DateOnly? AutoContributionStartDate { get; set; }
     public int Priority { get; set; }
     public bool IsArchived { get; set; }
     public DateTime CreatedAt { get; set; }

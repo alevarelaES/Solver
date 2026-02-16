@@ -25,6 +25,9 @@ public static class GoalsEndpoints
         HttpContext ctx)
     {
         var userId = GetUserId(ctx);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        await ApplyAutoContributionsAsync(db, userId, today);
+
         var goals = await db.SavingGoals
             .Where(g => g.UserId == userId && (includeArchived || !g.IsArchived))
             .OrderBy(g => g.Priority)
@@ -38,7 +41,6 @@ public static class GoalsEndpoints
             .Select(g => new { GoalId = g.Key, Amount = g.Sum(e => e.Amount) })
             .ToDictionaryAsync(x => x.GoalId, x => x.Amount);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var payload = goals.Select(g => ToGoalPayload(g, today, sumsByGoal.GetValueOrDefault(g.Id, 0m)));
         return Results.Ok(payload);
     }
@@ -74,6 +76,8 @@ public static class GoalsEndpoints
             TargetDate = dto.TargetDate,
             InitialAmount = Math.Max(0m, dto.InitialAmount ?? 0m),
             MonthlyContribution = Math.Max(0m, dto.MonthlyContribution ?? 0m),
+            AutoContributionEnabled = dto.AutoContributionEnabled ?? false,
+            AutoContributionStartDate = dto.AutoContributionStartDate,
             Priority = dto.Priority ?? (maxPriority + 1),
             IsArchived = false,
             CreatedAt = now,
@@ -112,6 +116,8 @@ public static class GoalsEndpoints
         goal.TargetDate = dto.TargetDate;
         goal.InitialAmount = Math.Max(0m, dto.InitialAmount);
         goal.MonthlyContribution = Math.Max(0m, dto.MonthlyContribution);
+        goal.AutoContributionEnabled = dto.AutoContributionEnabled;
+        goal.AutoContributionStartDate = dto.AutoContributionStartDate;
         goal.Priority = dto.Priority;
         goal.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
@@ -295,6 +301,8 @@ public static class GoalsEndpoints
             targetDate = goal.TargetDate,
             initialAmount = goal.InitialAmount,
             monthlyContribution = goal.MonthlyContribution,
+            autoContributionEnabled = goal.AutoContributionEnabled,
+            autoContributionStartDate = goal.AutoContributionStartDate,
             priority = goal.Priority,
             isArchived = goal.IsArchived,
             currentAmount,
@@ -314,6 +322,106 @@ public static class GoalsEndpoints
         var monthDelta = (target.Year - from.Year) * 12 + (target.Month - from.Month) + 1;
         return Math.Max(0, monthDelta);
     }
+
+    private static async Task ApplyAutoContributionsAsync(
+        SolverDbContext db,
+        Guid userId,
+        DateOnly today)
+    {
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+
+        var goals = await db.SavingGoals
+            .Where(g => g.UserId == userId
+                && !g.IsArchived
+                && g.AutoContributionEnabled
+                && g.MonthlyContribution > 0)
+            .OrderBy(g => g.CreatedAt)
+            .ToListAsync();
+        if (goals.Count == 0) return;
+
+        var goalIds = goals.Select(g => g.Id).ToList();
+        var entries = await db.SavingGoalEntries
+            .Where(e => e.UserId == userId && goalIds.Contains(e.GoalId))
+            .Select(e => new
+            {
+                e.GoalId,
+                e.EntryDate,
+                e.Amount,
+                e.IsAuto
+            })
+            .ToListAsync();
+
+        var sumByGoal = entries
+            .GroupBy(e => e.GoalId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+        var existingAutoMonths = entries
+            .Where(e => e.IsAuto && e.Amount > 0)
+            .Select(e => BuildGoalMonthKey(e.GoalId, e.EntryDate.Year, e.EntryDate.Month))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var now = DateTime.UtcNow;
+        var newEntries = new List<SavingGoalEntry>();
+
+        foreach (var goal in goals)
+        {
+            var currentAmount = goal.InitialAmount + sumByGoal.GetValueOrDefault(goal.Id, 0m);
+            if (currentAmount >= goal.TargetAmount) continue;
+
+            var startDate = goal.AutoContributionStartDate
+                ?? DateOnly.FromDateTime(goal.CreatedAt.ToUniversalTime());
+            if (startDate > today) continue;
+
+            var depositDay = startDate.Day;
+            var cursor = new DateOnly(startDate.Year, startDate.Month, 1);
+
+            while (cursor <= monthStart)
+            {
+                var monthKey = BuildGoalMonthKey(goal.Id, cursor.Year, cursor.Month);
+                if (existingAutoMonths.Contains(monthKey))
+                {
+                    cursor = cursor.AddMonths(1);
+                    continue;
+                }
+
+                var plannedDay = Math.Min(depositDay, DateTime.DaysInMonth(cursor.Year, cursor.Month));
+                var plannedDate = new DateOnly(cursor.Year, cursor.Month, plannedDay);
+                if (plannedDate > today)
+                {
+                    break;
+                }
+
+                if (currentAmount >= goal.TargetAmount) break;
+                var amount = Math.Min(goal.MonthlyContribution, goal.TargetAmount - currentAmount);
+                if (amount <= 0) break;
+
+                newEntries.Add(new SavingGoalEntry
+                {
+                    Id = Guid.NewGuid(),
+                    GoalId = goal.Id,
+                    UserId = userId,
+                    EntryDate = plannedDate,
+                    Amount = amount,
+                    Note = goal.GoalType == SavingGoalType.Debt
+                        ? "Paiement automatique mensuel"
+                        : "Depot automatique mensuel",
+                    IsAuto = true,
+                    CreatedAt = now,
+                });
+                existingAutoMonths.Add(monthKey);
+                currentAmount += amount;
+
+                cursor = cursor.AddMonths(1);
+            }
+        }
+
+        if (newEntries.Count == 0) return;
+        db.SavingGoalEntries.AddRange(newEntries);
+        await db.SaveChangesAsync();
+    }
+
+    private static string BuildGoalMonthKey(Guid goalId, int year, int month) =>
+        $"{goalId:N}:{year:D4}-{month:D2}";
 
     private static bool IsNpgsqlDisposedConnector(DbUpdateException ex)
     {
@@ -366,6 +474,8 @@ public static class GoalsEndpoints
         DateOnly TargetDate,
         decimal? InitialAmount,
         decimal? MonthlyContribution,
+        bool? AutoContributionEnabled,
+        DateOnly? AutoContributionStartDate,
         int? Priority
     );
 
@@ -376,6 +486,8 @@ public static class GoalsEndpoints
         DateOnly TargetDate,
         decimal InitialAmount,
         decimal MonthlyContribution,
+        bool AutoContributionEnabled,
+        DateOnly? AutoContributionStartDate,
         int Priority
     );
 

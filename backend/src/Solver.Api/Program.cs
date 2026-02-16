@@ -136,10 +136,12 @@ using (var scope = app.Services.CreateScope())
             year integer NOT NULL,
             month integer NOT NULL,
             forecast_disposable_income numeric(14,2) NOT NULL DEFAULT 0,
+            use_gross_income_base boolean NOT NULL DEFAULT false,
             created_at timestamp with time zone NOT NULL DEFAULT now(),
             updated_at timestamp with time zone NOT NULL DEFAULT now(),
             CONSTRAINT ck_budget_plan_months_month CHECK (month BETWEEN 1 AND 12)
         );
+        ALTER TABLE budget_plan_months ADD COLUMN IF NOT EXISTS use_gross_income_base boolean NOT NULL DEFAULT false;
         CREATE UNIQUE INDEX IF NOT EXISTS ux_budget_plan_months_user_year_month
             ON budget_plan_months (user_id, year, month);
         CREATE INDEX IF NOT EXISTS ix_budget_plan_months_user_id
@@ -172,12 +174,16 @@ using (var scope = app.Services.CreateScope())
             target_date date NOT NULL,
             initial_amount numeric(14,2) NOT NULL DEFAULT 0,
             monthly_contribution numeric(14,2) NOT NULL DEFAULT 0,
+            auto_contribution_enabled boolean NOT NULL DEFAULT false,
+            auto_contribution_start_date date NULL,
             priority integer NOT NULL DEFAULT 0,
             is_archived boolean NOT NULL DEFAULT false,
             created_at timestamp with time zone NOT NULL DEFAULT now(),
             updated_at timestamp with time zone NOT NULL DEFAULT now()
         );
         ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS goal_type text NOT NULL DEFAULT 'savings';
+        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS auto_contribution_enabled boolean NOT NULL DEFAULT false;
+        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS auto_contribution_start_date date NULL;
         CREATE INDEX IF NOT EXISTS ix_saving_goals_user_id
             ON saving_goals (user_id);
         CREATE INDEX IF NOT EXISTS ix_saving_goals_user_priority

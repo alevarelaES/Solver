@@ -41,6 +41,9 @@ class _ScopedUpcomingData {
   final double totalAuto;
   final double totalManual;
   final double grandTotal;
+  final double visibleTotalAuto;
+  final double visibleTotalManual;
+  final double visibleGrandTotal;
 
   const _ScopedUpcomingData({
     required this.autoAll,
@@ -52,6 +55,9 @@ class _ScopedUpcomingData {
     required this.totalAuto,
     required this.totalManual,
     required this.grandTotal,
+    required this.visibleTotalAuto,
+    required this.visibleTotalManual,
+    required this.visibleGrandTotal,
   });
 }
 
@@ -66,10 +72,10 @@ _ScopedUpcomingData _scopeUpcomingData(UpcomingData data, _InvoiceScope scope) {
   bool isCurrentMonth(Transaction t) =>
       t.date.year == now.year && t.date.month == now.month;
 
-  var autoAll = [...data.auto];
-  var manualAll = [...data.manual];
+  var autoAll = data.auto.where((t) => !t.isIncome).toList();
+  var manualAll = data.manual.where((t) => !t.isIncome).toList();
 
-  // Safety net: auto debits already past due should not be shown in schedule list.
+  // Safety net: keep only expenses and hide overdue auto debits in list mode.
   autoAll = autoAll
       .where((t) => !(t.isAuto && t.isPending && isPast(t.date)))
       .toList();
@@ -101,6 +107,12 @@ _ScopedUpcomingData _scopeUpcomingData(UpcomingData data, _InvoiceScope scope) {
     }
   }
 
+  final visibleTotalAuto = autoList.fold<double>(0, (sum, t) => sum + t.amount);
+  final visibleTotalManual = manualList.fold<double>(
+    0,
+    (sum, t) => sum + t.amount,
+  );
+
   return _ScopedUpcomingData(
     autoAll: autoAll,
     manualAll: manualAll,
@@ -111,6 +123,9 @@ _ScopedUpcomingData _scopeUpcomingData(UpcomingData data, _InvoiceScope scope) {
     totalAuto: totalAuto,
     totalManual: totalManual,
     grandTotal: totalAuto + totalManual,
+    visibleTotalAuto: visibleTotalAuto,
+    visibleTotalManual: visibleTotalManual,
+    visibleGrandTotal: visibleTotalAuto + visibleTotalManual,
   );
 }
 
@@ -138,6 +153,9 @@ _ScopedUpcomingData _scopeUpcomingDataToMonth(
     totalAuto: totalAuto,
     totalManual: totalManual,
     grandTotal: totalAuto + totalManual,
+    visibleTotalAuto: totalAuto,
+    visibleTotalManual: totalManual,
+    visibleGrandTotal: totalAuto + totalManual,
   );
 }
 
@@ -209,12 +227,21 @@ class _HeroHeader extends ConsumerWidget {
       'MMMM yyyy',
       'fr_FR',
     ).format(now).toUpperCase();
+    final periodLabel = isCalendar
+        ? monthLabel
+        : scope == _InvoiceScope.month
+        ? monthLabel
+        : 'TOUTES PERIODES';
+    final showReferenceTotal =
+        !isCalendar &&
+        scope == _InvoiceScope.all &&
+        (data.grandTotal - data.visibleGrandTotal).abs() > 0.009;
 
     final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TOTAL A PAYER - $monthLabel',
+          'TOTAL A PAYER - $periodLabel',
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -223,13 +250,29 @@ class _HeroHeader extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          AppFormats.currency.format(data.grandTotal),
-          style: const TextStyle(
-            fontSize: 42,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-            letterSpacing: -1,
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: AppFormats.currency.format(data.visibleGrandTotal),
+                style: const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -1,
+                ),
+              ),
+              if (showReferenceTotal)
+                TextSpan(
+                  text: ' (${AppFormats.currency.format(data.grandTotal)})',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
@@ -238,6 +281,8 @@ class _HeroHeader extends ConsumerWidget {
               ? 'Calendrier du mois'
               : scope == _InvoiceScope.month
               ? 'Factures du mois'
+              : showReferenceTotal
+              ? 'Factures affichees (total complet entre parentheses)'
               : 'Toutes les factures',
           style: const TextStyle(
             fontSize: 13,
@@ -485,6 +530,7 @@ class _ListViewBody extends ConsumerWidget {
               icon: Icons.bolt,
               color: _autoColor,
               transactions: data.autoList,
+              visibleTotal: data.visibleTotalAuto,
               total: data.totalAuto,
               hiddenCount: data.hiddenAuto,
               maxVisible: maxVisible,
@@ -499,6 +545,7 @@ class _ListViewBody extends ConsumerWidget {
               icon: Icons.description_outlined,
               color: _manualColor,
               transactions: data.manualList,
+              visibleTotal: data.visibleTotalManual,
               total: data.totalManual,
               hiddenCount: data.hiddenManual,
               maxVisible: maxVisible,
@@ -518,6 +565,7 @@ class _ListViewBody extends ConsumerWidget {
           icon: Icons.bolt,
           color: _autoColor,
           transactions: data.autoList,
+          visibleTotal: data.visibleTotalAuto,
           total: data.totalAuto,
           hiddenCount: data.hiddenAuto,
           maxVisible: maxVisible,
@@ -530,6 +578,7 @@ class _ListViewBody extends ConsumerWidget {
           icon: Icons.description_outlined,
           color: _manualColor,
           transactions: data.manualList,
+          visibleTotal: data.visibleTotalManual,
           total: data.totalManual,
           hiddenCount: data.hiddenManual,
           maxVisible: maxVisible,
@@ -546,6 +595,7 @@ class _SectionColumn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final List<Transaction> transactions;
+  final double visibleTotal;
   final double total;
   final int hiddenCount;
   final int? maxVisible;
@@ -557,6 +607,7 @@ class _SectionColumn extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.transactions,
+    required this.visibleTotal,
     required this.total,
     required this.hiddenCount,
     this.maxVisible,
@@ -573,6 +624,7 @@ class _SectionColumn extends StatelessWidget {
         : sortedTransactions.take(maxVisible!).toList();
     final extraHidden = sortedTransactions.length - visibleTransactions.length;
     final totalHidden = hiddenCount + (extraHidden > 0 ? extraHidden : 0);
+    final showReferenceTotal = (total - visibleTotal).abs() > 0.009;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,14 +643,37 @@ class _SectionColumn extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Text(
-              AppFormats.currency.format(total),
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+            if (!showReferenceTotal)
+              Text(
+                AppFormats.currency.format(total),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    AppFormats.currency.format(visibleTotal),
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    '(${AppFormats.currency.format(total)})',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -730,6 +805,8 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
   @override
   Widget build(BuildContext context) {
     final t = widget.transaction;
+    final noteText = (t.note ?? '').trim();
+    final hasNote = noteText.isNotEmpty;
     final cardColor = _isOverdue ? _overdueColor : widget.color;
     final borderColor = _isHovering
         ? cardColor.withAlpha(120)
@@ -811,6 +888,35 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
                             : AppColors.textSecondary,
                       ),
                     ),
+                    if (hasNote) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 12,
+                            color: _isPaid
+                                ? AppColors.textDisabled
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              noteText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: _isPaid
+                                    ? AppColors.textDisabled
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
