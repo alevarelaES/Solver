@@ -38,7 +38,16 @@
       "Bash(flutter build:*)",
       "Bash(cmd /c npx -y supabase-mcp-server)",
       "mcp__supabase__list_projects",
-      "Bash(flutter pub add:*)"
+      "Bash(flutter pub add:*)",
+      "Bash(find:*)",
+      "mcp__supabase__apply_migration",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmZDRmYTlkYy1mOGFiLTQxZmUtOWZjYi1jZWJjN2I0YTkzODkiLCJpYXQiOjE3NzEyNDc5MTUsImV4cCI6MTc3MTI1MTUxNSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQifQ.shjSFXzhlDRTgEpJmPUYVV8fn74zUHcsg2kh9v01cLY\")",
+      "Bash(__NEW_LINE_59b2cd4ec862af96__ echo \"=== Search Apple ===\")",
+      "Bash(python -m json.tool:*)",
+      "Bash(python:*)",
+      "Bash(# Kill the previous dotnet process and restart taskkill //F //IM dotnet.exe ; sleep 1 cd /c/Users/41786/Projets/Solver/backend/src/Solver.Api && dotnet run & sleep 6 TOKEN=\"\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmZDRmYTlkYy1mOGFiLTQxZmUtOWZjYi1jZWJjN2I0YTkzODkiLCJpYXQiOjE3NzEyNDc5MTUsImV4cCI6MTc3MTI1MTUxNSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQifQ.shjSFXzhlDRTgEpJmPUYVV8fn74zUHcsg2kh9v01cLY\"\" echo \"\"=== Finnhub Profile AAPL ===\"\" curl -s \"\"http://localhost:5108/api/market/profile/AAPL\"\" -H \"\"Authorization: Bearer $TOKEN\"\")",
+      "Bash(__NEW_LINE_d80d8b39f878adc3__ echo \"\")",
+      "Bash(__NEW_LINE_6d714845611db07e__ echo \"\")"
     ]
   }
 }

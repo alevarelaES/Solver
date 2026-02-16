@@ -17,47 +17,12 @@ String _editableInputValue(double value, {int maxDecimals = 0}) {
   return text.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
-String _statusLabel(String status) {
-  switch (status) {
-    case 'achieved':
-      return 'Atteint';
-    case 'on_track':
-      return 'Sur trajectoire';
-    case 'behind':
-      return 'En retard';
-    case 'overdue':
-      return 'Depasse';
-    default:
-      return status;
-  }
-}
-
-Color _statusColor(String status) {
-  switch (status) {
-    case 'achieved':
-      return AppColors.primary;
-    case 'on_track':
-      return const Color(0xFF15803D);
-    case 'behind':
-      return const Color(0xFFB45309);
-    case 'overdue':
-      return AppColors.danger;
-    default:
-      return AppColors.textSecondary;
-  }
-}
-
 bool _isDebtType(String value) => value.toLowerCase() == 'debt';
 
 String _typeLabel(String value) =>
     _isDebtType(value) ? 'Remboursement' : 'Objectif';
 
 bool _isAchievedStatus(String status) => status.toLowerCase() == 'achieved';
-
-bool _isLateStatus(String status) {
-  final normalized = status.toLowerCase();
-  return normalized == 'overdue' || normalized == 'behind';
-}
 
 String _formatDateShort(DateTime date) {
   final d = date.day.toString().padLeft(2, '0');
@@ -72,10 +37,144 @@ int _daysUntil(DateTime date) {
   return target.difference(today).inDays;
 }
 
-bool _isUrgentGoal(SavingGoal goal) {
-  if (_isAchievedStatus(goal.status)) return false;
-  if (_isLateStatus(goal.status)) return true;
-  return _daysUntil(goal.targetDate) <= 45;
+enum _GoalAlertLevel { normal, attention, critical, overdue, achieved }
+
+class _GoalAlertAssessment {
+  final _GoalAlertLevel level;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _GoalAlertAssessment({
+    required this.level,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  bool get isPriority =>
+      level == _GoalAlertLevel.critical || level == _GoalAlertLevel.overdue;
+
+  bool get isAttention => level == _GoalAlertLevel.attention;
+}
+
+int _projectedDelayMonths(SavingGoal goal) {
+  if (goal.projectedDate == null) {
+    return goal.remainingAmount > 0 ? 999 : 0;
+  }
+  final delay = _monthIndex(goal.projectedDate!) - _monthIndex(goal.targetDate);
+  return delay > 0 ? delay : 0;
+}
+
+_GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
+  if (_isAchievedStatus(goal.status) || goal.remainingAmount <= 0.01) {
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.achieved,
+      label: 'Atteint',
+      color: AppColors.primary,
+      icon: Icons.check_circle_rounded,
+    );
+  }
+
+  final days = _daysUntil(goal.targetDate);
+  if (days < 0) {
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.overdue,
+      label: 'Echeance depassee',
+      color: AppColors.danger,
+      icon: Icons.error_rounded,
+    );
+  }
+
+  final requiredMonthly = goal.recommendedMonthly <= 0
+      ? 0.0
+      : goal.recommendedMonthly;
+  final hasPlan = goal.monthlyContribution > 0.01;
+  final coverage = requiredMonthly <= 0
+      ? 1.0
+      : goal.monthlyContribution / requiredMonthly;
+  final delayMonths = _projectedDelayMonths(goal);
+
+  if (days <= 15) {
+    if (!hasPlan || coverage < 0.80 || delayMonths >= 1) {
+      return const _GoalAlertAssessment(
+        level: _GoalAlertLevel.critical,
+        label: 'Urgence: echeance proche',
+        color: AppColors.danger,
+        icon: Icons.priority_high_rounded,
+      );
+    }
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.attention,
+      label: 'Attention: bientot',
+      color: AppColors.warning,
+      icon: Icons.warning_amber_rounded,
+    );
+  }
+
+  if (days <= 30) {
+    if (!hasPlan || coverage < 0.55 || delayMonths >= 2) {
+      return const _GoalAlertAssessment(
+        level: _GoalAlertLevel.critical,
+        label: 'Urgence: ajustement fort',
+        color: AppColors.danger,
+        icon: Icons.priority_high_rounded,
+      );
+    }
+    if (coverage < 0.95 || delayMonths >= 1) {
+      return const _GoalAlertAssessment(
+        level: _GoalAlertLevel.attention,
+        label: 'Attention: a ajuster',
+        color: AppColors.warning,
+        icon: Icons.warning_amber_rounded,
+      );
+    }
+  }
+
+  if (days <= 60) {
+    if (!hasPlan || coverage < 0.75 || delayMonths >= 2) {
+      return const _GoalAlertAssessment(
+        level: _GoalAlertLevel.attention,
+        label: 'Attention: approche',
+        color: AppColors.warning,
+        icon: Icons.warning_amber_rounded,
+      );
+    }
+  }
+
+  if (days <= 90 && coverage < 0.65 && delayMonths >= 1) {
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.attention,
+      label: 'Attention: rythme faible',
+      color: AppColors.warning,
+      icon: Icons.warning_amber_rounded,
+    );
+  }
+
+  if (!hasPlan && goal.remainingAmount > 0) {
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.normal,
+      label: 'A planifier',
+      color: AppColors.textSecondary,
+      icon: Icons.schedule_rounded,
+    );
+  }
+
+  if (coverage < 0.95 || delayMonths >= 1) {
+    return const _GoalAlertAssessment(
+      level: _GoalAlertLevel.normal,
+      label: 'A ajuster',
+      color: AppColors.textSecondary,
+      icon: Icons.tune_rounded,
+    );
+  }
+
+  return const _GoalAlertAssessment(
+    level: _GoalAlertLevel.normal,
+    label: 'Sur trajectoire',
+    color: Color(0xFF15803D),
+    icon: Icons.track_changes_rounded,
+  );
 }
 
 String _deadlineLabel(SavingGoal goal) {
@@ -857,10 +956,25 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                 final achieved = filtered
                     .where((g) => _isAchievedStatus(g.status))
                     .toList();
-                final urgent = pending.where(_isUrgentGoal).toList();
-                final regular = pending
-                    .where((g) => !_isUrgentGoal(g))
+                final goalAlerts = <String, _GoalAlertAssessment>{
+                  for (final goal in filtered) goal.id: _assessGoalAlert(goal),
+                };
+                final urgent = pending
+                    .where(
+                      (g) =>
+                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).isPriority,
+                    )
                     .toList();
+                final attention = pending
+                    .where(
+                      (g) =>
+                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).isAttention,
+                    )
+                    .toList();
+                final regular = pending.where((g) {
+                  final alert = goalAlerts[g.id] ?? _assessGoalAlert(g);
+                  return !alert.isPriority && !alert.isAttention;
+                }).toList();
                 final totalTarget = filtered.fold<double>(
                   0,
                   (sum, g) => sum + g.targetAmount,
@@ -883,8 +997,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                 final overdueCount = pending
                     .where(
                       (g) =>
-                          _daysUntil(g.targetDate) < 0 ||
-                          g.status.toLowerCase() == 'overdue',
+                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).level ==
+                          _GoalAlertLevel.overdue,
                     )
                     .length;
                 final typeColor = _isDebtType(_activeType)
@@ -912,6 +1026,9 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                             ),
                             child: _GoalCard(
                               goal: sectionGoals[i],
+                              alert:
+                                  goalAlerts[sectionGoals[i].id] ??
+                                  _assessGoalAlert(sectionGoals[i]),
                               monthlyMarginAvailable: monthlyMarginAvailable,
                               onEdit: () =>
                                   _showGoalEditor(goal: sectionGoals[i]),
@@ -1126,10 +1243,12 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                               ),
                               _OverviewMetric(
                                 icon: Icons.notifications_active_rounded,
-                                label: 'Prioritaires',
+                                label: 'Alertes',
                                 value:
-                                    '$overdueCount retard / ${urgent.length} urgent',
-                                accent: AppColors.danger,
+                                    '$overdueCount en retard / ${urgent.length} urgents / ${attention.length} attention',
+                                accent: urgent.isNotEmpty || overdueCount > 0
+                                    ? AppColors.danger
+                                    : AppColors.warning,
                               ),
                               _OverviewMetric(
                                 icon: Icons.task_alt_rounded,
@@ -1196,15 +1315,27 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                         children: [
                           if (urgent.isNotEmpty)
                             buildSection(
-                              title: 'A traiter en priorite',
+                              title: 'Urgence (rouge)',
                               subtitle:
-                                  'Objectifs proches ou en retard, tries par date la plus proche.',
+                                  'Echeance tres proche ou depassee avec ecart important.',
                               icon: Icons.priority_high_rounded,
                               accent: AppColors.danger,
                               sectionGoals: urgent,
                             ),
-                          if (regular.isNotEmpty) ...[
+                          if (attention.isNotEmpty) ...[
                             if (urgent.isNotEmpty) const SizedBox(height: 10),
+                            buildSection(
+                              title: 'Attention (orange)',
+                              subtitle:
+                                  'Echeance qui approche: un ajustement est conseille.',
+                              icon: Icons.warning_amber_rounded,
+                              accent: AppColors.warning,
+                              sectionGoals: attention,
+                            ),
+                          ],
+                          if (regular.isNotEmpty) ...[
+                            if (urgent.isNotEmpty || attention.isNotEmpty)
+                              const SizedBox(height: 10),
                             buildSection(
                               title: 'En cours',
                               subtitle:
@@ -1215,7 +1346,9 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                             ),
                           ],
                           if (achieved.isNotEmpty) ...[
-                            if (urgent.isNotEmpty || regular.isNotEmpty)
+                            if (urgent.isNotEmpty ||
+                                attention.isNotEmpty ||
+                                regular.isNotEmpty)
                               const SizedBox(height: 10),
                             buildSection(
                               title: 'Atteints',
@@ -1411,6 +1544,7 @@ class _TypeButton extends StatelessWidget {
 
 class _GoalCard extends StatelessWidget {
   final SavingGoal goal;
+  final _GoalAlertAssessment alert;
   final double? monthlyMarginAvailable;
   final VoidCallback onEdit;
   final VoidCallback onMove;
@@ -1419,6 +1553,7 @@ class _GoalCard extends StatelessWidget {
 
   const _GoalCard({
     required this.goal,
+    required this.alert,
     required this.monthlyMarginAvailable,
     required this.onEdit,
     required this.onMove,
@@ -1431,23 +1566,32 @@ class _GoalCard extends StatelessWidget {
     final isDebt = _isDebtType(goal.goalType);
     final isAchieved = _isAchievedStatus(goal.status);
     final daysToTarget = _daysUntil(goal.targetDate);
-    final isLate = _isLateStatus(goal.status) || daysToTarget < 0;
-    final statusColor = _statusColor(goal.status);
+    final isCritical =
+        alert.level == _GoalAlertLevel.overdue ||
+        alert.level == _GoalAlertLevel.critical;
+    final isAttention = alert.level == _GoalAlertLevel.attention;
+    final statusColor = alert.color;
     final progress = (goal.progressPercent / 100).clamp(0.0, 1.0);
     final projected = goal.projectedDate;
     final typeColor = isDebt ? AppColors.danger : AppColors.primary;
     final progressColor = isAchieved
         ? AppColors.primary
-        : isLate
+        : isCritical
         ? AppColors.danger
+        : isAttention
+        ? AppColors.warning
         : typeColor;
     final cardBackground = isAchieved
         ? const Color(0xFFF1FAEE)
-        : isLate
+        : isCritical
         ? const Color(0xFFFFF5F5)
+        : isAttention
+        ? const Color(0xFFFFFAF0)
         : const Color(0xFFFAFCF8);
     final deadlineColor = isAchieved
         ? AppColors.primary
+        : daysToTarget < 0
+        ? AppColors.danger
         : daysToTarget <= 7
         ? AppColors.danger
         : daysToTarget <= 30
@@ -1548,13 +1692,7 @@ class _GoalCard extends StatelessWidget {
                               ? Icons.account_balance_wallet_rounded
                               : Icons.flag_rounded,
                         ),
-                        badge(
-                          _statusLabel(goal.status),
-                          statusColor,
-                          icon: isAchieved
-                              ? Icons.check_circle_rounded
-                              : Icons.track_changes_rounded,
-                        ),
+                        badge(alert.label, statusColor, icon: alert.icon),
                         badge(
                           _deadlineLabel(goal),
                           deadlineColor,

@@ -39,6 +39,43 @@ builder.Services.AddDbContext<SolverDbContext>(options =>
             // trigger connector disposal races with some Npgsql/runtime combos.
             .MaxBatchSize(1)));
 
+// Memory cache (for Finnhub service)
+builder.Services.AddMemoryCache();
+
+// Twelve Data (market prices, history, search)
+var twelveDataApiKey = Environment.GetEnvironmentVariable("TWELVE_DATA_API_KEY") ?? "";
+var twelveDataBaseUrl = Environment.GetEnvironmentVariable("TWELVE_DATA_BASE_URL") ?? "https://api.twelvedata.com";
+var tdCacheMinutes = int.TryParse(Environment.GetEnvironmentVariable("TWELVE_DATA_CACHE_MINUTES"), out var tdCm) ? tdCm : 5;
+
+if (!string.IsNullOrEmpty(twelveDataApiKey) && twelveDataApiKey != "your_twelve_data_api_key")
+{
+    builder.Services.AddHttpClient("TwelveData", client =>
+    {
+        client.BaseAddress = new Uri(twelveDataBaseUrl);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
+}
+builder.Services.AddSingleton(new TwelveDataConfig(twelveDataApiKey, tdCacheMinutes));
+builder.Services.AddSingleton<TwelveDataRateLimiter>();
+builder.Services.AddScoped<TwelveDataService>();
+
+// Finnhub (company profile, news, recommendations)
+var finnhubApiKey = Environment.GetEnvironmentVariable("FINNHUB_API_KEY") ?? "";
+var finnhubBaseUrl = Environment.GetEnvironmentVariable("FINNHUB_BASE_URL") ?? "https://finnhub.io/api/v1";
+var fhCacheMinutes = int.TryParse(Environment.GetEnvironmentVariable("FINNHUB_CACHE_MINUTES"), out var fhCm) ? fhCm : 60;
+
+if (!string.IsNullOrEmpty(finnhubApiKey) && finnhubApiKey != "your_finnhub_api_key")
+{
+    builder.Services.AddHttpClient("Finnhub", client =>
+    {
+        client.BaseAddress = new Uri(finnhubBaseUrl.TrimEnd('/') + "/");
+        client.DefaultRequestHeaders.Add("X-Finnhub-Token", finnhubApiKey);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
+}
+builder.Services.AddSingleton(new FinnhubConfig(finnhubApiKey, fhCacheMinutes));
+builder.Services.AddScoped<FinnhubService>();
+
 // Response compression (gzip)
 builder.Services.AddResponseCompression(options =>
 {
@@ -227,5 +264,8 @@ app.MapDashboardEndpoints();
 app.MapBudgetEndpoints();
 app.MapGoalsEndpoints();
 app.MapAnalysisEndpoints();
+app.MapPortfolioEndpoints();
+app.MapWatchlistEndpoints();
+app.MapMarketEndpoints();
 
 app.Run();

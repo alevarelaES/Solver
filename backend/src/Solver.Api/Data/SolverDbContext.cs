@@ -15,6 +15,9 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
     public DbSet<BudgetPlanGroupAllocation> BudgetPlanGroupAllocations => Set<BudgetPlanGroupAllocation>();
     public DbSet<SavingGoal> SavingGoals => Set<SavingGoal>();
     public DbSet<SavingGoalEntry> SavingGoalEntries => Set<SavingGoalEntry>();
+    public DbSet<PortfolioHolding> PortfolioHoldings => Set<PortfolioHolding>();
+    public DbSet<WatchlistItem> WatchlistItems => Set<WatchlistItem>();
+    public DbSet<AssetPriceCache> AssetPriceCache => Set<AssetPriceCache>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -211,6 +214,61 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
                 .WithMany(g => g.Entries)
                 .HasForeignKey(e => e.GoalId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PortfolioHolding>(entity =>
+        {
+            entity.ToTable("portfolio_holdings");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(20);
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255);
+            entity.Property(e => e.AssetType).HasColumnName("asset_type").HasMaxLength(20).HasDefaultValue("stock");
+            entity.Property(e => e.Quantity).HasColumnName("quantity").HasPrecision(18, 8);
+            entity.Property(e => e.AverageBuyPrice).HasColumnName("average_buy_price").HasPrecision(18, 8);
+            entity.Property(e => e.BuyDate).HasColumnName("buy_date");
+            entity.Property(e => e.Currency).HasColumnName("currency").HasMaxLength(3).HasDefaultValue("USD");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.IsArchived).HasColumnName("is_archived");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.Symbol });
+        });
+
+        modelBuilder.Entity<WatchlistItem>(entity =>
+        {
+            entity.ToTable("watchlist_items");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(20);
+            entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255);
+            entity.Property(e => e.AssetType).HasColumnName("asset_type").HasMaxLength(20).HasDefaultValue("stock");
+            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.Symbol }).IsUnique();
+        });
+
+        modelBuilder.Entity<AssetPriceCache>(entity =>
+        {
+            entity.ToTable("asset_price_cache");
+            entity.HasKey(e => e.Symbol);
+            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(20);
+            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(20);
+            entity.Property(e => e.Price).HasColumnName("price").HasPrecision(18, 8);
+            entity.Property(e => e.PreviousClose).HasColumnName("previous_close").HasPrecision(18, 8);
+            entity.Property(e => e.ChangePercent).HasColumnName("change_percent").HasPrecision(8, 4);
+            entity.Property(e => e.Currency).HasColumnName("currency").HasMaxLength(3).HasDefaultValue("USD");
+            entity.Property(e => e.FetchedAt).HasColumnName("fetched_at");
+
+            entity.HasIndex(e => e.FetchedAt);
         });
     }
 }

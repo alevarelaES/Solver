@@ -60,6 +60,7 @@ public static class TransactionsEndpoints
 
             var items = await query
                 .OrderByDescending(t => t.Date)
+                .ThenByDescending(t => t.CreatedAt)
                 .ThenBy(t => t.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
