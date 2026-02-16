@@ -58,29 +58,49 @@ class _RenderedGroup {
   final _GroupDraft draft;
   final double plannedPercent;
   final double plannedAmount;
+  final double minAllowedPercent;
+  final double minAllowedAmount;
+  final double maxAllowedPercent;
+  final double maxAllowedAmount;
 
   const _RenderedGroup({
     required this.group,
     required this.draft,
     required this.plannedPercent,
     required this.plannedAmount,
+    required this.minAllowedPercent,
+    required this.minAllowedAmount,
+    required this.maxAllowedPercent,
+    required this.maxAllowedAmount,
   });
 }
 
 class _PlanTotals {
+  final double manualPercent;
+  final double manualAmount;
+  final double manualCapacityPercent;
+  final double manualCapacityAmount;
+  final double autoPercent;
+  final double autoAmount;
   final double totalPercent;
   final double totalAmount;
   final double remainingPercent;
   final double remainingAmount;
 
   const _PlanTotals({
+    required this.manualPercent,
+    required this.manualAmount,
+    required this.manualCapacityPercent,
+    required this.manualCapacityAmount,
+    required this.autoPercent,
+    required this.autoAmount,
     required this.totalPercent,
     required this.totalAmount,
     required this.remainingPercent,
     required this.remainingAmount,
   });
 
-  bool get overLimit => totalPercent > 100.0001;
+  bool get overLimit => manualPercent > manualCapacityPercent + 0.0001;
 }
 
 DateTime _monthStart(DateTime d) => DateTime(d.year, d.month, 1);
@@ -94,6 +114,11 @@ String _editableInputValue(double value, {int maxDecimals = 1}) {
   if (value.abs() < 0.000001) return '';
   final text = value.toStringAsFixed(maxDecimals);
   return text.replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+bool _isFixedLikeGroup(BudgetPlanGroup g) {
+  final n = g.groupName.toLowerCase();
+  return g.isFixedGroup || (n.contains('charge') && n.contains('fix'));
 }
 
 class BudgetView extends ConsumerStatefulWidget {
@@ -142,31 +167,77 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
         (_draftDisposableIncome ?? stats.budgetPlan.forecastDisposableIncome)
             .clamp(0, double.infinity)
             .toDouble();
+    final autoReserveAmount = stats.budgetPlan.autoReserveAmount
+        .clamp(0, double.infinity)
+        .toDouble();
+    final manualCapacityAmount = (disposable - autoReserveAmount)
+        .clamp(0, double.infinity)
+        .toDouble();
+    final manualCapacityPercent = disposable > 0
+        ? (manualCapacityAmount / disposable) * 100
+        : 0.0;
 
-    final rows = stats.budgetPlan.groups.map((group) {
-      final draft =
-          _drafts[group.groupId] ??
-          _GroupDraft(
-            inputMode: group.inputMode,
-            percent: group.plannedPercent,
-            amount: group.plannedAmount,
-            priority: group.priority,
+    final baseRows = stats.budgetPlan.groups
+        .where((g) => !_isFixedLikeGroup(g))
+        .map((group) {
+          final draft =
+              _drafts[group.groupId] ??
+              _GroupDraft(
+                inputMode: group.inputMode,
+                percent: group.plannedPercent,
+                amount: group.plannedAmount,
+                priority: group.priority,
+              );
+
+          final plannedPercent = draft.inputMode == 'amount'
+              ? (disposable > 0 ? (draft.amount / disposable) * 100 : 0.0)
+              : draft.percent;
+          final plannedAmount = draft.inputMode == 'amount'
+              ? draft.amount
+              : disposable * draft.percent / 100;
+
+          return _RenderedGroup(
+            group: group,
+            draft: draft,
+            plannedPercent: plannedPercent.clamp(0, double.infinity),
+            plannedAmount: plannedAmount.clamp(0, double.infinity),
+            minAllowedPercent: 0,
+            minAllowedAmount: 0,
+            maxAllowedPercent: 100,
+            maxAllowedAmount: disposable,
           );
+        })
+        .toList();
 
-      final plannedPercent = draft.inputMode == 'amount'
-          ? (disposable > 0 ? (draft.amount / disposable) * 100 : 0.0)
-          : draft.percent;
-      final plannedAmount = draft.inputMode == 'amount'
-          ? draft.amount
-          : disposable * draft.percent / 100;
+    final totalPercent = baseRows.fold<double>(
+      0.0,
+      (sum, r) => sum + r.plannedPercent,
+    );
+    final totalAmount = baseRows.fold<double>(
+      0.0,
+      (sum, r) => sum + r.plannedAmount,
+    );
 
-      return _RenderedGroup(
-        group: group,
-        draft: draft,
-        plannedPercent: plannedPercent.clamp(0, double.infinity),
-        plannedAmount: plannedAmount.clamp(0, double.infinity),
-      );
-    }).toList();
+    final rows = baseRows
+        .map(
+          (row) => _RenderedGroup(
+            group: row.group,
+            draft: row.draft,
+            plannedPercent: row.plannedPercent,
+            plannedAmount: row.plannedAmount,
+            minAllowedPercent: row.minAllowedPercent,
+            minAllowedAmount: row.minAllowedAmount,
+            maxAllowedPercent:
+                (manualCapacityPercent - (totalPercent - row.plannedPercent))
+                    .clamp(0, 100)
+                    .toDouble(),
+            maxAllowedAmount:
+                (manualCapacityAmount - (totalAmount - row.plannedAmount))
+                    .clamp(0, double.infinity)
+                    .toDouble(),
+          ),
+        )
+        .toList();
 
     rows.sort((a, b) {
       final p = a.draft.priority.compareTo(b.draft.priority);
@@ -176,18 +247,42 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
     return rows;
   }
 
-  _PlanTotals _computeTotals(List<_RenderedGroup> rows, double disposable) {
-    final totalPercent = rows.fold<double>(
+  _PlanTotals _computeTotals(
+    List<_RenderedGroup> rows,
+    double disposable,
+    double autoReserveAmount,
+  ) {
+    final manualPercent = rows.fold<double>(
       0.0,
       (sum, r) => sum + r.plannedPercent,
     );
-    final totalAmount = rows.fold<double>(
+    final manualAmount = rows.fold<double>(
       0.0,
       (sum, r) => sum + r.plannedAmount,
     );
+    final safeAutoAmount = autoReserveAmount
+        .clamp(0, double.infinity)
+        .toDouble();
+    final autoPercent = disposable > 0
+        ? (safeAutoAmount / disposable) * 100
+        : 0.0;
+    final manualCapacityAmount = (disposable - safeAutoAmount)
+        .clamp(0, double.infinity)
+        .toDouble();
+    final manualCapacityPercent = disposable > 0
+        ? (manualCapacityAmount / disposable) * 100
+        : 0.0;
+    final totalPercent = manualPercent + autoPercent;
+    final totalAmount = manualAmount + safeAutoAmount;
     final remainingPercent = 100 - totalPercent;
     final remainingAmount = disposable - totalAmount;
     return _PlanTotals(
+      manualPercent: manualPercent,
+      manualAmount: manualAmount,
+      manualCapacityPercent: manualCapacityPercent,
+      manualCapacityAmount: manualCapacityAmount,
+      autoPercent: autoPercent,
+      autoAmount: safeAutoAmount,
       totalPercent: totalPercent,
       totalAmount: totalAmount,
       remainingPercent: remainingPercent,
@@ -216,9 +311,23 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
       _dirty = true;
       _draftError = null;
       if (current.inputMode == 'amount') {
-        _drafts[row.group.groupId] = current.copyWith(amount: value);
+        final clamped = value
+            .clamp(row.minAllowedAmount, row.maxAllowedAmount)
+            .toDouble();
+        _drafts[row.group.groupId] = current.copyWith(amount: clamped);
+        if (value > clamped + 0.0001 || value + 0.0001 < clamped) {
+          _draftError =
+              'Plage autorisee pour ${row.group.groupName}: ${AppFormats.currencyCompact.format(row.minAllowedAmount)} - ${AppFormats.currencyCompact.format(row.maxAllowedAmount)}';
+        }
       } else {
-        _drafts[row.group.groupId] = current.copyWith(percent: value);
+        final clamped = value
+            .clamp(row.minAllowedPercent, row.maxAllowedPercent)
+            .toDouble();
+        _drafts[row.group.groupId] = current.copyWith(percent: clamped);
+        if (value > clamped + 0.0001 || value + 0.0001 < clamped) {
+          _draftError =
+              'Plage autorisee pour ${row.group.groupName}: ${row.minAllowedPercent.toStringAsFixed(1)}% - ${row.maxAllowedPercent.toStringAsFixed(1)}%';
+        }
       }
     });
   }
@@ -339,7 +448,14 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                     stats.budgetPlan.forecastDisposableIncome)
                 .clamp(0, double.infinity);
         final rows = _buildRenderedGroups(stats);
-        final totals = _computeTotals(rows, disposable.toDouble());
+        final totals = _computeTotals(
+          rows,
+          disposable.toDouble(),
+          stats.budgetPlan.autoReserveAmount,
+        );
+        final autoByGroups = [...stats.budgetPlan.groups]
+          ..removeWhere((g) => g.autoPlannedAmount <= 0)
+          ..sort((a, b) => b.autoPlannedAmount.compareTo(a.autoPlannedAmount));
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
@@ -367,6 +483,12 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                         _draftToken ??
                         '${stats.selectedYear}-${stats.selectedMonth}',
                     disposable: disposable.toDouble(),
+                    manualPercent: totals.manualPercent,
+                    manualAmount: totals.manualAmount,
+                    manualCapacityPercent: totals.manualCapacityPercent,
+                    manualCapacityAmount: totals.manualCapacityAmount,
+                    autoPercent: totals.autoPercent,
+                    autoAmount: totals.autoAmount,
                     totalPercent: totals.totalPercent,
                     totalAmount: totals.totalAmount,
                     remainingPercent: totals.remainingPercent,
@@ -383,6 +505,14 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                       });
                     },
                   ),
+                  if (totals.autoAmount > 0) ...[
+                    const SizedBox(height: 10),
+                    _AutoReserveCard(
+                      autoAmount: totals.autoAmount,
+                      autoPercent: totals.autoPercent,
+                      groups: autoByGroups,
+                    ),
+                  ],
                   if (_draftError != null) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -435,8 +565,8 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                       const Spacer(),
                       Text(
                         totals.overLimit
-                            ? 'Depassement du total 100%'
-                            : 'Total allocation OK',
+                            ? 'Allocation manuelle depasse la capacite restante'
+                            : 'Manuel: ${totals.manualPercent.toStringAsFixed(1)}% / ${totals.manualCapacityPercent.toStringAsFixed(1)}%',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -453,7 +583,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                       inputVersion:
                           _draftToken ??
                           '${stats.selectedYear}-${stats.selectedMonth}',
-                      disposableIncome: disposable.toDouble(),
                       rows: rows,
                       onModeChanged: _setGroupMode,
                       onValueChanged: _setGroupValue,
@@ -463,7 +592,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                       inputVersion:
                           _draftToken ??
                           '${stats.selectedYear}-${stats.selectedMonth}',
-                      disposableIncome: disposable.toDouble(),
                       rows: rows,
                       onModeChanged: _setGroupMode,
                       onValueChanged: _setGroupValue,
@@ -547,6 +675,12 @@ class _PlannerTopBar extends StatelessWidget {
 class _PlannerHero extends StatelessWidget {
   final String inputVersion;
   final double disposable;
+  final double manualPercent;
+  final double manualAmount;
+  final double manualCapacityPercent;
+  final double manualCapacityAmount;
+  final double autoPercent;
+  final double autoAmount;
   final double totalPercent;
   final double totalAmount;
   final double remainingPercent;
@@ -558,6 +692,12 @@ class _PlannerHero extends StatelessWidget {
   const _PlannerHero({
     required this.inputVersion,
     required this.disposable,
+    required this.manualPercent,
+    required this.manualAmount,
+    required this.manualCapacityPercent,
+    required this.manualCapacityAmount,
+    required this.autoPercent,
+    required this.autoAmount,
     required this.totalPercent,
     required this.totalAmount,
     required this.remainingPercent,
@@ -617,6 +757,19 @@ class _PlannerHero extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (autoAmount > 0) ...[
+                const SizedBox(width: 12),
+                Text(
+                  'Prelevements auto reserves: ${AppFormats.currencyCompact.format(autoAmount)} (${autoPercent.toStringAsFixed(1)}%)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: autoPercent > 100
+                        ? AppColors.danger
+                        : AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
               const Spacer(),
               if (copiedFrom != null)
                 Text(
@@ -650,7 +803,7 @@ class _PlannerHero extends StatelessWidget {
               ),
               const SizedBox(width: 20),
               Text(
-                '${remainingPercent >= 0 ? remainingPercent.toStringAsFixed(1) : '0.0'}% restant',
+                'Manuel ${manualPercent.toStringAsFixed(1)}% / ${manualCapacityPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -676,6 +829,18 @@ class _PlannerHero extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            'Capacite manuelle: ${AppFormats.currencyCompact.format(manualCapacityAmount)} - alloue manuel: ${AppFormats.currencyCompact.format(manualAmount)}'
+            '${remainingPercent < 0 ? ' - deficit global' : ''}',
+            style: TextStyle(
+              fontSize: 12,
+              color: remainingPercent < 0
+                  ? AppColors.danger
+                  : AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.r8),
@@ -694,16 +859,130 @@ class _PlannerHero extends StatelessWidget {
   }
 }
 
+class _AutoReserveCard extends StatelessWidget {
+  final double autoAmount;
+  final double autoPercent;
+  final List<BudgetPlanGroup> groups;
+
+  const _AutoReserveCard({
+    required this.autoAmount,
+    required this.autoPercent,
+    required this.groups,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = groups.take(6).toList();
+    final remaining = groups.length - visible.length;
+
+    return AppPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: AppRadius.r16,
+      borderColor: const Color(0xFFE7EFE1),
+      backgroundColor: const Color(0xFFF9FCF7),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.bolt_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Prelevements automatiques (reserves)',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                '${AppFormats.currencyCompact.format(autoAmount)} - ${autoPercent.toStringAsFixed(1)}%',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Ces montants sont exclus des cartes manuelles pour eviter les doublons.',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          if (visible.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final g in visible)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Text(
+                      '${g.groupName}: ${AppFormats.currencyCompact.format(g.autoPlannedAmount)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                if (remaining > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Text(
+                      '+$remaining autres',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _CardsLayout extends StatelessWidget {
   final String inputVersion;
-  final double disposableIncome;
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
 
   const _CardsLayout({
     required this.inputVersion,
-    required this.disposableIncome,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -725,7 +1004,6 @@ class _CardsLayout extends StatelessWidget {
                 width: width,
                 child: _GroupCard(
                   inputVersion: inputVersion,
-                  disposableIncome: disposableIncome,
                   row: row,
                   onModeChanged: onModeChanged,
                   onValueChanged: onValueChanged,
@@ -740,14 +1018,12 @@ class _CardsLayout extends StatelessWidget {
 
 class _ListLayout extends StatelessWidget {
   final String inputVersion;
-  final double disposableIncome;
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
 
   const _ListLayout({
     required this.inputVersion,
-    required this.disposableIncome,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -762,7 +1038,6 @@ class _ListLayout extends StatelessWidget {
             padding: EdgeInsets.only(bottom: i == rows.length - 1 ? 0 : 10),
             child: _GroupCard(
               inputVersion: inputVersion,
-              disposableIncome: disposableIncome,
               row: rows[i],
               compact: true,
               onModeChanged: onModeChanged,
@@ -776,7 +1051,6 @@ class _ListLayout extends StatelessWidget {
 
 class _GroupCard extends StatelessWidget {
   final String inputVersion;
-  final double disposableIncome;
   final _RenderedGroup row;
   final bool compact;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
@@ -784,7 +1058,6 @@ class _GroupCard extends StatelessWidget {
 
   const _GroupCard({
     required this.inputVersion,
-    required this.disposableIncome,
     required this.row,
     required this.onModeChanged,
     required this.onValueChanged,
@@ -793,20 +1066,26 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final usagePct = row.group.spentActual > 0 && row.plannedAmount > 0
+    final usagePct = row.plannedAmount > 0
         ? (row.group.spentActual / row.plannedAmount) * 100
-        : 0.0;
-    final cappedUsage = usagePct.clamp(0, 100);
-    final amountSliderMax = disposableIncome > 0
-        ? disposableIncome
-        : (row.plannedAmount > 0 ? row.plannedAmount : 100.0);
-    final sliderMax = row.draft.inputMode == 'amount' ? amountSliderMax : 100;
-    final safeSliderMax = sliderMax <= 0 ? 1.0 : sliderMax.toDouble();
+        : (row.group.spentActual > 0 ? 999.0 : 0.0);
+    final overUsage = usagePct > 100;
+    final progressBarValue = (usagePct / 100).clamp(0, 1);
+    final sliderMin = row.draft.inputMode == 'amount'
+        ? row.minAllowedAmount
+        : row.minAllowedPercent;
+    final sliderMax = row.draft.inputMode == 'amount'
+        ? row.maxAllowedAmount
+        : row.maxAllowedPercent;
+    final safeSliderMin = sliderMin.toDouble();
+    final safeSliderMax =
+        (sliderMax <= safeSliderMin ? safeSliderMin + 0.0001 : sliderMax)
+            .toDouble();
     final sliderValue =
         (row.draft.inputMode == 'amount'
                 ? row.plannedAmount
                 : row.plannedPercent)
-            .clamp(0, safeSliderMax);
+            .clamp(safeSliderMin, safeSliderMax);
 
     return AppPanel(
       padding: EdgeInsets.symmetric(
@@ -841,33 +1120,13 @@ class _GroupCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${row.group.categories.length} categories • ${row.group.isFixedGroup ? 'Fixe' : 'Variable/Mixte'}',
+            '${row.group.categories.length} categories - ${row.group.isFixedGroup ? 'Fixe' : 'Variable/Mixte'}',
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
               fontSize: 12,
             ),
           ),
-          if (row.group.autoPlannedAmount > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Auto detecte: ${AppFormats.currencyCompact.format(row.group.autoPlannedAmount)} (${row.group.autoPlannedPercent.toStringAsFixed(1)}%)',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-            if (row.plannedAmount + 0.01 < row.group.autoPlannedAmount)
-              Text(
-                'Allocation trop basse pour couvrir l auto (${AppFormats.currencyCompact.format(row.group.autoPlannedAmount - row.plannedAmount)} manquant)',
-                style: const TextStyle(
-                  color: AppColors.danger,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
-              ),
-          ],
           const SizedBox(height: 10),
           Row(
             children: [
@@ -923,7 +1182,7 @@ class _GroupCard extends StatelessWidget {
           const SizedBox(height: 2),
           Slider(
             value: sliderValue.toDouble(),
-            min: 0,
+            min: safeSliderMin,
             max: safeSliderMax,
             onChanged: (value) {
               onValueChanged(
@@ -937,7 +1196,9 @@ class _GroupCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                '0',
+                row.draft.inputMode == 'amount'
+                    ? AppFormats.currencyCompact.format(row.minAllowedAmount)
+                    : '${row.minAllowedPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textDisabled,
@@ -948,7 +1209,7 @@ class _GroupCard extends StatelessWidget {
               Text(
                 row.draft.inputMode == 'amount'
                     ? AppFormats.currencyCompact.format(safeSliderMax)
-                    : '100%',
+                    : '${row.maxAllowedPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textDisabled,
@@ -961,7 +1222,11 @@ class _GroupCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Consomme: ${cappedUsage.toStringAsFixed(0)}%',
+                row.plannedAmount <= 0
+                    ? (row.group.spentActual > 0
+                          ? 'Utilise: depense sans enveloppe'
+                          : 'Utilise: 0%')
+                    : 'Utilise: ${usagePct.toStringAsFixed(0)}%',
                 style: TextStyle(
                   color: usagePct >= 100
                       ? AppColors.danger
@@ -972,7 +1237,9 @@ class _GroupCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'Prevu: - ${AppFormats.currencyCompact.format(row.plannedAmount)}',
+                usagePct > 100 && row.plannedAmount > 0
+                    ? 'Depasse de ${AppFormats.currencyCompact.format(row.group.spentActual - row.plannedAmount)}'
+                    : 'Planifie: ${AppFormats.currencyCompact.format(row.plannedAmount)}',
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w700,
@@ -985,11 +1252,11 @@ class _GroupCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.r8),
             child: LinearProgressIndicator(
-              value: (cappedUsage / 100).toDouble(),
+              value: progressBarValue.toDouble(),
               minHeight: 8,
               backgroundColor: const Color(0xFFF1F5F9),
               valueColor: AlwaysStoppedAnimation<Color>(
-                usagePct >= 100 ? AppColors.danger : AppColors.primary,
+                overUsage ? AppColors.danger : AppColors.primary,
               ),
             ),
           ),

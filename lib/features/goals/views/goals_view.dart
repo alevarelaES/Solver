@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -9,6 +10,12 @@ import 'package:solver/shared/widgets/app_panel.dart';
 
 double _parseNumber(String raw) =>
     double.tryParse(raw.replaceAll(' ', '').replaceAll(',', '.')) ?? 0.0;
+
+String _editableInputValue(double value, {int maxDecimals = 0}) {
+  if (value.abs() < 0.000001) return '';
+  final text = value.toStringAsFixed(maxDecimals);
+  return text.replaceFirst(RegExp(r'\.?0+$'), '');
+}
 
 String _statusLabel(String status) {
   switch (status) {
@@ -153,16 +160,16 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
   Future<void> _showGoalEditor({SavingGoal? goal, String? forcedType}) async {
     final nameCtrl = TextEditingController(text: goal?.name ?? '');
     final targetCtrl = TextEditingController(
-      text: goal == null ? '' : goal.targetAmount.toStringAsFixed(0),
+      text: goal == null ? '' : _editableInputValue(goal.targetAmount),
     );
     final initialCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.initialAmount.toStringAsFixed(0),
+      text: goal == null ? '' : _editableInputValue(goal.initialAmount),
     );
     final monthlyCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.monthlyContribution.toStringAsFixed(0),
+      text: goal == null ? '' : _editableInputValue(goal.monthlyContribution),
     );
     final priorityCtrl = TextEditingController(
-      text: goal == null ? '0' : goal.priority.toString(),
+      text: goal == null ? '' : goal.priority.toString(),
     );
     DateTime targetDate =
         goal?.targetDate ?? DateTime.now().add(const Duration(days: 365));
@@ -421,73 +428,118 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     var isDeposit = true;
-    final isDebt = _isDebtType(goal.goalType);
+    final availableNow = goal.currentAmount;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setLocalState) => AlertDialog(
-          title: Text('Mouvement - ${goal.name}'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: Text(isDebt ? 'Paiement' : 'Depot'),
-                        selected: isDeposit,
-                        onSelected: (_) =>
-                            setLocalState(() => isDeposit = true),
+        builder: (context, setLocalState) {
+          final entered = _parseNumber(amountCtrl.text);
+          final projected = isDeposit
+              ? availableNow + entered
+              : availableNow - entered;
+          final invalidWithdraw = !isDeposit && projected < 0;
+
+          return AlertDialog(
+            title: Text('Mouvement - ${goal.name}'),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Depot'),
+                          selected: isDeposit,
+                          onSelected: (_) =>
+                              setLocalState(() => isDeposit = true),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('Correction -'),
-                        selected: !isDeposit,
-                        onSelected: (_) =>
-                            setLocalState(() => isDeposit = false),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Retrait'),
+                          selected: !isDeposit,
+                          onSelected: (_) =>
+                              setLocalState(() => isDeposit = false),
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: amountCtrl,
+                    onChanged: (_) => setLocalState(() {}),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Montant (${AppFormats.currencyCode})',
+                    ),
                   ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: 'Montant (${AppFormats.currencyCode})',
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Disponible actuel: ${AppFormats.currencyCompact.format(availableNow)}',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isDeposit
+                              ? 'Apres depot: ${AppFormats.currencyCompact.format(projected)}'
+                              : 'Apres retrait: ${AppFormats.currencyCompact.format(projected)}',
+                          style: TextStyle(
+                            color: invalidWithdraw
+                                ? AppColors.danger
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Note (optionnel)',
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Note (optionnel)',
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Valider'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Valider'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
@@ -495,7 +547,22 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
 
     try {
       final amount = _parseNumber(amountCtrl.text);
-      if (amount <= 0) return;
+      if (amount <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Montant invalide')));
+        }
+        return;
+      }
+      if (!isDeposit && amount > availableNow) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Retrait superieur au disponible')),
+          );
+        }
+        return;
+      }
       final signed = isDeposit ? amount : -amount;
       await ref
           .read(goalsApiProvider)
@@ -511,11 +578,27 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Mouvement enregistre')));
       }
-    } catch (_) {
+    } catch (e) {
+      String message = 'Erreur de mouvement';
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map) {
+          if (data['error'] is String &&
+              (data['error'] as String).trim().isNotEmpty) {
+            message = data['error'] as String;
+          } else if (data['detail'] is String &&
+              (data['detail'] as String).trim().isNotEmpty) {
+            message = data['detail'] as String;
+          } else if (data['title'] is String &&
+              (data['title'] as String).trim().isNotEmpty) {
+            message = data['title'] as String;
+          }
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Erreur de mouvement')));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }

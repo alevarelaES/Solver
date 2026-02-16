@@ -128,6 +128,14 @@ class BudgetPlanGroup {
 class BudgetPlan {
   final String id;
   final double forecastDisposableIncome;
+  final double manualAllocatedPercent;
+  final double manualAllocatedAmount;
+  final double manualAllocatablePercent;
+  final double manualAllocatableAmount;
+  final double manualRemainingPercent;
+  final double manualRemainingAmount;
+  final double autoReservePercent;
+  final double autoReserveAmount;
   final double totalAllocatedPercent;
   final double totalAllocatedAmount;
   final double remainingPercent;
@@ -138,6 +146,14 @@ class BudgetPlan {
   const BudgetPlan({
     required this.id,
     required this.forecastDisposableIncome,
+    required this.manualAllocatedPercent,
+    required this.manualAllocatedAmount,
+    required this.manualAllocatablePercent,
+    required this.manualAllocatableAmount,
+    required this.manualRemainingPercent,
+    required this.manualRemainingAmount,
+    required this.autoReservePercent,
+    required this.autoReserveAmount,
     required this.totalAllocatedPercent,
     required this.totalAllocatedAmount,
     required this.remainingPercent,
@@ -146,23 +162,63 @@ class BudgetPlan {
     required this.groups,
   });
 
-  factory BudgetPlan.fromJson(Map<String, dynamic> json) => BudgetPlan(
-    id: json['id'] as String,
-    forecastDisposableIncome: (json['forecastDisposableIncome'] as num)
-        .toDouble(),
-    totalAllocatedPercent: (json['totalAllocatedPercent'] as num).toDouble(),
-    totalAllocatedAmount: (json['totalAllocatedAmount'] as num).toDouble(),
-    remainingPercent: (json['remainingPercent'] as num).toDouble(),
-    remainingAmount: (json['remainingAmount'] as num).toDouble(),
-    copiedFrom: json['copiedFrom'] == null
-        ? null
-        : BudgetPlanCopySource.fromJson(
-            json['copiedFrom'] as Map<String, dynamic>,
-          ),
-    groups: (json['groups'] as List)
-        .map((g) => BudgetPlanGroup.fromJson(g as Map<String, dynamic>))
-        .toList(),
-  );
+  factory BudgetPlan.fromJson(Map<String, dynamic> json) {
+    final totalAllocatedPercent = (json['totalAllocatedPercent'] as num)
+        .toDouble();
+    final totalAllocatedAmount = (json['totalAllocatedAmount'] as num)
+        .toDouble();
+    final manualAllocatedPercent =
+        (json['manualAllocatedPercent'] as num?)?.toDouble() ??
+        totalAllocatedPercent;
+    final manualAllocatedAmount =
+        (json['manualAllocatedAmount'] as num?)?.toDouble() ??
+        totalAllocatedAmount;
+    final autoReservePercent =
+        (json['autoReservePercent'] as num?)?.toDouble() ??
+        (totalAllocatedPercent - manualAllocatedPercent);
+    final autoReserveAmount =
+        (json['autoReserveAmount'] as num?)?.toDouble() ??
+        (totalAllocatedAmount - manualAllocatedAmount);
+    final manualAllocatablePercent =
+        (json['manualAllocatablePercent'] as num?)?.toDouble() ??
+        (100 - autoReservePercent);
+    final manualAllocatableAmount =
+        (json['manualAllocatableAmount'] as num?)?.toDouble() ??
+        ((json['forecastDisposableIncome'] as num).toDouble() -
+            autoReserveAmount);
+    final manualRemainingPercent =
+        (json['manualRemainingPercent'] as num?)?.toDouble() ??
+        (manualAllocatablePercent - manualAllocatedPercent);
+    final manualRemainingAmount =
+        (json['manualRemainingAmount'] as num?)?.toDouble() ??
+        (manualAllocatableAmount - manualAllocatedAmount);
+
+    return BudgetPlan(
+      id: json['id'] as String,
+      forecastDisposableIncome: (json['forecastDisposableIncome'] as num)
+          .toDouble(),
+      manualAllocatedPercent: manualAllocatedPercent,
+      manualAllocatedAmount: manualAllocatedAmount,
+      manualAllocatablePercent: manualAllocatablePercent,
+      manualAllocatableAmount: manualAllocatableAmount,
+      manualRemainingPercent: manualRemainingPercent,
+      manualRemainingAmount: manualRemainingAmount,
+      autoReservePercent: autoReservePercent,
+      autoReserveAmount: autoReserveAmount,
+      totalAllocatedPercent: totalAllocatedPercent,
+      totalAllocatedAmount: totalAllocatedAmount,
+      remainingPercent: (json['remainingPercent'] as num).toDouble(),
+      remainingAmount: (json['remainingAmount'] as num).toDouble(),
+      copiedFrom: json['copiedFrom'] == null
+          ? null
+          : BudgetPlanCopySource.fromJson(
+              json['copiedFrom'] as Map<String, dynamic>,
+            ),
+      groups: (json['groups'] as List)
+          .map((g) => BudgetPlanGroup.fromJson(g as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 class BudgetStats {

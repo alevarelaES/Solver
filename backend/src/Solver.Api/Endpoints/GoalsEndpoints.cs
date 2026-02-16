@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Solver.Api.Data;
 using Solver.Api.Models;
 
@@ -169,43 +170,88 @@ public static class GoalsEndpoints
     private static async Task<IResult> AddGoalEntryAsync(
         Guid id,
         CreateGoalEntryDto dto,
-        SolverDbContext db,
+        IServiceScopeFactory scopeFactory,
         HttpContext ctx)
     {
         var userId = GetUserId(ctx);
-        var goal = await db.SavingGoals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
-        if (goal is null) return Results.NotFound();
         if (dto.Amount == 0m)
         {
             return Results.BadRequest(new { error = "Amount cannot be 0." });
         }
 
-        var entry = new SavingGoalEntry
+        for (var attempt = 1; attempt <= 3; attempt++)
         {
-            Id = Guid.NewGuid(),
-            GoalId = id,
-            UserId = userId,
-            EntryDate = dto.EntryDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
-            Amount = dto.Amount,
-            Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
-            IsAuto = dto.IsAuto ?? false,
-            CreatedAt = DateTime.UtcNow,
-        };
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
 
-        db.SavingGoalEntries.Add(entry);
-        goal.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+            var goal = await db.SavingGoals
+                .AsNoTracking()
+                .FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+            if (goal is null) return Results.NotFound();
 
-        return Results.Created($"/api/goals/{id}/entries/{entry.Id}", new
-        {
-            id = entry.Id,
-            goalId = entry.GoalId,
-            entryDate = entry.EntryDate,
-            amount = entry.Amount,
-            note = entry.Note,
-            isAuto = entry.IsAuto,
-            createdAt = entry.CreatedAt,
-        });
+            if (dto.Amount < 0m)
+            {
+                var entriesSum = await db.SavingGoalEntries
+                    .Where(e => e.UserId == userId && e.GoalId == id)
+                    .SumAsync(e => e.Amount);
+                var currentAmount = goal.InitialAmount + entriesSum;
+                if (currentAmount + dto.Amount < 0m)
+                {
+                    return Results.BadRequest(new
+                    {
+                        error = "Withdrawal cannot exceed current amount."
+                    });
+                }
+            }
+
+            var entry = new SavingGoalEntry
+            {
+                Id = Guid.NewGuid(),
+                GoalId = id,
+                UserId = userId,
+                EntryDate = dto.EntryDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+                Amount = dto.Amount,
+                Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim(),
+                IsAuto = dto.IsAuto ?? false,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            db.SavingGoalEntries.Add(entry);
+
+            try
+            {
+                await db.SaveChangesAsync();
+                return Results.Created($"/api/goals/{id}/entries/{entry.Id}", new
+                {
+                    id = entry.Id,
+                    goalId = entry.GoalId,
+                    entryDate = entry.EntryDate,
+                    amount = entry.Amount,
+                    note = entry.Note,
+                    isAuto = entry.IsAuto,
+                    createdAt = entry.CreatedAt,
+                });
+            }
+            catch (Exception ex) when (IsNpgsqlDisposedConnector(ex))
+            {
+                if (attempt < 3)
+                {
+                    NpgsqlConnection.ClearAllPools();
+                    await Task.Delay(120 * attempt);
+                    continue;
+                }
+
+                return Results.Problem(
+                    title: "Erreur temporaire base de donnees",
+                    detail: "Echec d'enregistrement du mouvement. Reessayez dans quelques secondes.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        }
+
+        return Results.Problem(
+            title: "Erreur temporaire base de donnees",
+            detail: "Echec d'enregistrement du mouvement. Reessayez dans quelques secondes.",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
     private static object ToGoalPayload(SavingGoal goal, DateOnly today, decimal entriesSum)
@@ -267,6 +313,36 @@ public static class GoalsEndpoints
     {
         var monthDelta = (target.Year - from.Year) * 12 + (target.Month - from.Month) + 1;
         return Math.Max(0, monthDelta);
+    }
+
+    private static bool IsNpgsqlDisposedConnector(DbUpdateException ex)
+    {
+        return IsNpgsqlDisposedConnector((Exception)ex);
+    }
+
+    private static bool IsNpgsqlDisposedConnector(Exception ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is ObjectDisposedException disposed)
+            {
+                var objectName = disposed.ObjectName ?? string.Empty;
+                if (objectName.Contains("ManualResetEventSlim", StringComparison.Ordinal)
+                    || objectName.Contains("Npgsql", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            var msg = current.Message ?? string.Empty;
+            if (msg.Contains("Cannot access a disposed object", StringComparison.OrdinalIgnoreCase)
+                && msg.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;

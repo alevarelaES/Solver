@@ -17,10 +17,14 @@ var rawConnectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRI
 
 var connectionStringBuilder = new NpgsqlConnectionStringBuilder(rawConnectionString);
 var dbHost = connectionStringBuilder.Host ?? string.Empty;
-if (dbHost.Contains("pooler.supabase.com", StringComparison.OrdinalIgnoreCase))
+var forceDisablePooling = string.Equals(
+    Environment.GetEnvironmentVariable("DB_DISABLE_POOLING"),
+    "true",
+    StringComparison.OrdinalIgnoreCase);
+if (forceDisablePooling || dbHost.Contains("pooler.supabase.com", StringComparison.OrdinalIgnoreCase))
 {
-    // Supabase pooler already manages pooling; local Npgsql pooling can create
-    // connector lifecycle races on some Npgsql/EF combinations.
+    // Supabase pooler already manages pooling; or force-disable for stability.
+    // Local Npgsql pooling can create connector lifecycle races on some combos.
     connectionStringBuilder.Pooling = false;
     connectionStringBuilder.Multiplexing = false;
     connectionStringBuilder.NoResetOnClose = true;
@@ -29,7 +33,11 @@ var connectionString = connectionStringBuilder.ConnectionString;
 
 builder.Services.AddDbContext<SolverDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
-        npgsql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null)));
+        npgsql
+            .EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null)
+            // Stability over throughput: avoid multi-command EF batches that can
+            // trigger connector disposal races with some Npgsql/runtime combos.
+            .MaxBatchSize(1)));
 
 // Response compression (gzip)
 builder.Services.AddResponseCompression(options =>

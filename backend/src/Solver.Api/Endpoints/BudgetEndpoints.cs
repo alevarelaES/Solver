@@ -44,8 +44,18 @@ public static class BudgetEndpoints
             .ThenBy(a => a.Name)
             .ToListAsync();
 
-        var spendingMap = await GetSpentByAccountAsync(db, userId, selectedYear, selectedMonth);
-        var autoPendingByGroup = await GetAutoPendingByGroupAsync(
+        var spendingMap = await GetSpentByAccountAsync(
+            db,
+            userId,
+            selectedYear,
+            selectedMonth);
+        var manualSpendingMap = await GetSpentByAccountAsync(
+            db,
+            userId,
+            selectedYear,
+            selectedMonth,
+            isAuto: false);
+        var autoByGroup = await GetAutoByGroupAsync(
             db,
             userId,
             selectedYear,
@@ -82,7 +92,7 @@ public static class BudgetEndpoints
                 g => g.Key,
                 g => g.Select(a =>
                 {
-                    var spent = spendingMap.GetValueOrDefault(a.Id, 0m);
+                    var spent = manualSpendingMap.GetValueOrDefault(a.Id, 0m);
                     return new
                     {
                         accountId = a.Id,
@@ -101,16 +111,18 @@ public static class BudgetEndpoints
             var categories = categoriesByGroup.GetValueOrDefault(g.Id) ?? [];
             var spentActual = categories.Sum(c => c.spent);
             var alloc = allocationByGroupId.GetValueOrDefault(g.Id);
-            var autoPlannedAmount = autoPendingByGroup.GetValueOrDefault(g.Id, 0m);
+            var autoPlannedAmount = autoByGroup.GetValueOrDefault(g.Id, 0m);
             var autoPlannedPercent = planMonth.ForecastDisposableIncome > 0
                 ? autoPlannedAmount / planMonth.ForecastDisposableIncome * 100m
                 : 0m;
-            var plannedAmount = alloc?.PlannedAmount ?? autoPlannedAmount;
-            var plannedPercent = alloc?.PlannedPercent
-                ?? (planMonth.ForecastDisposableIncome > 0
-                    ? plannedAmount / planMonth.ForecastDisposableIncome * 100m
-                    : 0m);
-            var inputMode = alloc?.InputMode ?? (autoPlannedAmount > 0 ? "amount" : "percent");
+            var storedAmount = alloc?.PlannedAmount ?? 0m;
+            // Migration-safe behavior: previous versions stored "manual + auto" together.
+            // Keep only the manual part in editable allocation.
+            var plannedAmount = Math.Max(0m, storedAmount - autoPlannedAmount);
+            var plannedPercent = planMonth.ForecastDisposableIncome > 0
+                ? plannedAmount / planMonth.ForecastDisposableIncome * 100m
+                : 0m;
+            var inputMode = alloc?.InputMode ?? "percent";
             return new
             {
                 groupId = g.Id,
@@ -128,8 +140,16 @@ public static class BudgetEndpoints
             };
         }).ToList();
 
-        var totalAllocatedPercent = groups.Sum(g => g.plannedPercent);
-        var totalAllocatedAmount = groups.Sum(g => g.plannedAmount);
+        var manualAllocatedPercent = groups.Sum(g => g.plannedPercent);
+        var manualAllocatedAmount = groups.Sum(g => g.plannedAmount);
+        var autoReserveAmount = groups.Sum(g => g.autoPlannedAmount);
+        var autoReservePercent = planMonth.ForecastDisposableIncome > 0
+            ? autoReserveAmount / planMonth.ForecastDisposableIncome * 100m
+            : 0m;
+        var totalAllocatedPercent = manualAllocatedPercent + autoReservePercent;
+        var totalAllocatedAmount = manualAllocatedAmount + autoReserveAmount;
+        var manualAllocatablePercent = Math.Max(0m, 100m - autoReservePercent);
+        var manualAllocatableAmount = Math.Max(0m, planMonth.ForecastDisposableIncome - autoReserveAmount);
         var remainingPercent = Math.Max(0, 100 - totalAllocatedPercent);
         var remainingAmount = Math.Max(0, planMonth.ForecastDisposableIncome - totalAllocatedAmount);
 
@@ -145,6 +165,14 @@ public static class BudgetEndpoints
             {
                 id = planMonth.Id,
                 forecastDisposableIncome = planMonth.ForecastDisposableIncome,
+                manualAllocatedPercent = Math.Round(manualAllocatedPercent, 2),
+                manualAllocatedAmount = Math.Round(manualAllocatedAmount, 2),
+                manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
+                manualAllocatableAmount = Math.Round(manualAllocatableAmount, 2),
+                manualRemainingPercent = Math.Round(manualAllocatablePercent - manualAllocatedPercent, 2),
+                manualRemainingAmount = Math.Round(manualAllocatableAmount - manualAllocatedAmount, 2),
+                autoReservePercent = Math.Round(autoReservePercent, 2),
+                autoReserveAmount = Math.Round(autoReserveAmount, 2),
                 totalAllocatedPercent = Math.Round(totalAllocatedPercent, 2),
                 totalAllocatedAmount = Math.Round(totalAllocatedAmount, 2),
                 remainingPercent = Math.Round(remainingPercent, 2),
@@ -192,6 +220,18 @@ public static class BudgetEndpoints
         planMonth.ForecastDisposableIncome = requestedDisposableIncome;
         planMonth.UpdatedAt = DateTime.UtcNow;
 
+        var autoByGroup = await GetAutoByGroupAsync(
+            db,
+            userId,
+            year,
+            month);
+        var autoReserveAmount = autoByGroup.Values.Sum();
+        var autoReservePercent = requestedDisposableIncome > 0
+            ? autoReserveAmount / requestedDisposableIncome * 100m
+            : 0m;
+        var manualAllocatablePercent = Math.Max(0m, 100m - autoReservePercent);
+        var manualAllocatableAmount = Math.Max(0m, requestedDisposableIncome - autoReserveAmount);
+
         var requested = dto.Groups ?? [];
         var requestedGroupIds = requested.Select(x => x.GroupId).Distinct().ToList();
         var allowedGroups = await db.CategoryGroups
@@ -204,7 +244,8 @@ public static class BudgetEndpoints
         }
 
         var normalized = new List<BudgetPlanGroupAllocation>();
-        var totalPercent = 0m;
+        var manualTotalPercent = 0m;
+        var manualTotalAmount = 0m;
         var now = DateTime.UtcNow;
 
         foreach (var row in requested)
@@ -233,7 +274,8 @@ public static class BudgetEndpoints
                 plannedAmount = requestedDisposableIncome * plannedPercent / 100m;
             }
 
-            totalPercent += plannedPercent;
+            manualTotalPercent += plannedPercent;
+            manualTotalAmount += plannedAmount;
 
             normalized.Add(new BudgetPlanGroupAllocation
             {
@@ -250,12 +292,25 @@ public static class BudgetEndpoints
             });
         }
 
-        if (totalPercent > 100.0001m)
+        if (manualTotalPercent > manualAllocatablePercent + 0.0001m)
         {
             return Results.BadRequest(new
             {
-                error = "Total allocation percentage cannot exceed 100%.",
-                totalPercent = Math.Round(totalPercent, 2)
+                error = "Manual allocation exceeds available share after automatic debits.",
+                manualTotalPercent = Math.Round(manualTotalPercent, 2),
+                manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
+                autoReservePercent = Math.Round(autoReservePercent, 2)
+            });
+        }
+
+        if (manualTotalAmount > manualAllocatableAmount + 0.01m)
+        {
+            return Results.BadRequest(new
+            {
+                error = "Manual allocation amount exceeds available disposable income after automatic debits.",
+                manualTotalAmount = Math.Round(manualTotalAmount, 2),
+                manualAllocatableAmount = Math.Round(manualAllocatableAmount, 2),
+                autoReserveAmount = Math.Round(autoReserveAmount, 2)
             });
         }
 
@@ -267,15 +322,24 @@ public static class BudgetEndpoints
 
         await db.SaveChangesAsync();
 
-        var totalAllocatedAmount = normalized.Sum(x => x.PlannedAmount);
+        var totalAllocatedAmount = manualTotalAmount + autoReserveAmount;
+        var totalAllocatedPercent = manualTotalPercent + autoReservePercent;
         return Results.Ok(new
         {
             year,
             month,
             forecastDisposableIncome = planMonth.ForecastDisposableIncome,
-            totalAllocatedPercent = Math.Round(totalPercent, 2),
+            manualAllocatedPercent = Math.Round(manualTotalPercent, 2),
+            manualAllocatedAmount = Math.Round(manualTotalAmount, 2),
+            manualAllocatablePercent = Math.Round(manualAllocatablePercent, 2),
+            manualAllocatableAmount = Math.Round(manualAllocatableAmount, 2),
+            manualRemainingPercent = Math.Round(manualAllocatablePercent - manualTotalPercent, 2),
+            manualRemainingAmount = Math.Round(manualAllocatableAmount - manualTotalAmount, 2),
+            autoReservePercent = Math.Round(autoReservePercent, 2),
+            autoReserveAmount = Math.Round(autoReserveAmount, 2),
+            totalAllocatedPercent = Math.Round(totalAllocatedPercent, 2),
             totalAllocatedAmount = Math.Round(totalAllocatedAmount, 2),
-            remainingPercent = Math.Round(Math.Max(0, 100m - totalPercent), 2),
+            remainingPercent = Math.Round(Math.Max(0, 100m - totalAllocatedPercent), 2),
             remainingAmount = Math.Round(Math.Max(0, planMonth.ForecastDisposableIncome - totalAllocatedAmount), 2),
             groups = normalized.Select(x => new
             {
@@ -384,13 +448,21 @@ public static class BudgetEndpoints
         SolverDbContext db,
         Guid userId,
         int year,
-        int month)
+        int month,
+        bool? isAuto = null)
     {
-        var spentByAccount = await db.Transactions
+        var query = db.Transactions
             .Where(t => t.UserId == userId
                 && t.Status == TransactionStatus.Completed
                 && t.Date.Month == month
-                && t.Date.Year == year)
+                && t.Date.Year == year);
+
+        if (isAuto.HasValue)
+        {
+            query = query.Where(t => t.IsAuto == isAuto.Value);
+        }
+
+        var spentByAccount = await query
             .Join(db.Accounts.Where(a => a.Type == AccountType.Expense),
                 t => t.AccountId, a => a.Id, (t, _) => t)
             .GroupBy(t => t.AccountId)
@@ -400,22 +472,17 @@ public static class BudgetEndpoints
         return spentByAccount.ToDictionary(x => x.AccountId, x => x.Spent);
     }
 
-    private static async Task<Dictionary<Guid, decimal>> GetAutoPendingByGroupAsync(
+    private static async Task<Dictionary<Guid, decimal>> GetAutoByGroupAsync(
         SolverDbContext db,
         Guid userId,
         int year,
         int month)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var isCurrentMonth = year == today.Year && month == today.Month;
-
         var rows = await db.Transactions
             .Where(t => t.UserId == userId
-                && t.Status == TransactionStatus.Pending
                 && t.IsAuto
                 && t.Date.Year == year
-                && t.Date.Month == month
-                && (!isCurrentMonth || t.Date >= today))
+                && t.Date.Month == month)
             .Join(
                 db.Accounts.Where(a => a.Type == AccountType.Expense && a.GroupId.HasValue),
                 t => t.AccountId,

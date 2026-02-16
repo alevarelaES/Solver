@@ -186,11 +186,12 @@ class GoalsApi {
     String? note,
     bool isAuto = false,
   }) async {
+    final effectiveDate = entryDate ?? DateTime.now();
     await _client.post<Map<String, dynamic>>(
       '/api/goals/$goalId/entries',
       data: {
         'amount': amount,
-        'entryDate': entryDate == null ? null : _formatDateOnly(entryDate),
+        'entryDate': _formatDateOnly(effectiveDate),
         'note': note,
         'isAuto': isAuto,
       },
