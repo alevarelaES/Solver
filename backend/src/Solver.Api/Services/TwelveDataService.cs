@@ -178,6 +178,37 @@ public class TwelveDataService
         return result;
     }
 
+    private static readonly string[] TrendingSymbols =
+    [
+        "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX",
+        "JPM", "V", "JNJ", "WMT", "PG", "DIS", "PYPL", "AMD", "INTC",
+        "BA", "CRM", "UBER"
+    ];
+
+    private static readonly Dictionary<string, string> TrendingNames = new()
+    {
+        ["AAPL"] = "Apple Inc", ["MSFT"] = "Microsoft Corp", ["GOOGL"] = "Alphabet Inc",
+        ["AMZN"] = "Amazon.com Inc", ["TSLA"] = "Tesla Inc", ["META"] = "Meta Platforms",
+        ["NVDA"] = "NVIDIA Corp", ["NFLX"] = "Netflix Inc", ["JPM"] = "JPMorgan Chase",
+        ["V"] = "Visa Inc", ["JNJ"] = "Johnson & Johnson", ["WMT"] = "Walmart Inc",
+        ["PG"] = "Procter & Gamble", ["DIS"] = "Walt Disney Co", ["PYPL"] = "PayPal Holdings",
+        ["AMD"] = "Advanced Micro Devices", ["INTC"] = "Intel Corp", ["BA"] = "Boeing Co",
+        ["CRM"] = "Salesforce Inc", ["UBER"] = "Uber Technologies"
+    };
+
+    public async Task<List<TrendingQuote>> GetTrendingQuotesAsync()
+    {
+        var quotes = await GetQuotesAsync(TrendingSymbols);
+        return quotes.Select(kv => new TrendingQuote(
+            kv.Key,
+            TrendingNames.GetValueOrDefault(kv.Key, kv.Key),
+            kv.Value.Price,
+            kv.Value.ChangePercent,
+            kv.Value.Currency,
+            kv.Value.IsStale
+        )).OrderByDescending(t => Math.Abs(t.ChangePercent ?? 0)).ToList();
+    }
+
     public async Task UpdateCachedPriceAsync(string symbol, decimal price, CancellationToken ct = default)
     {
         var normalized = symbol.Trim().ToUpperInvariant();
@@ -302,3 +333,4 @@ public class TwelveDataService
 
 public record QuoteData(decimal Price, decimal? PreviousClose, decimal? ChangePercent, string Currency, bool IsStale);
 public record PriceHistoryPoint(string Datetime, decimal Close);
+public record TrendingQuote(string Symbol, string Name, decimal Price, decimal? ChangePercent, string Currency, bool IsStale);

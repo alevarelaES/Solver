@@ -22,6 +22,10 @@ public static class MarketEndpoints
         group.MapGet("/history-batch", GetHistoryBatchAsync);
         group.MapGet("/stream/{symbol}", StreamSymbolAsync);
 
+        // Trending & general news
+        group.MapGet("/trending", GetTrendingAsync);
+        group.MapGet("/news-general", GetMarketNewsGeneralAsync);
+
         // Finnhub
         group.MapGet("/profile/{symbol}", GetProfileAsync);
         group.MapGet("/news/{symbol}", GetNewsAsync);
@@ -258,6 +262,40 @@ public static class MarketEndpoints
         var json = JsonSerializer.Serialize(payload);
         await context.Response.WriteAsync($"data: {json}\n\n", context.RequestAborted);
         await context.Response.Body.FlushAsync(context.RequestAborted);
+    }
+
+    private static async Task<IResult> GetTrendingAsync(TwelveDataService twelveData)
+    {
+        var trending = await twelveData.GetTrendingQuotesAsync();
+        return Results.Ok(new
+        {
+            stocks = trending.Select(t => new
+            {
+                symbol = t.Symbol,
+                name = t.Name,
+                price = t.Price,
+                changePercent = t.ChangePercent,
+                currency = t.Currency,
+                isStale = t.IsStale,
+            })
+        });
+    }
+
+    private static async Task<IResult> GetMarketNewsGeneralAsync(FinnhubService finnhub)
+    {
+        var news = await finnhub.GetMarketNewsAsync();
+        return Results.Ok(new
+        {
+            news = news.Select(n => new
+            {
+                headline = n.Headline,
+                summary = n.Summary,
+                source = n.Source,
+                url = n.Url,
+                image = n.Image,
+                datetime = DateTimeOffset.FromUnixTimeSeconds(n.Datetime).UtcDateTime,
+            })
+        });
     }
 
     private static async Task<IResult> GetProfileAsync(

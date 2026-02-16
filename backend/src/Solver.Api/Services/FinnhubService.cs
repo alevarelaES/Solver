@@ -70,6 +70,29 @@ public class FinnhubService
         }
     }
 
+    public async Task<List<FinnhubCompanyNews>> GetMarketNewsAsync()
+    {
+        var cacheKey = "finnhub:market_news";
+        if (_cache.TryGetValue(cacheKey, out List<FinnhubCompanyNews>? cached))
+            return cached!;
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient("Finnhub");
+            var news = await client.GetFromJsonAsync<List<FinnhubCompanyNews>>(
+                "news?category=general&minId=0");
+
+            var result = news?.Take(15).ToList() ?? [];
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Finnhub market news fetch failed");
+            return [];
+        }
+    }
+
     public async Task<List<FinnhubRecommendation>> GetRecommendationsAsync(string symbol)
     {
         var cacheKey = $"finnhub:reco:{symbol}";

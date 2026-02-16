@@ -1,0 +1,164 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
+
+class AssetRow extends StatelessWidget {
+  final String symbol;
+  final String? name;
+  final double? price;
+  final double? changePercent;
+  final List<double>? sparklineData;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final String? trailing;
+
+  const AssetRow({
+    super.key,
+    required this.symbol,
+    this.name,
+    this.price,
+    this.changePercent,
+    this.sparklineData,
+    this.isSelected = false,
+    this.onTap,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final pct = changePercent ?? 0;
+    final isPositive = pct >= 0;
+    final changeColor = isPositive ? AppColors.success : AppColors.danger;
+
+    return Material(
+      color: isSelected
+          ? AppColors.primary.withValues(alpha: 0.08)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            border: isSelected
+                ? Border(
+                    left: BorderSide(color: AppColors.primary, width: 3),
+                  )
+                : null,
+          ),
+          child: Row(
+            children: [
+              // Symbol circle
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  symbol.isNotEmpty ? symbol[0] : '?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+
+              // Symbol + name
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      symbol,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                      ),
+                    ),
+                    if (name != null && name!.isNotEmpty)
+                      Text(
+                        name!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textSecondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Sparkline
+              MiniSparkline(
+                prices: sparklineData,
+                changePercent: changePercent,
+                width: 48,
+                height: 18,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+
+              // Price + change
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    price != null ? price!.toStringAsFixed(2) : '--',
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: changeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
+                    ),
+                    child: Text(
+                      '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: changeColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (trailing != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  trailing!,
+                  style: TextStyle(fontSize: 10, color: textSecondary),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
