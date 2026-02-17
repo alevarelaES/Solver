@@ -130,7 +130,12 @@ class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
   String _normalizeAssetType(String rawType) {
     final type = rawType.trim().toLowerCase();
     if (type.contains('etf')) return 'etf';
-    if (type.contains('crypto')) return 'crypto';
+    if (type.contains('crypto') ||
+        type.contains('digital') ||
+        type.contains('coin') ||
+        type.contains('token')) {
+      return 'crypto';
+    }
     if (type.contains('forex')) return 'forex';
     return 'stock';
   }

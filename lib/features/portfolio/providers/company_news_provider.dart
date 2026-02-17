@@ -6,11 +6,11 @@ import 'package:solver/features/portfolio/models/company_news.dart';
 final companyNewsProvider = FutureProvider.family
     .autoDispose<List<CompanyNews>, String>((ref, symbol) async {
       final normalized = symbol.trim().toUpperCase();
-      if (normalized.isEmpty) return const [];
+      if (normalized.isEmpty || normalized.contains('/')) return const [];
 
       final client = ref.read(apiClientProvider);
       final response = await client.get<Map<String, dynamic>>(
-        '/api/market/news/$normalized',
+        '/api/market/news/${Uri.encodeComponent(normalized)}',
       );
 
       final list = response.data?['news'] as List<dynamic>? ?? const [];
@@ -23,11 +23,11 @@ final companyNewsProvider = FutureProvider.family
 final analystRecommendationsProvider = FutureProvider.family
     .autoDispose<List<AnalystRecommendation>, String>((ref, symbol) async {
       final normalized = symbol.trim().toUpperCase();
-      if (normalized.isEmpty) return const [];
+      if (normalized.isEmpty || normalized.contains('/')) return const [];
 
       final client = ref.read(apiClientProvider);
       final response = await client.get<Map<String, dynamic>>(
-        '/api/market/recommendations/$normalized',
+        '/api/market/recommendations/${Uri.encodeComponent(normalized)}',
       );
 
       final list =

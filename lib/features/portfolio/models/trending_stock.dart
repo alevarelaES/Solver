@@ -5,6 +5,7 @@ class TrendingStock {
   final double? changePercent;
   final String currency;
   final bool isStale;
+  final String assetType;
 
   const TrendingStock({
     required this.symbol,
@@ -13,6 +14,7 @@ class TrendingStock {
     required this.changePercent,
     required this.currency,
     required this.isStale,
+    required this.assetType,
   });
 
   factory TrendingStock.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class TrendingStock {
       changePercent: _asDouble(json['changePercent']),
       currency: (json['currency'] ?? 'USD').toString(),
       isStale: json['isStale'] as bool? ?? false,
+      assetType: (json['assetType'] ?? 'stock').toString(),
     );
   }
 

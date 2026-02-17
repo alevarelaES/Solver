@@ -101,11 +101,36 @@ public static class MarketEndpoints
 
         var size = Math.Clamp(outputsize ?? 30, 1, 500);
 
-        var points = await twelveData.GetTimeSeriesAsync(symbol.Trim().ToUpperInvariant(), ivl, size);
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        var points = await twelveData.GetTimeSeriesAsync(normalizedSymbol, ivl, size);
+
+        if (points.Count < 2)
+        {
+            var fallbackMap = await twelveData.GetHistoryBatchAsync([normalizedSymbol], ivl, size);
+            if (fallbackMap.TryGetValue(normalizedSymbol, out var fallbackPoints) &&
+                fallbackPoints.Count >= 2)
+            {
+                return Results.Ok(new
+                {
+                    symbol = normalizedSymbol,
+                    interval = ivl,
+                    isSynthetic = true,
+                    values = fallbackPoints.Select(p => new
+                    {
+                        datetime = p.Datetime,
+                        open = p.Close,
+                        high = p.Close,
+                        low = p.Close,
+                        close = p.Close,
+                        volume = 0
+                    })
+                });
+            }
+        }
 
         return Results.Ok(new
         {
-            symbol = symbol.ToUpperInvariant(),
+            symbol = normalizedSymbol,
             interval = ivl,
             values = points.Select(p => new
             {
@@ -266,10 +291,10 @@ public static class MarketEndpoints
 
     private static async Task<IResult> GetTrendingAsync(TwelveDataService twelveData)
     {
-        var trending = await twelveData.GetTrendingQuotesAsync();
+        var snapshot = await twelveData.GetTrendingSnapshotAsync();
         return Results.Ok(new
         {
-            stocks = trending.Select(t => new
+            stocks = snapshot.Stocks.Select(t => new
             {
                 symbol = t.Symbol,
                 name = t.Name,
@@ -277,7 +302,18 @@ public static class MarketEndpoints
                 changePercent = t.ChangePercent,
                 currency = t.Currency,
                 isStale = t.IsStale,
-            })
+                assetType = t.AssetType,
+            }),
+            crypto = snapshot.Crypto.Select(t => new
+            {
+                symbol = t.Symbol,
+                name = t.Name,
+                price = t.Price,
+                changePercent = t.ChangePercent,
+                currency = t.Currency,
+                isStale = t.IsStale,
+                assetType = t.AssetType,
+            }),
         });
     }
 

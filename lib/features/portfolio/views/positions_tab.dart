@@ -4,36 +4,94 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
 import 'package:solver/features/portfolio/models/portfolio_summary.dart';
-import 'package:solver/features/portfolio/models/watchlist_item.dart';
 import 'package:solver/features/portfolio/providers/selected_asset_provider.dart';
+import 'package:solver/features/portfolio/providers/trending_provider.dart';
 import 'package:solver/features/portfolio/widgets/asset_detail_inline.dart';
 import 'package:solver/features/portfolio/widgets/asset_row.dart';
 import 'package:solver/features/portfolio/widgets/asset_sidebar.dart';
 import 'package:solver/features/portfolio/widgets/portfolio_dashboard.dart';
 
+const Set<String> _knownStockSymbols = {
+  'AAPL',
+  'MSFT',
+  'NVDA',
+  'AMZN',
+  'GOOGL',
+  'META',
+  'TSLA',
+  'NFLX',
+  'AMD',
+  'INTC',
+  'JPM',
+  'V',
+  'JNJ',
+  'WMT',
+  'DIS',
+  'PYPL',
+  'BA',
+  'CRM',
+  'UBER',
+  'PG',
+};
+
+const Set<String> _knownEtfSymbols = {
+  'SPY',
+  'QQQ',
+  'VTI',
+  'VOO',
+  'IWM',
+  'DIA',
+  'XLF',
+  'XLE',
+  'XLK',
+  'ARKK',
+  'GLD',
+  'SLV',
+};
+
+const Set<String> _knownCryptoSymbols = {
+  'BTC/USD',
+  'ETH/USD',
+  'SOL/USD',
+  'BNB/USD',
+  'XRP/USD',
+  'ADA/USD',
+  'DOGE/USD',
+  'AVAX/USD',
+  'DOT/USD',
+  'LINK/USD',
+};
+
 class PositionsTab extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
-  final List<WatchlistItem> watchlistItems;
   final Map<String, List<double>> sparklineBySymbol;
   final VoidCallback onAddHolding;
-  final VoidCallback onAddWatchlist;
   final Future<void> Function() onRefresh;
 
   const PositionsTab({
     super.key,
     required this.summary,
     required this.holdings,
-    required this.watchlistItems,
     required this.sparklineBySymbol,
     required this.onAddHolding,
-    required this.onAddWatchlist,
     required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedAssetProvider);
+    final trending = ref.watch(trendingProvider).valueOrNull;
+    final preferredSymbols = <String>{
+      ..._knownStockSymbols,
+      ..._knownEtfSymbols,
+      ..._knownCryptoSymbols,
+      ...?trending?.stocks.map((s) => s.symbol.trim().toUpperCase()),
+      ...?trending?.crypto.map((s) => s.symbol.trim().toUpperCase()),
+    };
+    final cleanedHoldings = holdings
+        .where((holding) => _isKnownHolding(holding, preferredSymbols))
+        .toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -42,23 +100,19 @@ class PositionsTab extends ConsumerWidget {
         if (isDesktop) {
           return _DesktopLayout(
             summary: summary,
-            holdings: holdings,
-            watchlistItems: watchlistItems,
+            holdings: cleanedHoldings,
             sparklineBySymbol: sparklineBySymbol,
             selected: selected,
             onAddHolding: onAddHolding,
-            onAddWatchlist: onAddWatchlist,
           );
         }
 
         return _MobileLayout(
           summary: summary,
-          holdings: holdings,
-          watchlistItems: watchlistItems,
+          holdings: cleanedHoldings,
           sparklineBySymbol: sparklineBySymbol,
           selected: selected,
           onAddHolding: onAddHolding,
-          onAddWatchlist: onAddWatchlist,
           onRefresh: onRefresh,
         );
       },
@@ -69,84 +123,89 @@ class PositionsTab extends ConsumerWidget {
 class _DesktopLayout extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
-  final List<WatchlistItem> watchlistItems;
   final Map<String, List<double>> sparklineBySymbol;
   final SelectedAsset? selected;
   final VoidCallback onAddHolding;
-  final VoidCallback onAddWatchlist;
 
   const _DesktopLayout({
     required this.summary,
     required this.holdings,
-    required this.watchlistItems,
     required this.sparklineBySymbol,
     required this.selected,
     required this.onAddHolding,
-    required this.onAddWatchlist,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final effectiveSelected = _resolveSelected(ref);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 300,
+          width: 320,
           child: AssetSidebar(
             summary: summary,
             holdings: holdings,
-            watchlistItems: watchlistItems,
             sparklineBySymbol: sparklineBySymbol,
             onAddHolding: onAddHolding,
-            onAddWatchlist: onAddWatchlist,
           ),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
-          child: selected != null
+          child: effectiveSelected != null
               ? AssetDetailInline(
-                  key: ValueKey(selected!.symbol),
-                  symbol: selected!.symbol,
-                  holding: selected!.holding,
-                  watchlistItem: selected!.watchlistItem,
+                  key: ValueKey(effectiveSelected.symbol),
+                  symbol: effectiveSelected.symbol,
+                  holding: effectiveSelected.holding,
+                  watchlistItem: effectiveSelected.watchlistItem,
                   onClose: () {
                     ref.read(selectedAssetProvider.notifier).state = null;
                   },
                 )
-              : PortfolioDashboard(
-                  summary: summary,
-                  holdings: holdings,
-                ),
+              : PortfolioDashboard(summary: summary, holdings: holdings),
         ),
       ],
     );
+  }
+
+  SelectedAsset? _resolveSelected(WidgetRef ref) {
+    if (selected != null) {
+      final selectedSymbol = selected!.symbol.trim().toUpperCase();
+      final inCleanedHoldings = holdings.any(
+        (h) => h.symbol.trim().toUpperCase() == selectedSymbol,
+      );
+      if (inCleanedHoldings || _isKnownSymbol(selectedSymbol)) {
+        return selected;
+      }
+    }
+    if (holdings.isNotEmpty) {
+      final first = holdings.first;
+      return SelectedAsset(symbol: first.symbol, holding: first);
+    }
+    return null;
   }
 }
 
 class _MobileLayout extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
-  final List<WatchlistItem> watchlistItems;
   final Map<String, List<double>> sparklineBySymbol;
   final SelectedAsset? selected;
   final VoidCallback onAddHolding;
-  final VoidCallback onAddWatchlist;
   final Future<void> Function() onRefresh;
 
   const _MobileLayout({
     required this.summary,
     required this.holdings,
-    required this.watchlistItems,
     required this.sparklineBySymbol,
     required this.selected,
     required this.onAddHolding,
-    required this.onAddWatchlist,
     required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If a stock is selected on mobile, show full-screen detail
     if (selected != null) {
       return AssetDetailInline(
         key: ValueKey(selected!.symbol),
@@ -160,14 +219,15 @@ class _MobileLayout extends ConsumerWidget {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textSecondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    final trendingAsync = ref.watch(trendingProvider);
 
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
         children: [
-          // Positions header
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xs,
@@ -198,18 +258,19 @@ class _MobileLayout extends ConsumerWidget {
             (h) => AssetRow(
               symbol: h.symbol,
               name: h.name,
+              assetType: h.assetType,
               price: h.currentPrice,
               changePercent: h.changePercent,
               sparklineData: sparklineBySymbol[h.symbol],
               onTap: () {
-                ref.read(selectedAssetProvider.notifier).state =
-                    SelectedAsset(symbol: h.symbol, holding: h);
+                ref.read(selectedAssetProvider.notifier).state = SelectedAsset(
+                  symbol: h.symbol,
+                  holding: h,
+                );
               },
             ),
           ),
           const Divider(height: AppSpacing.lg),
-
-          // Watchlist header
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xs,
@@ -217,39 +278,53 @@ class _MobileLayout extends ConsumerWidget {
               AppSpacing.xs,
               AppSpacing.xs,
             ),
-            child: Row(
-              children: [
-                Text(
-                  'WATCHLIST',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    color: textSecondary,
-                  ),
-                ),
-                const Spacer(),
-                InkWell(
-                  onTap: onAddWatchlist,
-                  child: Icon(Icons.add, size: 18, color: AppColors.primary),
-                ),
-              ],
+            child: Text(
+              'TOP MARCHE',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5,
+                color: textSecondary,
+              ),
             ),
           ),
-          ...watchlistItems.map(
-            (w) => AssetRow(
-              symbol: w.symbol,
-              name: w.name,
-              price: w.currentPrice,
-              changePercent: w.changePercent,
-              sparklineData: sparklineBySymbol[w.symbol],
-              onTap: () {
-                ref.read(selectedAssetProvider.notifier).state =
-                    SelectedAsset(symbol: w.symbol, watchlistItem: w);
-              },
+          trendingAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             ),
+            error: (_, _) => Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                'Tendances indisponibles.',
+                style: TextStyle(color: textSecondary),
+              ),
+            ),
+            data: (market) {
+              final popular = [
+                ...market.stocks.where((s) => (s.price ?? 0) > 0).take(12),
+                ...market.crypto.where((s) => (s.price ?? 0) > 0).take(8),
+              ];
+              return Column(
+                children: popular
+                    .map(
+                      (stock) => AssetRow(
+                        symbol: stock.symbol,
+                        name: stock.name,
+                        assetType: stock.assetType,
+                        price: stock.price,
+                        changePercent: stock.changePercent,
+                        onTap: () {
+                          ref.read(selectedAssetProvider.notifier).state =
+                              SelectedAsset(symbol: stock.symbol);
+                        },
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
-          if (holdings.isEmpty && watchlistItems.isEmpty)
+          if (holdings.isEmpty)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Center(
@@ -263,4 +338,25 @@ class _MobileLayout extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _isKnownHolding(Holding holding, Set<String> preferredSymbols) {
+  final symbol = holding.symbol.trim().toUpperCase();
+  final price = holding.currentPrice ?? 0;
+  if (symbol.isEmpty || price <= 0) return false;
+
+  if (preferredSymbols.contains(symbol)) return true;
+
+  if (symbol.contains('/')) {
+    return _knownCryptoSymbols.contains(symbol);
+  }
+
+  return false;
+}
+
+bool _isKnownSymbol(String symbol) {
+  if (_knownStockSymbols.contains(symbol)) return true;
+  if (_knownEtfSymbols.contains(symbol)) return true;
+  if (_knownCryptoSymbols.contains(symbol)) return true;
+  return false;
 }

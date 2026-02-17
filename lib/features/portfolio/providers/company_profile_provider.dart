@@ -6,12 +6,12 @@ import 'package:solver/features/portfolio/models/company_profile.dart';
 final companyProfileProvider = FutureProvider.family
     .autoDispose<CompanyProfile?, String>((ref, symbol) async {
       final normalized = symbol.trim().toUpperCase();
-      if (normalized.isEmpty) return null;
+      if (normalized.isEmpty || normalized.contains('/')) return null;
 
       final client = ref.read(apiClientProvider);
       try {
         final response = await client.get<Map<String, dynamic>>(
-          '/api/market/profile/$normalized',
+          '/api/market/profile/${Uri.encodeComponent(normalized)}',
         );
         final payload = response.data;
         if (payload == null) return null;

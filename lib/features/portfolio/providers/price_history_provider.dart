@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/features/portfolio/models/time_series_point.dart';
 
@@ -60,53 +61,75 @@ class SparklineBatchRequest {
       Object.hash(interval, outputSize, Object.hashAll(normalizedSymbols));
 }
 
-final priceHistoryProvider = FutureProvider.autoDispose
-    .family<List<TimeSeriesPoint>, PriceHistoryRequest>((ref, params) async {
-      final client = ref.read(apiClientProvider);
-      final response = await client.get<Map<String, dynamic>>(
-        '/api/market/history/${params.symbol.toUpperCase()}',
-        queryParameters: {
-          'interval': params.interval,
-          'outputsize': params.outputSize,
-        },
-      );
-
-      final values = response.data?['values'] as List<dynamic>? ?? const [];
-      return values
-          .whereType<Map<String, dynamic>>()
-          .map(TimeSeriesPoint.fromJson)
-          .toList();
-    });
-
-final sparklineBatchProvider = FutureProvider.autoDispose
-    .family<Map<String, List<TimeSeriesPoint>>, SparklineBatchRequest>((
+final priceHistoryProvider =
+    FutureProvider.family<List<TimeSeriesPoint>, PriceHistoryRequest>((
       ref,
       params,
     ) async {
+      final client = ref.read(apiClientProvider);
+      try {
+        final normalized = params.symbol.trim().toUpperCase();
+        final response = await client.get<Map<String, dynamic>>(
+          '/api/market/history-batch',
+          queryParameters: {
+            'symbols': normalized,
+            'interval': params.interval,
+            'outputsize': params.outputSize,
+          },
+        );
+
+        final histories =
+            response.data?['histories'] as Map<String, dynamic>? ?? const {};
+
+        final exact = histories[normalized] as List<dynamic>?;
+        final fallback =
+            exact ??
+            (histories.isNotEmpty
+                ? histories.values.first as List<dynamic>?
+                : const []);
+
+        return (fallback ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(TimeSeriesPoint.fromJson)
+            .toList();
+      } on DioException catch (_) {
+        return const [];
+      }
+    });
+
+final sparklineBatchProvider =
+    FutureProvider.family<
+      Map<String, List<TimeSeriesPoint>>,
+      SparklineBatchRequest
+    >((ref, params) async {
       final symbols = params.normalizedSymbols;
       if (symbols.isEmpty) return const {};
 
       final client = ref.read(apiClientProvider);
-      final response = await client.get<Map<String, dynamic>>(
-        '/api/market/history-batch',
-        queryParameters: {
-          'symbols': symbols.join(','),
-          'interval': params.interval,
-          'outputsize': params.outputSize,
-        },
-      );
+      try {
+        final response = await client.get<Map<String, dynamic>>(
+          '/api/market/history-batch',
+          queryParameters: {
+            'symbols': symbols.join(','),
+            'interval': params.interval,
+            'outputsize': params.outputSize,
+          },
+        );
 
-      final historiesRaw =
-          response.data?['histories'] as Map<String, dynamic>? ?? const {};
+        final historiesRaw =
+            response.data?['histories'] as Map<String, dynamic>? ?? const {};
 
-      final result = <String, List<TimeSeriesPoint>>{};
-      for (final entry in historiesRaw.entries) {
-        final list = entry.value as List<dynamic>? ?? const [];
-        result[entry.key] = list
-            .whereType<Map<String, dynamic>>()
-            .map(TimeSeriesPoint.fromJson)
-            .toList();
+        final result = <String, List<TimeSeriesPoint>>{};
+        for (final entry in historiesRaw.entries) {
+          final list = entry.value as List<dynamic>? ?? const [];
+          result[entry.key] = list
+              .whereType<Map<String, dynamic>>()
+              .map(TimeSeriesPoint.fromJson)
+              .toList();
+        }
+
+        return result;
+      } on DioException catch (_) {
+        return const {};
       }
-
-      return result;
     });

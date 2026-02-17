@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
@@ -21,39 +22,31 @@ class TrendingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
 
+    final hasChange = stock.changePercent != null;
     final pct = stock.changePercent ?? 0;
     final isPositive = pct >= 0;
     final changeColor = isPositive ? AppColors.success : AppColors.danger;
 
     return AppPanel(
       padding: const EdgeInsets.all(AppSpacing.md),
+      variant: AppPanelVariant.elevated,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  stock.symbol.isNotEmpty ? stock.symbol[0] : '?',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
+              AssetLogo(
+                symbol: stock.symbol,
+                assetType: stock.assetType,
+                size: 30,
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -95,20 +88,21 @@ class TrendingCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: changeColor.withValues(alpha: 0.1),
+                  color: (hasChange ? changeColor : textSecondary).withValues(
+                    alpha: 0.12,
+                  ),
                   borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
                 child: Text(
-                  '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%',
+                  hasChange
+                      ? '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%'
+                      : '--',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: changeColor,
+                    color: hasChange ? changeColor : textSecondary,
                   ),
                 ),
               ),

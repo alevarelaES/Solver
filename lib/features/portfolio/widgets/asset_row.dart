@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 
 class AssetRow extends StatelessWidget {
   final String symbol;
   final String? name;
+  final String assetType;
+  final String? logoUrl;
   final double? price;
   final double? changePercent;
   final List<double>? sparklineData;
@@ -18,6 +21,8 @@ class AssetRow extends StatelessWidget {
     super.key,
     required this.symbol,
     this.name,
+    this.assetType = 'stock',
+    this.logoUrl,
     this.price,
     this.changePercent,
     this.sparklineData,
@@ -29,10 +34,13 @@ class AssetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    final hasChange = changePercent != null;
     final pct = changePercent ?? 0;
     final isPositive = pct >= 0;
     final changeColor = isPositive ? AppColors.success : AppColors.danger;
@@ -52,30 +60,18 @@ class AssetRow extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             border: isSelected
-                ? Border(
-                    left: BorderSide(color: AppColors.primary, width: 3),
-                  )
+                ? Border(left: BorderSide(color: AppColors.primary, width: 3))
                 : null,
           ),
           child: Row(
             children: [
               // Symbol circle
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  symbol.isNotEmpty ? symbol[0] : '?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
+              AssetLogo(
+                symbol: symbol,
+                assetType: assetType,
+                logoUrl: logoUrl,
+                size: 32,
+                borderRadius: 999,
               ),
               const SizedBox(width: AppSpacing.sm),
 
@@ -97,10 +93,7 @@ class AssetRow extends StatelessWidget {
                         name!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: textSecondary,
-                        ),
+                        style: TextStyle(fontSize: 11, color: textSecondary),
                       ),
                   ],
                 ),
@@ -133,15 +126,18 @@ class AssetRow extends StatelessWidget {
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: changeColor.withValues(alpha: 0.1),
+                      color: (hasChange ? changeColor : textSecondary)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                     child: Text(
-                      '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%',
+                      hasChange
+                          ? '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%'
+                          : '--',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: changeColor,
+                        color: hasChange ? changeColor : textSecondary,
                       ),
                     ),
                   ),
