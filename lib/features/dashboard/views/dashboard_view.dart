@@ -9,9 +9,10 @@ import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
 import 'package:solver/features/dashboard/widgets/balance_card.dart';
 import 'package:solver/features/dashboard/widgets/expense_breakdown.dart';
 import 'package:solver/features/dashboard/widgets/financial_overview_chart.dart';
+import 'package:solver/features/dashboard/widgets/goals_priority_summary.dart';
 import 'package:solver/features/dashboard/widgets/kpi_row.dart';
+import 'package:solver/features/dashboard/widgets/market_popular_card.dart';
 import 'package:solver/features/dashboard/widgets/pending_invoices_section.dart';
-import 'package:solver/features/dashboard/widgets/promo_cards.dart';
 import 'package:solver/features/dashboard/widgets/recent_activities.dart';
 import 'package:solver/features/dashboard/widgets/year_nav_bar.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
@@ -99,6 +100,68 @@ class _DashboardContent extends StatelessWidget {
     const hGap = SizedBox(width: AppSpacing.xxl);
     final isWide = screenWidth >= AppBreakpoints.wide;
 
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+                width: AppSizes.leftColumnWidth,
+                child: Column(
+                  children: [
+                    BalanceCard(data: data),
+                    gap,
+                    const PendingInvoicesSection(),
+                    gap,
+                    ExpenseBreakdown(data: data),
+                  ],
+                ),
+              )
+              .animate()
+              .fadeIn(duration: AppDurations.normal)
+              .slideY(begin: 0.05, end: 0),
+          hGap,
+          Expanded(
+                child: Column(
+                  children: [
+                    KpiRow(data: data),
+                    gap,
+                    const RecentActivities(),
+                    gap,
+                    FinancialOverviewChart(
+                      data: data,
+                      year: year,
+                      chartHeight: AppSizes.chartHeight - 28,
+                    ),
+                  ],
+                ),
+              )
+              .animate()
+              .fadeIn(
+                duration: AppDurations.normal,
+                delay: AppDurations.stagger,
+              )
+              .slideY(begin: 0.05, end: 0),
+          hGap,
+          SizedBox(
+                width: AppSizes.rightSidebarWidth,
+                child: const Column(
+                  children: [
+                    GoalsPrioritySummaryCard(),
+                    SizedBox(height: AppSpacing.lg),
+                    MarketPopularCard(),
+                  ],
+                ),
+              )
+              .animate()
+              .fadeIn(
+                duration: AppDurations.normal,
+                delay: AppDurations.stagger * 2,
+              )
+              .slideY(begin: 0.05, end: 0),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Row(
@@ -121,16 +184,30 @@ class _DashboardContent extends StatelessWidget {
               children: [
                 SizedBox(
                   width: AppSizes.leftColumnWidth,
-                  child: ExpenseBreakdown(data: data),
+                  child: const PendingInvoicesSection(),
                 ),
                 hGap,
-                Expanded(
-                  child: FinancialOverviewChart(data: data, year: year),
-                ),
+                const Expanded(child: RecentActivities()),
               ],
             )
             .animate()
             .fadeIn(duration: AppDurations.normal, delay: AppDurations.stagger)
+            .slideY(begin: 0.05, end: 0),
+        gap,
+        const GoalsPrioritySummaryCard()
+            .animate()
+            .fadeIn(
+              duration: AppDurations.normal,
+              delay: AppDurations.stagger * 2,
+            )
+            .slideY(begin: 0.05, end: 0),
+        gap,
+        const MarketPopularCard()
+            .animate()
+            .fadeIn(
+              duration: AppDurations.normal,
+              delay: AppDurations.stagger * 3,
+            )
             .slideY(begin: 0.05, end: 0),
         gap,
         Row(
@@ -138,47 +215,24 @@ class _DashboardContent extends StatelessWidget {
               children: [
                 SizedBox(
                   width: AppSizes.leftColumnWidth,
-                  child: const PendingInvoicesSection(),
+                  child: ExpenseBreakdown(data: data),
                 ),
                 hGap,
-                const Expanded(child: RecentActivities()),
-                if (isWide) ...[
-                  hGap,
-                  SizedBox(
-                    width: AppSizes.rightSidebarWidth,
-                    child: Column(
-                      children: const [
-                        SolverAiCard(),
-                        SizedBox(height: AppSpacing.lg),
-                        UpgradeProCard(),
-                      ],
-                    ),
+                Expanded(
+                  child: FinancialOverviewChart(
+                    data: data,
+                    year: year,
+                    chartHeight: AppSizes.chartHeight - 36,
                   ),
-                ],
+                ),
               ],
             )
             .animate()
             .fadeIn(
               duration: AppDurations.normal,
-              delay: AppDurations.stagger * 2,
+              delay: AppDurations.stagger * 4,
             )
             .slideY(begin: 0.05, end: 0),
-        if (!isWide) ...[
-          gap,
-          Row(
-                children: const [
-                  Expanded(child: SolverAiCard()),
-                  SizedBox(width: AppSpacing.xxl),
-                  Expanded(child: UpgradeProCard()),
-                ],
-              )
-              .animate()
-              .fadeIn(
-                duration: AppDurations.normal,
-                delay: AppDurations.stagger * 3,
-              )
-              .slideY(begin: 0.05, end: 0),
-        ],
       ],
     );
   }
@@ -201,17 +255,23 @@ class _DashboardContent extends StatelessWidget {
         gap,
         animated(KpiRow(data: data)),
         gap,
-        animated(FinancialOverviewChart(data: data, year: year)),
-        gap,
-        animated(ExpenseBreakdown(data: data)),
-        gap,
         animated(const PendingInvoicesSection()),
         gap,
         animated(const RecentActivities()),
         gap,
-        animated(const SolverAiCard()),
+        animated(const GoalsPrioritySummaryCard()),
         gap,
-        animated(const UpgradeProCard()),
+        animated(ExpenseBreakdown(data: data)),
+        gap,
+        animated(
+          FinancialOverviewChart(
+            data: data,
+            year: year,
+            chartHeight: AppSizes.chartHeight - 28,
+          ),
+        ),
+        gap,
+        animated(const MarketPopularCard()),
       ],
     );
   }

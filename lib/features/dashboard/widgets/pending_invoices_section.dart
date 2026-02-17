@@ -53,20 +53,60 @@ class _PendingInvoicesSectionState
             return days <= 30;
           }).toList()..sort(_compareByPriority);
 
+          final overdueCount = invoices
+              .where((t) => _daysUntil(t.date) < 0)
+              .length;
+          final dueTodayCount = invoices
+              .where((t) => _daysUntil(t.date) == 0)
+              .length;
+          final urgentCount = invoices
+              .where((t) => _daysUntil(t.date) <= 3)
+              .length;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Factures a traiter',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          'Factures a traiter',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        if (overdueCount > 0) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.danger.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
+                              border: Border.all(
+                                color: AppColors.danger.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Text(
+                              '$overdueCount retard${overdueCount > 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   TextButton(
@@ -84,10 +124,50 @@ class _PendingInvoicesSectionState
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
+              if (overdueCount > 0 || dueTodayCount > 0)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(
+                      alpha: isDark ? 0.2 : 0.1,
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                      color: AppColors.danger.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: AppColors.danger,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          overdueCount > 0
+                              ? 'ALERTE: $overdueCount facture${overdueCount > 1 ? 's' : ''} en retard'
+                              : 'Attention: $dueTodayCount facture${dueTodayCount > 1 ? 's' : ''} echeance aujourd\'hui',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Text(
                 invoices.isEmpty
                     ? 'Aucune facture en attente'
-                    : '${invoices.length} facture${invoices.length > 1 ? 's' : ''} a traiter (retards inclus)',
+                    : '$urgentCount prioritaire${urgentCount > 1 ? 's' : ''} sur ${invoices.length} facture${invoices.length > 1 ? 's' : ''}',
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark
@@ -110,78 +190,115 @@ class _PendingInvoicesSectionState
                 ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 200),
                   child: Column(
-                    children: invoices.take(6).map((t) {
+                    children: invoices.take(4).map((t) {
                       final days = _daysUntil(t.date);
                       final color = _priorityColor(days);
+                      final isOverdue = days < 0;
+                      final isToday = days == 0;
+                      final rowAccent = isOverdue
+                          ? AppColors.danger
+                          : isToday
+                          ? const Color(0xFFEA580C)
+                          : color;
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.xs,
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            border: Border.all(
+                              color: rowAccent.withValues(alpha: 0.45),
+                            ),
+                            color: rowAccent.withValues(
+                              alpha: isDark ? 0.2 : 0.08,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: rowAccent,
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.xs,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    t.accountName ?? 'Facture',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimaryLight,
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        if (days <= 0) ...[
+                                          Icon(
+                                            Icons.priority_high_rounded,
+                                            size: 14,
+                                            color: rowAccent,
+                                          ),
+                                          const SizedBox(width: 4),
+                                        ],
+                                        Expanded(
+                                          child: Text(
+                                            t.accountName ?? 'Facture',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark
+                                                  ? AppColors.textPrimaryDark
+                                                  : AppColors.textPrimaryLight,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  Text(
-                                    '${_priorityLabel(days)} - ${_daysLabel(days)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isDark
-                                          ? AppColors.textSecondaryDark
-                                          : AppColors.textSecondaryLight,
+                                    Text(
+                                      '${_priorityLabel(days)} - ${_daysLabel(days)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: days <= 0
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: rowAccent,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    'Échéance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isDark
-                                          ? AppColors.textSecondaryDark
-                                          : AppColors.textSecondaryLight,
+                                    Text(
+                                      'Echeance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              AppFormats.currencyCompact.format(t.amount),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimaryLight,
+                              const SizedBox(width: 8),
+                              Text(
+                                AppFormats.currencyCompact.format(t.amount),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: days <= 0
+                                      ? rowAccent
+                                      : (isDark
+                                            ? AppColors.textPrimaryDark
+                                            : AppColors.textPrimaryLight),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     }).toList(),
@@ -229,7 +346,7 @@ class _PendingInvoicesSectionState
       final late = days.abs();
       return 'En retard de $late jour${late > 1 ? 's' : ''}';
     }
-    if (days == 0) return 'Échéance aujourd\'hui';
+    if (days == 0) return 'Echeance aujourd\'hui';
     if (days == 1) return 'Dans 1 jour';
     return 'Dans $days jours';
   }

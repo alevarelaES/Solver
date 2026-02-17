@@ -303,8 +303,8 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
                   ),
                 );
               }
-              // Limit to 6 transactions max on dashboard
-              final display = filtered.take(6).toList();
+              // Limit to 4 transactions max on dashboard
+              final display = filtered.take(4).toList();
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: display

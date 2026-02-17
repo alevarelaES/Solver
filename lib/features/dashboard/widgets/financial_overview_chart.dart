@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,27 +11,42 @@ import 'package:solver/features/dashboard/models/dashboard_data.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
-class FinancialOverviewChart extends ConsumerWidget {
+enum _OverviewRange { month, quarter, year }
+
+class FinancialOverviewChart extends ConsumerStatefulWidget {
   final DashboardData data;
   final int year;
+  final double? chartHeight;
 
   const FinancialOverviewChart({
     super.key,
     required this.data,
     required this.year,
+    this.chartHeight,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FinancialOverviewChart> createState() =>
+      _FinancialOverviewChartState();
+}
+
+class _FinancialOverviewChartState
+    extends ConsumerState<FinancialOverviewChart> {
+  _OverviewRange _range = _OverviewRange.year;
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentMonth = DateTime.now().month;
     final currentYear = DateTime.now().year;
-    final projectionAsync = ref.watch(yearlyExpenseProjectionProvider(year));
+    final projectionAsync = ref.watch(
+      yearlyExpenseProjectionProvider(widget.year),
+    );
 
     final incomes = List<double>.filled(12, 0);
     final expenses = List<double>.filled(12, 0);
 
-    for (final group in data.groups) {
+    for (final group in widget.data.groups) {
       for (final account in group.accounts) {
         for (int m = 1; m <= 12; m++) {
           final cell = account.months[m];
@@ -43,22 +60,31 @@ class FinancialOverviewChart extends ConsumerWidget {
       }
     }
 
-    if (year == currentYear) {
+    if (widget.year == currentYear) {
       for (int m = currentMonth + 1; m <= 12; m++) {
         incomes[m - 1] = 0;
       }
 
-      projectionAsync.whenData((projection) {
+      final projection = projectionAsync.valueOrNull;
+      if (projection != null) {
         for (int m = currentMonth + 1; m <= 12; m++) {
           final i = m - 1;
           if (i >= projection.totalByMonth.length) continue;
-          // Replace with backend yearly projection to avoid partial/duplicate sums.
           expenses[i] = projection.totalByMonth[i];
         }
-      });
+      }
     }
 
-    final maxY = _computeMaxY(incomes, expenses);
+    final buckets = _buildBuckets(
+      incomes: incomes,
+      expenses: expenses,
+      range: _range,
+      year: widget.year,
+      currentYear: currentYear,
+      currentMonth: currentMonth,
+    );
+
+    final maxY = _computeMaxY(buckets);
 
     return GlassContainer(
       padding: AppSpacing.paddingCardCompact,
@@ -67,17 +93,23 @@ class FinancialOverviewChart extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                AppStrings.dashboard.financialOverview,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
+              Expanded(
+                child: Text(
+                  AppStrings.dashboard.financialOverview,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
                 ),
               ),
+              _RangeToggle(
+                value: _range,
+                onChanged: (value) => setState(() => _range = value),
+              ),
+              const SizedBox(width: AppSpacing.md),
               Row(
                 children: [
                   _LegendDot(
@@ -96,14 +128,14 @@ class FinancialOverviewChart extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           Center(
             child: SizedBox(
-              height: AppSizes.chartHeight,
+              height: widget.chartHeight ?? AppSizes.chartHeight,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   maxY: maxY,
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      getTooltipItem: (group, _, rod, rodIndex) {
                         final label = rodIndex == 0
                             ? AppStrings.dashboard.income
                             : AppStrings.dashboard.expense;
@@ -129,19 +161,25 @@ class FinancialOverviewChart extends ConsumerWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        getTitlesWidget: (value, meta) => Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.sm),
-                          child: Text(
-                            AppStrings.common.monthsShort[value.toInt()],
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark
-                                  ? AppColors.textDisabledDark
-                                  : AppColors.textDisabledLight,
-                            ),
-                          ),
-                        ),
                         reservedSize: 28,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= buckets.length) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.sm),
+                            child: Text(
+                              buckets[index].label,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark
+                                    ? AppColors.textDisabledDark
+                                    : AppColors.textDisabledLight,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     leftTitles: AxisTitles(
@@ -173,9 +211,8 @@ class FinancialOverviewChart extends ConsumerWidget {
                     ),
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: List.generate(12, (i) {
-                    final isHighlighted =
-                        year == currentYear && (i + 1) == currentMonth;
+                  barGroups: List.generate(buckets.length, (i) {
+                    final bucket = buckets[i];
                     final grayIncome = isDark
                         ? const Color(0xFF4B5563)
                         : const Color(0xFFE5E7EB);
@@ -187,16 +224,20 @@ class FinancialOverviewChart extends ConsumerWidget {
                       x: i,
                       barRods: [
                         BarChartRodData(
-                          toY: incomes[i],
-                          color: isHighlighted ? AppColors.primary : grayIncome,
+                          toY: bucket.income,
+                          color: bucket.isCurrent
+                              ? AppColors.primary
+                              : grayIncome,
                           width: AppSizes.barWidth,
                           borderRadius: BorderRadius.circular(
                             AppSizes.barRadius,
                           ),
                         ),
                         BarChartRodData(
-                          toY: expenses[i],
-                          color: isHighlighted ? AppColors.danger : grayExpense,
+                          toY: bucket.expense,
+                          color: bucket.isCurrent
+                              ? AppColors.danger
+                              : grayExpense,
                           width: AppSizes.barWidth,
                           borderRadius: BorderRadius.circular(
                             AppSizes.barRadius,
@@ -213,15 +254,162 @@ class FinancialOverviewChart extends ConsumerWidget {
       ),
     );
   }
+}
 
-  double _computeMaxY(List<double> a, List<double> b) {
-    double max = 1;
-    for (int i = 0; i < 12; i++) {
-      if (a[i] > max) max = a[i];
-      if (b[i] > max) max = b[i];
-    }
-    return max * 1.15;
+class _RangeToggle extends StatelessWidget {
+  final _OverviewRange value;
+  final ValueChanged<_OverviewRange> onChanged;
+
+  const _RangeToggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.borderDark
+              : AppColors.borderLight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _RangeToggleItem(
+            label: 'Mois',
+            selected: value == _OverviewRange.month,
+            onTap: () => onChanged(_OverviewRange.month),
+          ),
+          _RangeToggleItem(
+            label: 'Trimestre',
+            selected: value == _OverviewRange.quarter,
+            onTap: () => onChanged(_OverviewRange.quarter),
+          ),
+          _RangeToggleItem(
+            label: 'Annee',
+            selected: value == _OverviewRange.year,
+            onTap: () => onChanged(_OverviewRange.year),
+          ),
+        ],
+      ),
+    );
   }
+}
+
+class _RangeToggleItem extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RangeToggleItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withValues(alpha: 0.15) : null,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.primary : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OverviewBucket {
+  final String label;
+  final double income;
+  final double expense;
+  final bool isCurrent;
+
+  const _OverviewBucket({
+    required this.label,
+    required this.income,
+    required this.expense,
+    required this.isCurrent,
+  });
+}
+
+List<_OverviewBucket> _buildBuckets({
+  required List<double> incomes,
+  required List<double> expenses,
+  required _OverviewRange range,
+  required int year,
+  required int currentYear,
+  required int currentMonth,
+}) {
+  final labels = AppStrings.common.monthsShort;
+  final nowMonthIndex = currentMonth - 1;
+  final isCurrentYear = year == currentYear;
+
+  switch (range) {
+    case _OverviewRange.year:
+      return List.generate(12, (i) {
+        return _OverviewBucket(
+          label: labels[i],
+          income: incomes[i],
+          expense: expenses[i],
+          isCurrent: isCurrentYear && i == nowMonthIndex,
+        );
+      });
+
+    case _OverviewRange.quarter:
+      return List.generate(4, (q) {
+        final start = q * 3;
+        final end = start + 2;
+        final income = incomes
+            .sublist(start, end + 1)
+            .fold(0.0, (a, b) => a + b);
+        final expense = expenses
+            .sublist(start, end + 1)
+            .fold(0.0, (a, b) => a + b);
+        final isCurrent = isCurrentYear && (nowMonthIndex ~/ 3) == q;
+        return _OverviewBucket(
+          label: 'T${q + 1}',
+          income: income,
+          expense: expense,
+          isCurrent: isCurrent,
+        );
+      });
+
+    case _OverviewRange.month:
+      final end = isCurrentYear ? nowMonthIndex : 11;
+      final start = math.max(0, end - 5);
+      return List.generate(end - start + 1, (idx) {
+        final i = start + idx;
+        return _OverviewBucket(
+          label: labels[i],
+          income: incomes[i],
+          expense: expenses[i],
+          isCurrent: isCurrentYear && i == nowMonthIndex,
+        );
+      });
+  }
+}
+
+double _computeMaxY(List<_OverviewBucket> buckets) {
+  if (buckets.isEmpty) return 1;
+  var maxValue = 1.0;
+  for (final bucket in buckets) {
+    if (bucket.income > maxValue) maxValue = bucket.income;
+    if (bucket.expense > maxValue) maxValue = bucket.expense;
+  }
+  return maxValue * 1.15;
 }
 
 class _LegendDot extends StatelessWidget {
