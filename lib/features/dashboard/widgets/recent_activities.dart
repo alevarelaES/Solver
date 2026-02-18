@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/l10n/app_strings.dart';
+import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/providers/recent_transactions_provider.dart';
@@ -308,7 +310,15 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: display
-                    .map((tx) => _TransactionRow(transaction: tx))
+                    .map((tx) => _TransactionRow(
+                          transaction: tx,
+                          onTap: () {
+                            ref
+                                .read(pendingJournalTxIdProvider.notifier)
+                                .state = tx.id;
+                            context.go('/journal');
+                          },
+                        ))
                     .toList(),
               );
             },
@@ -321,8 +331,9 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
 
 class _TransactionRow extends StatefulWidget {
   final Transaction transaction;
+  final VoidCallback? onTap;
 
-  const _TransactionRow({required this.transaction});
+  const _TransactionRow({required this.transaction, this.onTap});
 
   @override
   State<_TransactionRow> createState() => _TransactionRowState();
@@ -338,10 +349,15 @@ class _TransactionRowState extends State<_TransactionRow> {
     final isExpense = !tx.isIncome;
     final dateFormat = DateFormat('dd MMM yyyy', 'fr_CH');
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Container(
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: widget.onTap != null
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Container(
         padding: const EdgeInsets.symmetric(
           vertical: 8,
           horizontal: AppSpacing.sm,
@@ -426,6 +442,7 @@ class _TransactionRowState extends State<_TransactionRow> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

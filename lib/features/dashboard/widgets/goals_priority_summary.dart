@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
@@ -123,7 +124,13 @@ class GoalsPrioritySummaryCard extends ConsumerWidget {
                 ...display.map(
                   (goal) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _GoalLine(goal: goal),
+                    child: GestureDetector(
+                      onTap: () => context.go('/goals'),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: _GoalLine(goal: goal),
+                      ),
+                    ),
                   ),
                 ),
             ],

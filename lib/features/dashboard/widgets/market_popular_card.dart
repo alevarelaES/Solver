@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
@@ -100,7 +101,13 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
                 ...display.map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _MarketRow(item: item),
+                    child: GestureDetector(
+                      onTap: () => context.go('/portfolio'),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: _MarketRow(item: item),
+                      ),
+                    ),
                   ),
                 ),
             ],

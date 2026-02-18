@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
@@ -203,7 +204,11 @@ class _PendingInvoicesSectionState
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Container(
+                        child: GestureDetector(
+                          onTap: () => context.go('/schedule'),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Container(
                           padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -298,6 +303,8 @@ class _PendingInvoicesSectionState
                                 ),
                               ),
                             ],
+                          ),
+                        ),
                           ),
                         ),
                       );

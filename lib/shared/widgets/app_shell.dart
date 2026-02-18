@@ -5,7 +5,6 @@ import 'package:solver/core/constants/app_currency.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/main.dart';
-import 'package:solver/shared/widgets/desktop_sidebar.dart';
 import 'package:solver/shared/widgets/mobile_bottom_bar.dart';
 import 'package:solver/shared/widgets/nav_items.dart';
 
@@ -24,14 +23,7 @@ class AppShell extends ConsumerWidget {
         children: [
           if (isTablet) _TopHeader(ref: ref),
           if (!isTablet) _MobileControls(ref: ref),
-          Expanded(
-            child: Row(
-              children: [
-                if (isTablet) const DesktopSidebar(),
-                Expanded(child: child),
-              ],
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
       bottomNavigationBar: isTablet ? null : const MobileBottomBar(),

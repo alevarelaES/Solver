@@ -6,9 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
 import 'package:solver/features/journal/providers/journal_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
@@ -115,6 +117,15 @@ class JournalView extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Check for pending navigation from dashboard
+    final pendingTxId = ref.read(pendingJournalTxIdProvider);
+    if (pendingTxId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(pendingJournalTxIdProvider.notifier).state = null;
+        ref.read(_selectedTxIdProvider.notifier).state = pendingTxId;
+      });
+    }
+
     final selectedId = ref.watch(_selectedTxIdProvider);
     final selected = selectedId == null
         ? null
@@ -131,17 +142,23 @@ class JournalView extends ConsumerWidget {
         final isMobile = constraints.maxWidth < 900;
         return Stack(
           children: [
-            Column(
-              children: [
-                _JournalHeader(isMobile: isMobile),
-                Expanded(
-                  child: _JournalBody(
-                    transactions: transactions,
-                    selected: selected,
-                    isMobile: isMobile,
+            Padding(
+              padding: isMobile
+                  ? const EdgeInsets.all(AppSpacing.md)
+                  : AppSpacing.paddingPage,
+              child: Column(
+                children: [
+                  _JournalHeader(isMobile: isMobile),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _JournalBody(
+                      transactions: transactions,
+                      selected: selected,
+                      isMobile: isMobile,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if (txAsync.isLoading)
               const Positioned(
@@ -151,10 +168,12 @@ class JournalView extends ConsumerWidget {
                 child: LinearProgressIndicator(minHeight: 2),
               ),
             if (!isMobile && selected != null)
-              _DesktopDetailOverlay(
-                transaction: selected,
-                onClose: () =>
-                    ref.read(_selectedTxIdProvider.notifier).state = null,
+              Positioned.fill(
+                child: _DesktopDetailOverlay(
+                  transaction: selected,
+                  onClose: () =>
+                      ref.read(_selectedTxIdProvider.notifier).state = null,
+                ),
               ),
           ],
         );
@@ -169,49 +188,38 @@ class _JournalHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final headerPadding = isMobile
-        ? const EdgeInsets.fromLTRB(16, 16, 16, 12)
-        : const EdgeInsets.fromLTRB(28, 18, 28, 14);
-
-    return Container(
-      padding: headerPadding,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
-      ),
-      child: isMobile
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(child: _TitleBlock()),
-                    _AddEntryButton(compact: true),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const _SearchBar(),
-              ],
-            )
-          : Row(
-              children: [
-                const Expanded(flex: 2, child: _TitleBlock()),
-                const SizedBox(width: 20),
-                Expanded(
-                  flex: 3,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 560),
-                      child: const _SearchBar(),
-                    ),
+    return isMobile
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(child: _TitleBlock()),
+                  _AddEntryButton(compact: true),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const _SearchBar(),
+            ],
+          )
+        : Row(
+            children: [
+              const Expanded(flex: 2, child: _TitleBlock()),
+              const SizedBox(width: 20),
+              Expanded(
+                flex: 3,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: const _SearchBar(),
                   ),
                 ),
-                const SizedBox(width: 12),
-                _AddEntryButton(compact: false),
-              ],
-            ),
-    );
+              ),
+              const SizedBox(width: 12),
+              _AddEntryButton(compact: false),
+            ],
+          );
   }
 }
 
@@ -255,13 +263,12 @@ class _SearchBar extends ConsumerWidget {
       style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: AppInputStyles.search(
         hintText: 'Rechercher une transaction...',
-        square: true,
         suffixIcon: Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.borderSubtle),
-            borderRadius: BorderRadius.zero,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: const Text(
             'K',
@@ -283,19 +290,10 @@ class _AddEntryButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return TextButton.icon(
+    return ElevatedButton.icon(
       onPressed: () => showTransactionFormModal(context, ref),
-      icon: const Icon(Icons.add, size: 16),
-      label: Text(
-        compact ? 'Ajouter' : 'Nouvelle ecriture',
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-      ),
-      style: AppButtonStyles.tonal(
-        foregroundColor: Colors.white,
-        backgroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        radius: 0,
-      ),
+      icon: const Icon(Icons.add, color: Colors.white, size: 16),
+      label: Text(compact ? 'Ajouter' : 'Nouvelle ecriture'),
     );
   }
 }
@@ -322,10 +320,10 @@ class _JournalFilterBar extends ConsumerWidget {
     final accountsAsync = ref.watch(accountsProvider);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
+        color: Color(0xFFF6F8FB),
+        border: Border(bottom: BorderSide(color: Color(0xFFD4DBE5))),
       ),
       child: isMobile
           ? SingleChildScrollView(
@@ -389,112 +387,55 @@ class _JournalFilterBar extends ConsumerWidget {
                 ],
               ),
             )
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  _FilterChip(
+                    icon: Icons.calendar_today,
+                    label: '${filters.year}',
+                    onTap: () => _pickYear(context, ref, filters),
                   ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceHeader,
-                          border: Border.all(color: AppColors.borderSubtle),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          activeCount > 0
-                              ? 'Pipeline filtres ($activeCount)'
-                              : 'Pipeline filtres',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textSecondary,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
-                      _FilterChip(
-                        icon: Icons.calendar_today,
-                        label: '${filters.year}',
-                        onTap: () => _pickYear(context, ref, filters),
-                      ),
-                      _FilterChip(
-                        icon: Icons.date_range,
-                        label: monthLabel,
-                        onTap: () => _pickMonth(context, ref, filters),
-                      ),
-                      accountsAsync.when(
-                        loading: () => Container(
-                          width: 34,
-                          height: 34,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            border: Border.all(color: AppColors.borderSubtle),
-                          ),
-                          child: const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                        error: (_, _) => const SizedBox.shrink(),
-                        data: (accounts) {
-                          final selected = filters.accountId == null
-                              ? null
-                              : accounts
-                                    .where((a) => a.id == filters.accountId)
-                                    .firstOrNull;
-                          return _FilterChip(
-                            icon: Icons.account_balance_wallet,
-                            label: selected?.name ?? 'Tous les comptes',
-                            onTap: () =>
-                                _pickAccount(context, ref, filters, accounts),
-                          );
-                        },
-                      ),
-                      _FilterChip(
-                        icon: Icons.fact_check_outlined,
-                        label: _statusFilterLabel(filters.status),
-                        onTap: () => _pickStatus(context, ref, filters),
-                      ),
-                      _FilterChip(
-                        icon: Icons.event,
-                        label: dateLabel,
-                        onTap: () =>
-                            _pickDateRange(context, ref, columnFilters),
-                      ),
-                      _FilterChip(
-                        icon: Icons.label_outline,
-                        label: textLabel,
-                        onTap: () => _pickLabel(context, ref, columnFilters),
-                      ),
-                      _FilterChip(
-                        icon: Icons.tune,
-                        label: amountLabel,
-                        onTap: () => _pickAmount(context, ref, columnFilters),
-                      ),
-                      if (columnFilters.hasActiveFilters)
-                        _FilterChip(
-                          icon: Icons.filter_alt_off_outlined,
-                          label: 'Reinitialiser',
-                          showChevron: false,
-                          onTap: () => _clearColumnFilters(ref),
-                        ),
-                    ],
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    icon: Icons.date_range,
+                    label: monthLabel,
+                    onTap: () => _pickMonth(context, ref, filters),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    icon: Icons.fact_check_outlined,
+                    label: _statusFilterLabel(filters.status),
+                    onTap: () => _pickStatus(context, ref, filters),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterIconButton(
+                    activeCount:
+                        activeCount + (filters.accountId != null ? 1 : 0),
+                    onTap: () => _openFilterDialog(
+                      context,
+                      ref,
+                      filters,
+                      columnFilters,
+                      accountsAsync,
+                    ),
+                  ),
+                  if (columnFilters.hasActiveFilters ||
+                      filters.accountId != null) ...[
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      icon: Icons.filter_alt_off_outlined,
+                      label: 'Reinitialiser',
+                      showChevron: false,
+                      onTap: () {
+                        _clearColumnFilters(ref);
+                        ref.read(journalFiltersProvider.notifier).state =
+                            filters.copyWith(accountId: null);
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ),
     );
   }
@@ -982,6 +923,73 @@ class _JournalFilterBar extends ConsumerWidget {
         const JournalColumnFilters();
   }
 
+  Future<void> _openFilterDialog(
+    BuildContext context,
+    WidgetRef ref,
+    JournalFilters filters,
+    JournalColumnFilters columnFilters,
+    AsyncValue<List<dynamic>> accountsAsync,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return _FilterDialog(
+          filters: filters,
+          columnFilters: columnFilters,
+          accountsAsync: accountsAsync,
+          onApply:
+              ({
+                String? accountId,
+                bool clearAccount = false,
+                DateTime? fromDate,
+                DateTime? toDate,
+                bool clearDates = false,
+                String? label,
+                double? minAmount,
+                double? maxAmount,
+                bool clearAmounts = false,
+              }) {
+                // Update account filter
+                if (clearAccount) {
+                  ref.read(journalFiltersProvider.notifier).state = filters
+                      .copyWith(accountId: null);
+                } else if (accountId != null) {
+                  ref.read(journalFiltersProvider.notifier).state = filters
+                      .copyWith(accountId: accountId);
+                }
+
+                // Update column filters
+                var newCol = columnFilters;
+                if (clearDates) {
+                  newCol = newCol.copyWith(fromDate: null, toDate: null);
+                } else {
+                  if (fromDate != null || toDate != null) {
+                    newCol = newCol.copyWith(
+                      fromDate: fromDate ?? columnFilters.fromDate,
+                      toDate: toDate ?? columnFilters.toDate,
+                    );
+                  }
+                }
+                if (label != null) {
+                  newCol = newCol.copyWith(label: label);
+                }
+                if (clearAmounts) {
+                  newCol = newCol.copyWith(minAmount: null, maxAmount: null);
+                } else {
+                  if (minAmount != null || maxAmount != null) {
+                    newCol = newCol.copyWith(
+                      minAmount: minAmount ?? columnFilters.minAmount,
+                      maxAmount: maxAmount ?? columnFilters.maxAmount,
+                    );
+                  }
+                }
+                ref.read(journalColumnFiltersProvider.notifier).state = newCol;
+              },
+        );
+      },
+    );
+  }
+
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -1068,13 +1076,13 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.zero,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
-          border: Border.all(color: AppColors.borderSubtle),
-          borderRadius: BorderRadius.zero,
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFD2DAE6)),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1102,6 +1110,431 @@ class _FilterChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FilterIconButton extends StatelessWidget {
+  final int activeCount;
+  final VoidCallback onTap;
+
+  const _FilterIconButton({required this.activeCount, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: activeCount > 0
+              ? AppColors.primary.withAlpha(18)
+              : Colors.white,
+          border: Border.all(
+            color: activeCount > 0
+                ? AppColors.primary.withAlpha(80)
+                : const Color(0xFFD2DAE6),
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune,
+              size: 16,
+              color: activeCount > 0
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+            ),
+            if (activeCount > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '$activeCount',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterDialog extends StatefulWidget {
+  final JournalFilters filters;
+  final JournalColumnFilters columnFilters;
+  final AsyncValue<List<dynamic>> accountsAsync;
+  final void Function({
+    String? accountId,
+    bool clearAccount,
+    DateTime? fromDate,
+    DateTime? toDate,
+    bool clearDates,
+    String? label,
+    double? minAmount,
+    double? maxAmount,
+    bool clearAmounts,
+  })
+  onApply;
+
+  const _FilterDialog({
+    required this.filters,
+    required this.columnFilters,
+    required this.accountsAsync,
+    required this.onApply,
+  });
+
+  @override
+  State<_FilterDialog> createState() => _FilterDialogState();
+}
+
+class _FilterDialogState extends State<_FilterDialog> {
+  late String? _accountId;
+  late DateTime? _fromDate;
+  late DateTime? _toDate;
+  late TextEditingController _labelCtrl;
+  late TextEditingController _minCtrl;
+  late TextEditingController _maxCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _accountId = widget.filters.accountId;
+    _fromDate = widget.columnFilters.fromDate;
+    _toDate = widget.columnFilters.toDate;
+    _labelCtrl = TextEditingController(text: widget.columnFilters.label);
+    _minCtrl = TextEditingController(
+      text: widget.columnFilters.minAmount?.toStringAsFixed(2) ?? '',
+    );
+    _maxCtrl = TextEditingController(
+      text: widget.columnFilters.maxAmount?.toStringAsFixed(2) ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _labelCtrl.dispose();
+    _minCtrl.dispose();
+    _maxCtrl.dispose();
+    super.dispose();
+  }
+
+  double? _parseAmount(String input) {
+    final raw = input.trim().replaceAll(' ', '').replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accounts = widget.accountsAsync.valueOrNull ?? [];
+
+    return AlertDialog(
+      backgroundColor: AppColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      title: const Text(
+        'Filtres avances',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Account
+              const Text(
+                'Compte',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: _accountId,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide: const BorderSide(color: AppColors.borderSubtle),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide: const BorderSide(color: AppColors.borderSubtle),
+                  ),
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+                hint: const Text(
+                  'Tous les comptes',
+                  style: TextStyle(fontSize: 13),
+                ),
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Tous les comptes'),
+                  ),
+                  ...accounts.map(
+                    (a) => DropdownMenuItem<String>(
+                      value: a.id as String,
+                      child: Text(a.name as String),
+                    ),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _accountId = v),
+              ),
+              const SizedBox(height: 16),
+
+              // Date range
+              const Text(
+                'Plage de dates',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DateFilterInput(
+                      label: 'Date min',
+                      date: _fromDate,
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _fromDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (d != null) setState(() => _fromDate = d);
+                      },
+                      onClear: () => setState(() => _fromDate = null),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _DateFilterInput(
+                      label: 'Date max',
+                      date: _toDate,
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _toDate ?? (_fromDate ?? DateTime.now()),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (d != null) setState(() => _toDate = d);
+                      },
+                      onClear: () => setState(() => _toDate = null),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Label
+              const Text(
+                'Libelle',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _labelCtrl,
+                maxLength: 80,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Contient...',
+                  counterText: '',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide: const BorderSide(color: AppColors.borderSubtle),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide: const BorderSide(color: AppColors.borderSubtle),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Amount range
+              const Text(
+                'Montant',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _minCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      ],
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Min',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderSubtle,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderSubtle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '-',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _maxCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      ],
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Max',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderSubtle,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.borderSubtle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Annuler',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            // Clear all
+            widget.onApply(
+              clearAccount: true,
+              clearDates: true,
+              label: '',
+              clearAmounts: true,
+            );
+            Navigator.of(context).pop();
+          },
+          child: const Text(
+            'Effacer tout',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            widget.onApply(
+              accountId: _accountId,
+              clearAccount:
+                  _accountId == null && widget.filters.accountId != null,
+              fromDate: _fromDate,
+              toDate: _toDate,
+              clearDates: _fromDate == null && _toDate == null,
+              label: _labelCtrl.text.trim(),
+              minAmount: _parseAmount(_minCtrl.text),
+              maxAmount: _parseAmount(_maxCtrl.text),
+              clearAmounts:
+                  _minCtrl.text.trim().isEmpty && _maxCtrl.text.trim().isEmpty,
+            );
+            Navigator.of(context).pop();
+          },
+          child: const Text('Appliquer'),
+        ),
+      ],
     );
   }
 }
@@ -1289,14 +1722,17 @@ class _TransactionTable extends StatelessWidget {
     final rows = _buildRows(transactions, showMonthHeaders);
     return AppPanel(
       padding: EdgeInsets.zero,
-      radius: 0,
+      radius: AppRadius.md,
       variant: AppPanelVariant.surface,
-      boxShadow: const [],
+      backgroundColor: AppColors.surfaceCard,
+      borderColor: const Color(0xFFD4DBE5),
+      boxShadow: AppShadows.cardHover,
+      clipBehavior: Clip.hardEdge,
       child: Column(
         children: [
           _JournalFilterBar(isMobile: isMobile),
           _TableHeader(isMobile: isMobile),
-          const Divider(height: 1, color: AppColors.borderSubtle),
+          const Divider(height: 1, color: Color(0xFFD4DBE5)),
           Expanded(
             child: rows.isEmpty
                 ? const Center(
@@ -1321,19 +1757,12 @@ class _TransactionTable extends StatelessWidget {
                         );
                       }
                       final tx = entry.transaction!;
-                      return Column(
-                        children: [
-                          _TransactionRow(
-                            transaction: tx,
-                            isMobile: isMobile,
-                            selected: tx.id == selectedId,
-                            onTap: () => onSelect(tx),
-                          ),
-                          const Divider(
-                            height: 1,
-                            color: AppColors.borderSubtle,
-                          ),
-                        ],
+                      return _TransactionRow(
+                        transaction: tx,
+                        isMobile: isMobile,
+                        selected: tx.id == selectedId,
+                        isEven: index % 2 == 0,
+                        onTap: () => onSelect(tx),
                       );
                     },
                   ),
@@ -1399,10 +1828,10 @@ class _MonthHeaderRow extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHeader,
+        color: const Color(0xFFEAF2E3),
         border: const Border(
-          top: BorderSide(color: AppColors.borderSubtle),
-          bottom: BorderSide(color: AppColors.borderSubtle),
+          top: BorderSide(color: Color(0xFFCCD9BE)),
+          bottom: BorderSide(color: Color(0xFFCCD9BE)),
         ),
       ),
       child: Row(
@@ -1412,7 +1841,7 @@ class _MonthHeaderRow extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.textSecondary,
+              color: AppColors.primaryDark,
               letterSpacing: 0.4,
             ),
           ),
@@ -1462,23 +1891,72 @@ class _TableHeader extends ConsumerWidget {
     final sort = ref.watch(_journalSortProvider);
     const style = TextStyle(
       fontSize: 11,
-      fontWeight: FontWeight.w700,
-      color: AppColors.textDisabled,
-      letterSpacing: 1.0,
+      fontWeight: FontWeight.w800,
+      color: AppColors.textPrimary,
+      letterSpacing: 0.9,
+    );
+    final headerDecoration = BoxDecoration(
+      color: const Color(0xFFEEF2F7),
+      border: const Border(bottom: BorderSide(color: Color(0xFFD4DBE5))),
     );
     if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      return Container(
+        decoration: headerDecoration,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: _SortableHeaderLabel(
+                  label: 'TRANSACTION',
+                  style: style,
+                  active: sort.column == _JournalSortColumn.date,
+                  ascending: sort.ascending,
+                  onTap: () => _toggleSort(ref, _JournalSortColumn.date),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: _SortableHeaderLabel(
+                  label: 'MONTANT',
+                  style: style,
+                  active: sort.column == _JournalSortColumn.amount,
+                  ascending: sort.ascending,
+                  alignEnd: true,
+                  onTap: () => _toggleSort(ref, _JournalSortColumn.amount),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: headerDecoration,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
             Expanded(
-              flex: 4,
+              flex: 2,
               child: _SortableHeaderLabel(
-                label: 'TRANSACTION',
+                label: 'DATE',
                 style: style,
                 active: sort.column == _JournalSortColumn.date,
                 ascending: sort.ascending,
                 onTap: () => _toggleSort(ref, _JournalSortColumn.date),
+              ),
+            ),
+            Expanded(
+              flex: 5,
+              child: _SortableHeaderLabel(
+                label: 'LIBELLE',
+                style: style,
+                active: sort.column == _JournalSortColumn.label,
+                ascending: sort.ascending,
+                onTap: () => _toggleSort(ref, _JournalSortColumn.label),
               ),
             ),
             Expanded(
@@ -1494,65 +1972,6 @@ class _TableHeader extends ConsumerWidget {
             ),
           ],
         ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: _SortableHeaderLabel(
-              label: 'DATE',
-              style: style,
-              active: sort.column == _JournalSortColumn.date,
-              ascending: sort.ascending,
-              onTap: () => _toggleSort(ref, _JournalSortColumn.date),
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: _SortableHeaderLabel(
-              label: 'LIBELLE',
-              style: style,
-              active: sort.column == _JournalSortColumn.label,
-              ascending: sort.ascending,
-              onTap: () => _toggleSort(ref, _JournalSortColumn.label),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: _SortableHeaderLabel(
-              label: 'COMPTE',
-              style: style,
-              active: sort.column == _JournalSortColumn.account,
-              ascending: sort.ascending,
-              onTap: () => _toggleSort(ref, _JournalSortColumn.account),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: _SortableHeaderLabel(
-              label: 'STATUT',
-              style: style,
-              active: sort.column == _JournalSortColumn.status,
-              ascending: sort.ascending,
-              onTap: () => _toggleSort(ref, _JournalSortColumn.status),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: _SortableHeaderLabel(
-              label: 'MONTANT',
-              style: style,
-              active: sort.column == _JournalSortColumn.amount,
-              ascending: sort.ascending,
-              alignEnd: true,
-              onTap: () => _toggleSort(ref, _JournalSortColumn.amount),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1596,7 +2015,9 @@ class _SortableHeaderLabel extends StatelessWidget {
     final icon = active
         ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
         : Icons.unfold_more;
-    final color = active ? AppColors.textPrimary : AppColors.textDisabled;
+    final color = active
+        ? AppColors.textPrimary
+        : AppColors.textPrimary.withAlpha(170);
 
     return InkWell(
       onTap: onTap,
@@ -1625,12 +2046,14 @@ class _TransactionRow extends StatefulWidget {
   final Transaction transaction;
   final bool isMobile;
   final bool selected;
+  final bool isEven;
   final VoidCallback onTap;
 
   const _TransactionRow({
     required this.transaction,
     required this.isMobile,
     required this.selected,
+    this.isEven = false,
     required this.onTap,
   });
 
@@ -1647,10 +2070,17 @@ class _TransactionRowState extends State<_TransactionRow> {
     final amountPrefix = transaction.isIncome ? '+' : '-';
     final amountColor = transaction.isIncome
         ? AppColors.primary
-        : AppColors.textPrimary;
+        : AppColors.danger;
+    final baseBg = widget.isMobile
+        ? Colors.transparent
+        : (widget.isEven ? Colors.white : const Color(0xFFF7FAFD));
     final rowBg = widget.selected
-        ? AppColors.primary.withAlpha(_hovered ? 22 : 12)
-        : (_hovered ? Colors.black.withAlpha(18) : Colors.transparent);
+        ? AppColors.primary.withAlpha(_hovered ? 52 : 34)
+        : _hovered
+        ? (transaction.isIncome
+              ? AppColors.primary.withAlpha(24)
+              : AppColors.danger.withAlpha(22))
+        : baseBg;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1660,7 +2090,10 @@ class _TransactionRowState extends State<_TransactionRow> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          color: rowBg,
+          decoration: BoxDecoration(
+            color: rowBg,
+            border: const Border(bottom: BorderSide(color: Color(0xFFD9E0EA))),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: widget.isMobile
               ? Row(
@@ -1730,13 +2163,13 @@ class _TransactionRowState extends State<_TransactionRow> {
                         ).format(transaction.date),
                         style: const TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                     ),
                     Expanded(
-                      flex: 4,
+                      flex: 5,
                       child: Row(
                         children: [
                           _TransactionAvatar(
@@ -1745,35 +2178,26 @@ class _TransactionRowState extends State<_TransactionRow> {
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(
-                              _displayLabel(transaction),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _displayLabel(transaction),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                if (!transaction.isCompleted)
+                                  _StatusPill(transaction: transaction),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        transaction.accountName ?? '-',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: _StatusPill(transaction: transaction),
                     ),
                     Expanded(
                       flex: 2,
@@ -2302,11 +2726,12 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Only show status pill for unpaid transactions
+    if (transaction.isCompleted) return const SizedBox.shrink();
+
     final label = _statusLabel(transaction);
-    final color = transaction.isCompleted
-        ? AppColors.primary
-        : AppColors.warning;
-    final icon = transaction.isCompleted ? Icons.check_circle : Icons.schedule;
+    final color = AppColors.warning;
+    final icon = Icons.schedule;
 
     return Container(
       padding: EdgeInsets.symmetric(

@@ -35,7 +35,7 @@ class JournalFilters {
 const _sentinel = Object();
 
 final journalFiltersProvider = StateProvider<JournalFilters>(
-  (ref) => JournalFilters(year: DateTime.now().year),
+  (ref) => JournalFilters(year: DateTime.now().year, status: 'completed'),
 );
 
 final journalSearchProvider = StateProvider<String>((ref) => '');
