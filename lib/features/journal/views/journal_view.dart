@@ -1950,13 +1950,31 @@ class _TableHeader extends ConsumerWidget {
               ),
             ),
             Expanded(
-              flex: 5,
+              flex: 4,
               child: _SortableHeaderLabel(
                 label: 'LIBELLE',
                 style: style,
                 active: sort.column == _JournalSortColumn.label,
                 ascending: sort.ascending,
                 onTap: () => _toggleSort(ref, _JournalSortColumn.label),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                'GROUPE',
+                style: style.copyWith(
+                  color: AppColors.textPrimary.withAlpha(180),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                'DESCRIPTION',
+                style: style.copyWith(
+                  color: AppColors.textPrimary.withAlpha(180),
+                ),
               ),
             ),
             Expanded(
@@ -2071,6 +2089,8 @@ class _TransactionRowState extends State<_TransactionRow> {
     final amountColor = transaction.isIncome
         ? AppColors.primary
         : AppColors.danger;
+    final groupLabel = _transactionGroup(transaction);
+    final description = _transactionDescription(transaction);
     final baseBg = widget.isMobile
         ? Colors.transparent
         : (widget.isEven ? Colors.white : const Color(0xFFF7FAFD));
@@ -2169,7 +2189,7 @@ class _TransactionRowState extends State<_TransactionRow> {
                       ),
                     ),
                     Expanded(
-                      flex: 5,
+                      flex: 4,
                       child: Row(
                         children: [
                           _TransactionAvatar(
@@ -2191,13 +2211,37 @@ class _TransactionRowState extends State<_TransactionRow> {
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
-                                if (!transaction.isCompleted)
+                                if (!transaction.isCompleted) ...[
+                                  const SizedBox(height: 4),
                                   _StatusPill(transaction: transaction),
+                                ],
                               ],
                             ),
                           ),
                         ],
                       ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _TransactionGroupTag(label: groupLabel),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: description == null
+                          ? Text(
+                              '-',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary.withAlpha(120),
+                              ),
+                            )
+                          : _FadedInlineText(
+                              text: description,
+                              fadeColor: rowBg,
+                            ),
                     ),
                     Expanded(
                       flex: 2,
@@ -2761,6 +2805,84 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
+class _TransactionGroupTag extends StatelessWidget {
+  final String label;
+
+  const _TransactionGroupTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withAlpha(16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.primary.withAlpha(52)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primaryDark,
+        ),
+      ),
+    );
+  }
+}
+
+class _FadedInlineText extends StatelessWidget {
+  final String text;
+  final Color fadeColor;
+
+  const _FadedInlineText({required this.text, required this.fadeColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth <= 0) return const SizedBox.shrink();
+        final fadeWidth = (constraints.maxWidth * 0.38)
+            .clamp(32.0, 86.0)
+            .toDouble();
+        return Stack(
+          children: [
+            Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  width: fadeWidth,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [fadeColor.withAlpha(0), fadeColor],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _ActionTextButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -2853,7 +2975,25 @@ class _TransactionAvatar extends StatelessWidget {
 String _displayLabel(Transaction tx) {
   final note = (tx.note ?? '').trim();
   if (note.isNotEmpty) return note;
+  final category = (tx.categoryName ?? '').trim();
+  if (category.isNotEmpty) return category;
   return (tx.accountName ?? tx.accountId).trim();
+}
+
+String _transactionGroup(Transaction tx) {
+  final group = (tx.categoryGroup ?? '').trim();
+  if (group.isNotEmpty) return group;
+  final category = (tx.categoryName ?? '').trim();
+  if (category.isNotEmpty) return category;
+  final account = (tx.accountName ?? '').trim();
+  if (account.isNotEmpty) return account;
+  return tx.accountId.trim();
+}
+
+String? _transactionDescription(Transaction tx) {
+  final note = (tx.note ?? '').trim();
+  if (note.isEmpty) return null;
+  return note;
 }
 
 String _statusLabel(Transaction tx) {

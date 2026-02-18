@@ -3,6 +3,8 @@ class Transaction {
   final String accountId;
   final String? accountName;
   final String? accountType; // 'income' or 'expense'
+  final String? categoryName;
+  final String? categoryGroup;
   final String userId;
   final DateTime date;
   final double amount;
@@ -15,6 +17,8 @@ class Transaction {
     required this.accountId,
     this.accountName,
     this.accountType,
+    this.categoryName,
+    this.categoryGroup,
     required this.userId,
     required this.date,
     required this.amount,
@@ -28,28 +32,34 @@ class Transaction {
   bool get isIncome => accountType == 'income';
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-        id: json['id'] as String,
-        accountId: json['accountId'] as String,
-        accountName: json['accountName'] as String?,
-        accountType: json['accountType'] as String?,
-        userId: json['userId'] as String,
-        date: DateTime.parse(json['date'] as String),
-        amount: (json['amount'] as num).toDouble(),
-        note: json['note'] as String?,
-        status: (json['status'] as String).toLowerCase(),
-        isAuto: json['isAuto'] as bool,
-      );
+    id: json['id'] as String,
+    accountId: json['accountId'] as String,
+    accountName: json['accountName'] as String?,
+    accountType: json['accountType'] as String?,
+    categoryName: (json['categoryName'] ?? json['category']) as String?,
+    categoryGroup:
+        (json['categoryGroup'] ?? json['groupName'] ?? json['group'])
+            as String?,
+    userId: json['userId'] as String,
+    date: DateTime.parse(json['date'] as String),
+    amount: (json['amount'] as num).toDouble(),
+    note: json['note'] as String?,
+    status: (json['status'] as String).toLowerCase(),
+    isAuto: json['isAuto'] as bool,
+  );
 
   Transaction copyWith({String? status, double? amount}) => Transaction(
-        id: id,
-        accountId: accountId,
-        accountName: accountName,
-        accountType: accountType,
-        userId: userId,
-        date: date,
-        amount: amount ?? this.amount,
-        note: note,
-        status: status ?? this.status,
-        isAuto: isAuto,
-      );
+    id: id,
+    accountId: accountId,
+    accountName: accountName,
+    accountType: accountType,
+    categoryName: categoryName,
+    categoryGroup: categoryGroup,
+    userId: userId,
+    date: date,
+    amount: amount ?? this.amount,
+    note: note,
+    status: status ?? this.status,
+    isAuto: isAuto,
+  );
 }
