@@ -150,6 +150,7 @@ class _Nav {
   const _Nav();
 
   String get dashboard => 'Dashboard';
+  String get activity => 'Activite';
   String get journal => 'Journal';
   String get schedule => 'Échéancier';
   String get budget => 'Budget';
@@ -157,6 +158,7 @@ class _Nav {
   String get portfolio => 'Portfolio';
   String get analysis => 'Analyse';
   String get spreadsheet => 'Tableur';
+  String get more => 'Plus';
 }
 
 // ---------------------------------------------------------------------------
@@ -313,8 +315,10 @@ class _Budget {
   String get step3 => 'Étape 3';
 
   String get basePlan => 'Base de plan (modifiable)';
-  String get modeNet => 'Mode net recommandé: base déjà nettoyée avant répartition.';
-  String get modeGross => 'Mode brut: on ne retire pas les factures automatiquement.';
+  String get modeNet =>
+      'Mode net recommandé: base déjà nettoyée avant répartition.';
+  String get modeGross =>
+      'Mode brut: on ne retire pas les factures automatiquement.';
   String get showGross => 'Voir vraie somme brute (sans factures du mois)';
 
   String get alreadyAllocated => 'de la base déjà répartie';
@@ -345,8 +349,7 @@ class _Budget {
       'Planifiez vos allocations mensuelles et suivez vos marges.';
   String errorBudget(Object e) => 'Erreur budget: $e';
   String allocationByGroup(int n) => 'ALLOCATION PAR GROUPE ($n)';
-  String get overLimitMsg =>
-      'Allocation manuelle dépasse la capacité restante';
+  String get overLimitMsg => 'Allocation manuelle dépasse la capacité restante';
   String manualPctLabel(String a, String b) => 'Manuel: $a% / $b%';
 
   // budget_view.summary.part.dart
@@ -410,8 +413,7 @@ class _Budget {
   ) => 'Objectif cible: $amount sur $months mois (jusqu\'à $monthName $year)';
   String get needPositiveIncome =>
       'Définis d\'abord un revenu disponible positif pour ce mois.';
-  String get needPositivePercent =>
-      'Le pourcentage doit être supérieur à 0%.';
+  String get needPositivePercent => 'Le pourcentage doit être supérieur à 0%.';
   String goalCreated(String name, String amount) =>
       'Objectif "$name" créé ($amount/mois).';
   String get openGoals => 'Ouvrir Objectifs';
@@ -563,8 +565,7 @@ class _Goals {
   String debtAmountLabel(String code) => 'Montant total de la dette ($code)';
   String alreadyRepaidLabel(String code) => 'Déjà remboursé ($code)';
   String initialAmountLabel(String code) => 'Montant initial ($code)';
-  String monthlyRepaymentLabel(String code) =>
-      'Remboursement mensuel ($code)';
+  String monthlyRepaymentLabel(String code) => 'Remboursement mensuel ($code)';
   String monthlyContributionLabel(String code) =>
       'Contribution mensuelle ($code)';
   String get autoPaymentMonthly => 'Paiement automatique mensuel';
@@ -635,7 +636,8 @@ class _Schedule {
   String get calendarMonth => 'Calendrier du mois';
   String get monthInvoices => 'Factures du mois';
   String get allInvoices => 'Toutes les factures';
-  String get visibleWithTotal => 'Factures affichées (total complet entre parenthèses)';
+  String get visibleWithTotal =>
+      'Factures affichées (total complet entre parenthèses)';
 
   String get noDeadlines => 'Aucune échéance';
   String get paid => 'Payé';
@@ -699,7 +701,8 @@ class _Analysis {
 
   // Chart
   String get yoyChartTitle => 'Year-over-Year Income vs Expense Growth';
-  String get yoyChartSubtitle => 'Strategic view of wealth accumulation efficiency';
+  String get yoyChartSubtitle =>
+      'Strategic view of wealth accumulation efficiency';
   String get netIncomeGrowth => 'NET INCOME GROWTH';
   String get expenseTrend => 'EXPENSE TREND';
   String spreadGrowthBadge(String pct) => '+$pct% Spread Growth';
@@ -820,8 +823,7 @@ class _Forms {
   String get accountsLoadError => 'Erreur de chargement des comptes';
   String get chooseCategory => 'Choisir une catégorie';
   String get alreadyPaid => 'Déjà payé';
-  String get paidHelper =>
-      'Coché par défaut pour les opérations déjà réglées.';
+  String get paidHelper => 'Coché par défaut pour les opérations déjà réglées.';
   String get notPaidHelper =>
       'Non payé: apparaîtra dans les factures à traiter.';
   String get repeatMonthly => 'Répéter chaque mois';
@@ -928,6 +930,33 @@ class _UI {
   String get themeTooltipLight => 'Passer en mode clair';
   String get themeTooltipDark => 'Passer en mode sombre';
   String get currencyTooltip => 'Changer de devise';
+  String get currencyConverterTooltip => 'Convertir une devise';
+  String get currencyConverterAction => 'Convertir';
+  String get currencyConverterTitle => 'Convertisseur de devises';
+  String get currencyConverterSubtitle =>
+      'Valeurs indicatives selon les taux de change en direct.';
+  String currencyConverterSource(String source) => 'Source des taux: $source';
+  String currencyConverterUpdatedAt(String date) =>
+      'Derniere mise a jour: $date UTC';
+  String get currencyConverterUpdatedUnknown =>
+      'Derniere mise a jour: inconnue';
+  String get currencyConverterAmountLabel => 'Montant';
+  String get currencyConverterFromLabel => 'Devise source';
+  String get currencyConverterAllLabel => 'Toutes devises';
+  String get currencyConverterRatesLabel => 'Equivalences';
+  String get currencyConverterPopularLabel => 'Devises populaires';
+  String get currencyConverterSearchLabel => 'Rechercher une devise';
+  String get currencyConverterSearchHint => 'Ex: MAD, NOK, INR, Peso...';
+  String get currencyConverterNoSearchResult =>
+      'Aucune devise trouvee pour cette recherche.';
+  String get currencyConverterAvailableByApi =>
+      'Liste des devises disponible via l API de taux.';
+  String get currencyConverterNoRate => 'Taux indisponible';
+  String get currencyConverterRefresh => 'Actualiser';
+  String get currencyConverterOffline =>
+      'Impossible de charger les taux. Verifie la connexion.';
+  String get currencyConverterIndicative =>
+      'Conversion informative uniquement, hors frais bancaires.';
 
   String get currencyChf => 'CHF – Franc suisse';
   String get currencyEur => 'EUR – Euro';

@@ -50,7 +50,8 @@
       "Bash(__NEW_LINE_6d714845611db07e__ echo \"\")",
       "Bash(dart analyze:*)",
       "Bash(python3:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(node -e:*)"
     ]
   }
 }
