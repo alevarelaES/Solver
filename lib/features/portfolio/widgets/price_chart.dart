@@ -175,7 +175,7 @@ class _ChartBody extends StatelessWidget {
             getDrawingHorizontalLine: (_) => FlLine(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white12
-                  : const Color(0xFFE5E7EB),
+                  : AppColors.borderLight,
               strokeWidth: 1,
             ),
           ),

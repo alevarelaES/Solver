@@ -214,11 +214,11 @@ class _FinancialOverviewChartState
                   barGroups: List.generate(buckets.length, (i) {
                     final bucket = buckets[i];
                     final grayIncome = isDark
-                        ? const Color(0xFF4B5563)
-                        : const Color(0xFFE5E7EB);
+                        ? AppColors.textMutedStrong
+                        : AppColors.borderLight;
                     final grayExpense = isDark
-                        ? const Color(0xFF7F1D1D)
-                        : const Color(0xFFFEE2E2);
+                        ? AppColors.dangerDeep
+                        : AppColors.surfaceDanger;
 
                     return BarChartGroupData(
                       x: i,
@@ -229,9 +229,7 @@ class _FinancialOverviewChartState
                               ? AppColors.primary
                               : grayIncome,
                           width: AppSizes.barWidth,
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.barRadius,
-                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.r6),
                         ),
                         BarChartRodData(
                           toY: bucket.expense,
@@ -239,9 +237,7 @@ class _FinancialOverviewChartState
                               ? AppColors.danger
                               : grayExpense,
                           width: AppSizes.barWidth,
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.barRadius,
-                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.r6),
                         ),
                       ],
                     );

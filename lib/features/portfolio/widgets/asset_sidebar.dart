@@ -211,8 +211,8 @@ class _SummaryCard extends StatelessWidget {
     return AppPanel(
       variant: AppPanelVariant.elevated,
       backgroundColor: isDark
-          ? const Color(0xFF1A2327)
-          : const Color(0xFFF0F7EE),
+          ? AppColors.portfolioSurfaceDark
+          : AppColors.portfolioSurfaceLight,
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

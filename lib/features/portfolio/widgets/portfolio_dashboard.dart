@@ -238,8 +238,8 @@ class _HeroCard extends StatelessWidget {
     return AppPanel(
       variant: AppPanelVariant.elevated,
       backgroundColor: isDark
-          ? const Color(0xFF182126)
-          : const Color(0xFFEFF7F0),
+          ? AppColors.portfolioSurfaceDark
+          : AppColors.portfolioSurfaceLight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

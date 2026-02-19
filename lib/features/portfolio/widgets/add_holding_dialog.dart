@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -35,6 +36,8 @@ class _AddHoldingDialogState extends ConsumerState<AddHoldingDialog> {
   final _notesCtrl = TextEditingController();
 
   SymbolSearchResult? _selectedSymbol;
+  String _symbolQuery = '';
+  String _manualAssetType = 'stock';
   DateTime? _buyDate;
   bool _submitting = false;
   String? _error;
@@ -48,8 +51,13 @@ class _AddHoldingDialogState extends ConsumerState<AddHoldingDialog> {
   }
 
   Future<void> _submit() async {
-    if (_selectedSymbol == null) {
-      setState(() => _error = 'Selectionnez un symbole depuis la liste.');
+    final selected = _selectedSymbol;
+    final manualSymbol = _symbolQuery.trim().toUpperCase();
+    if (selected == null && manualSymbol.isEmpty) {
+      setState(
+        () => _error =
+            'Saisissez un symbole ou selectionnez-en un dans la liste.',
+      );
       return;
     }
 
@@ -77,14 +85,22 @@ class _AddHoldingDialogState extends ConsumerState<AddHoldingDialog> {
     });
 
     try {
+      final resolvedSymbol =
+          selected?.symbol.trim().toUpperCase() ?? manualSymbol;
+      final resolvedName = selected?.name.trim().isNotEmpty == true
+          ? selected!.name.trim()
+          : resolvedSymbol;
+      final resolvedAssetType = selected != null
+          ? _normalizeAssetType(selected.type)
+          : _manualAssetType;
       await ref
           .read(portfolioMutationsProvider)
           .addHolding(
             AddHoldingRequest(
-              symbol: _selectedSymbol!.symbol,
-              exchange: _selectedSymbol!.exchange,
-              name: _selectedSymbol!.name,
-              assetType: _normalizeAssetType(_selectedSymbol!.type),
+              symbol: resolvedSymbol,
+              exchange: selected?.exchange,
+              name: resolvedName,
+              assetType: resolvedAssetType,
               quantity: quantity,
               averageBuyPrice: buyPrice,
               buyDate: _buyDate,
@@ -127,7 +143,7 @@ class _AddHoldingDialogState extends ConsumerState<AddHoldingDialog> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -145,8 +161,37 @@ class _AddHoldingDialogState extends ConsumerState<AddHoldingDialog> {
                 onSelected: (symbol) {
                   setState(() {
                     _selectedSymbol = symbol;
+                    _symbolQuery = symbol.symbol;
                     _error = null;
                   });
+                },
+                onQueryChanged: (value) {
+                  final normalized = value.trim().toUpperCase();
+                  setState(() {
+                    _symbolQuery = value;
+                    if (_selectedSymbol != null &&
+                        normalized != _selectedSymbol!.symbol.toUpperCase()) {
+                      _selectedSymbol = null;
+                    }
+                    _error = null;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _manualAssetType,
+                decoration: const InputDecoration(
+                  labelText: 'Type actif (si saisie manuelle)',
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'stock', child: Text('Action')),
+                  DropdownMenuItem(value: 'etf', child: Text('ETF')),
+                  DropdownMenuItem(value: 'crypto', child: Text('Crypto')),
+                  DropdownMenuItem(value: 'forex', child: Text('Forex')),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _manualAssetType = value);
                 },
               ),
               const SizedBox(height: 12),

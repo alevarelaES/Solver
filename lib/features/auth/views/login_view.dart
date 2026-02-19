@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -54,7 +55,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -133,3 +134,5 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 }
+
+

@@ -103,8 +103,6 @@ public static class CategoryResetMigration
                 CreatedAt = DateTime.UtcNow,
             };
             db.Accounts.Add(created);
-            // Keep writes small to avoid large batched INSERTs on pooled connections.
-            await db.SaveChangesAsync(ct);
             accountByKey[key] = created;
             accountById[created.Id] = created;
         }
@@ -121,7 +119,6 @@ public static class CategoryResetMigration
             if (!accountByKey.TryGetValue(key, out var target)) continue;
             if (t.AccountId == target.Id) continue;
             t.AccountId = target.Id;
-            await db.SaveChangesAsync(ct);
         }
 
         var defaultKeySet = Seeds.Select(SeedKey).ToHashSet(StringComparer.Ordinal);
@@ -131,11 +128,7 @@ public static class CategoryResetMigration
 
         if (toDelete.Count > 0)
         {
-            foreach (var account in toDelete)
-            {
-                db.Accounts.Remove(account);
-                await db.SaveChangesAsync(ct);
-            }
+            db.Accounts.RemoveRange(toDelete);
         }
 
         var remaining = await db.Accounts
@@ -151,10 +144,10 @@ public static class CategoryResetMigration
         var prefsByAccount = prefs.ToDictionary(p => p.AccountId, p => p);
         var remainingIds = remaining.Select(a => a.Id).ToHashSet();
 
-        foreach (var p in prefs.Where(p => !remainingIds.Contains(p.AccountId)))
+        var prefsToRemove = prefs.Where(p => !remainingIds.Contains(p.AccountId)).ToList();
+        if (prefsToRemove.Count > 0)
         {
-            db.CategoryPreferences.Remove(p);
-            await db.SaveChangesAsync(ct);
+            db.CategoryPreferences.RemoveRange(prefsToRemove);
         }
 
         for (var i = 0; i < remaining.Count; i++)
@@ -165,7 +158,6 @@ public static class CategoryResetMigration
                 pref.SortOrder = i;
                 pref.IsArchived = false;
                 pref.UpdatedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync(ct);
                 continue;
             }
 
@@ -178,8 +170,9 @@ public static class CategoryResetMigration
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             });
-            await db.SaveChangesAsync(ct);
         }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private static CategorySeed ResolveTargetSeed(Account account)

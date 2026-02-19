@@ -1,6 +1,6 @@
 # Phase 1 — Backend .NET (API REST)
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md) | [SECURITY.md](../SECURITY.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md) | [SECURITY.md](../../SECURITY.md)
 >
 > **Statut :** ✅ Terminé
 >
@@ -332,3 +332,4 @@ La Phase 1 terminée débloque les phases en parallèle :
 - **→ Phase 3** : Dashboard (nécessite les endpoints transactions et accounts)
 - **→ Phase 4** : Récurrence (nécessite les endpoints transactions)
 - **→ Phase 5** : Vues secondaires
+

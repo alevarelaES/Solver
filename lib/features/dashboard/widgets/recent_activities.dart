@@ -310,15 +310,16 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: display
-                    .map((tx) => _TransactionRow(
-                          transaction: tx,
-                          onTap: () {
-                            ref
-                                .read(pendingJournalTxIdProvider.notifier)
-                                .state = tx.id;
-                            context.go('/journal');
-                          },
-                        ))
+                    .map(
+                      (tx) => _TransactionRow(
+                        transaction: tx,
+                        onTap: () {
+                          ref.read(pendingJournalTxIdProvider.notifier).state =
+                              tx.id;
+                          context.go('/journal');
+                        },
+                      ),
+                    )
                     .toList(),
               );
             },
@@ -358,91 +359,91 @@ class _TransactionRowState extends State<_TransactionRow> {
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: 8,
-          horizontal: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: _isHovered
-              ? (isDark
-                    ? AppColors.surfaceDark.withValues(alpha: 0.5)
-                    : const Color(0xFFF9FAFB))
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: Row(
-          children: [
-            // Icon + description
-            Expanded(
-              flex: 5,
-              child: Row(
-                children: [
-                  Container(
-                    width: AppSizes.iconBoxSizeSm,
-                    height: AppSizes.iconBoxSizeSm,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.borderDark
-                          : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      _getIcon(tx),
-                      size: AppSizes.iconSizeSm,
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      tx.note?.isNotEmpty == true
-                          ? tx.note!
-                          : (tx.accountName ?? '—'),
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+          padding: const EdgeInsets.symmetric(
+            vertical: 8,
+            horizontal: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? (isDark
+                      ? AppColors.surfaceDark.withValues(alpha: 0.5)
+                      : AppColors.surfaceElevated)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Row(
+            children: [
+              // Icon + description
+              Expanded(
+                flex: 5,
+                child: Row(
+                  children: [
+                    Container(
+                      width: AppSizes.iconBoxSizeSm,
+                      height: AppSizes.iconBoxSizeSm,
+                      decoration: BoxDecoration(
                         color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
+                            ? AppColors.borderDark
+                            : AppColors.surfaceHeader,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        _getIcon(tx),
+                        size: AppSizes.iconSizeSm,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                       ),
                     ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        tx.note?.isNotEmpty == true
+                            ? tx.note!
+                            : (tx.accountName ?? '—'),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Date
+              Expanded(
+                flex: 3,
+                child: Text(
+                  dateFormat.format(tx.date),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
-                ],
-              ),
-            ),
-            // Date
-            Expanded(
-              flex: 3,
-              child: Text(
-                dateFormat.format(tx.date),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
                 ),
               ),
-            ),
-            // Amount
-            Expanded(
-              flex: 3,
-              child: Text(
-                '${isExpense ? '-' : '+'}${AppFormats.currency.format(tx.amount)}',
-                textAlign: TextAlign.right,
-                style: GoogleFonts.robotoMono(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isExpense ? AppColors.danger : AppColors.success,
+              // Amount
+              Expanded(
+                flex: 3,
+                child: Text(
+                  '${isExpense ? '-' : '+'}${AppFormats.currency.format(tx.amount)}',
+                  textAlign: TextAlign.right,
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isExpense ? AppColors.danger : AppColors.success,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

@@ -1,6 +1,6 @@
 # Phase 3 — Dashboard (Vue Core)
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md)
 >
 > **Statut :** ✅ Terminé
 >
@@ -319,3 +319,4 @@ En haut du dashboard :
 ## Passage à la Phase Suivante
 
 - **→ Phase 4** : Récurrence (le modal de transaction créé dans cette phase sera enrichi)
+

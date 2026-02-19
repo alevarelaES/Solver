@@ -199,7 +199,7 @@ class _PendingInvoicesSectionState
                       final rowAccent = isOverdue
                           ? AppColors.danger
                           : isToday
-                          ? const Color(0xFFEA580C)
+                          ? AppColors.warningDeep
                           : color;
 
                       return Padding(
@@ -209,102 +209,107 @@ class _PendingInvoicesSectionState
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                            border: Border.all(
-                              color: rowAccent.withValues(alpha: 0.45),
-                            ),
-                            color: rowAccent.withValues(
-                              alpha: isDark ? 0.2 : 0.08,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: rowAccent,
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.xs,
-                                  ),
+                              padding: const EdgeInsets.all(AppSpacing.sm),
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(AppRadius.sm),
+                                ),
+                                border: Border.all(
+                                  color: rowAccent.withValues(alpha: 0.45),
+                                ),
+                                color: rowAccent.withValues(
+                                  alpha: isDark ? 0.2 : 0.08,
                                 ),
                               ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: rowAccent,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(AppRadius.xs),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        if (days <= 0) ...[
-                                          Icon(
-                                            Icons.priority_high_rounded,
-                                            size: 14,
+                                        Row(
+                                          children: [
+                                            if (days <= 0) ...[
+                                              Icon(
+                                                Icons.priority_high_rounded,
+                                                size: 14,
+                                                color: rowAccent,
+                                              ),
+                                              const SizedBox(width: 4),
+                                            ],
+                                            Expanded(
+                                              child: Text(
+                                                t.accountName ?? 'Facture',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark
+                                                      ? AppColors
+                                                            .textPrimaryDark
+                                                      : AppColors
+                                                            .textPrimaryLight,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          '${_priorityLabel(days)} - ${_daysLabel(days)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: days <= 0
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
                                             color: rowAccent,
                                           ),
-                                          const SizedBox(width: 4),
-                                        ],
-                                        Expanded(
-                                          child: Text(
-                                            t.accountName ?? 'Facture',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark
-                                                  ? AppColors.textPrimaryDark
-                                                  : AppColors.textPrimaryLight,
-                                            ),
+                                        ),
+                                        Text(
+                                          'Echeance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: isDark
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondaryLight,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    Text(
-                                      '${_priorityLabel(days)} - ${_daysLabel(days)}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: days <= 0
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: rowAccent,
-                                      ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    AppFormats.currencyCompact.format(t.amount),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: days <= 0
+                                          ? rowAccent
+                                          : (isDark
+                                                ? AppColors.textPrimaryDark
+                                                : AppColors.textPrimaryLight),
                                     ),
-                                    Text(
-                                      'Echeance: ${DateFormat('dd MMM yyyy', 'fr_CH').format(t.date)}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: isDark
-                                            ? AppColors.textSecondaryDark
-                                            : AppColors.textSecondaryLight,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppFormats.currencyCompact.format(t.amount),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: days <= 0
-                                      ? rowAccent
-                                      : (isDark
-                                            ? AppColors.textPrimaryDark
-                                            : AppColors.textPrimaryLight),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                            ),
                           ),
                         ),
                       );
@@ -331,13 +336,13 @@ class _PendingInvoicesSectionState
   }
 
   Color _priorityColor(int days) {
-    if (days <= -14) return const Color(0xFF7F1D1D);
-    if (days <= -7) return const Color(0xFFB91C1C);
+    if (days <= -14) return AppColors.dangerDeep;
+    if (days <= -7) return AppColors.dangerStrong;
     if (days <= -1) return AppColors.danger;
-    if (days == 0) return const Color(0xFFEA580C);
+    if (days == 0) return AppColors.warningDeep;
     if (days <= 3) return AppColors.warning;
-    if (days <= 7) return const Color(0xFFEAB308);
-    if (days <= 14) return const Color(0xFF84CC16);
+    if (days <= 7) return AppColors.warningBright;
+    if (days <= 14) return AppColors.successLime;
     return AppColors.primary;
   }
 

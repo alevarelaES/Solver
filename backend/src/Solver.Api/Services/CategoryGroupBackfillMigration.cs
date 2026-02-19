@@ -68,27 +68,20 @@ public static class CategoryGroupBackfillMigration
                     UpdatedAt = DateTime.UtcNow,
                 };
                 db.CategoryGroups.Add(categoryGroup);
-                await db.SaveChangesAsync(ct);
                 map[key] = categoryGroup;
             }
 
-            var changed = false;
             if (account.GroupId != categoryGroup.Id)
             {
                 account.GroupId = categoryGroup.Id;
-                changed = true;
             }
             if (!string.Equals(account.Group, categoryGroup.Name, StringComparison.Ordinal))
             {
                 account.Group = categoryGroup.Name;
-                changed = true;
-            }
-
-            if (changed)
-            {
-                await db.SaveChangesAsync(ct);
             }
         }
+
+        await db.SaveChangesAsync(ct);
     }
 
     private static string GroupKey(CategoryGroup g) =>

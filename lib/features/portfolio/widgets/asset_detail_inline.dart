@@ -242,8 +242,8 @@ class _HeroCard extends StatelessWidget {
     return AppPanel(
       variant: AppPanelVariant.elevated,
       backgroundColor: isDark
-          ? const Color(0xFF192227)
-          : const Color(0xFFEFF7EE),
+          ? AppColors.portfolioSurfaceDark
+          : AppColors.portfolioSurfaceLight,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -945,7 +945,7 @@ class _LoadingBox extends StatelessWidget {
         height: height,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white10 : const Color(0xFFE5E7EB),
+            color: isDark ? Colors.white10 : AppColors.borderLight,
             borderRadius: BorderRadius.circular(AppRadius.r8),
           ),
         ),

@@ -32,7 +32,9 @@ class SpendingLimit extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
               ),
               Row(
@@ -57,7 +59,9 @@ class SpendingLimit extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                     ),
                   ),
                 ],
@@ -71,7 +75,9 @@ class SpendingLimit extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: AppSizes.progressBarHeight,
-              backgroundColor: isDark ? AppColors.borderDark : const Color(0xFFF3F4F6),
+              backgroundColor: isDark
+                  ? AppColors.borderDark
+                  : AppColors.surfaceHeader,
               valueColor: AlwaysStoppedAnimation(
                 ratio > 0.9 ? AppColors.danger : AppColors.primary,
               ),
@@ -85,14 +91,18 @@ class SpendingLimit extends StatelessWidget {
                 AppFormats.currencyCompact.format(spent),
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
               Text(
                 AppFormats.currencyCompact.format(income),
                 style: TextStyle(
                   fontSize: 11,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
             ],

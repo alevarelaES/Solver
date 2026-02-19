@@ -221,7 +221,7 @@ class _SheetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.s6, AppSpacing.sm, AppSpacing.s6),
       child: Row(
         children: [
           IconButton(
@@ -308,7 +308,7 @@ class _LoadingPanel extends StatelessWidget {
         height: height,
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white10 : const Color(0xFFE5E7EB),
+            color: isDark ? Colors.white10 : AppColors.borderLight,
             borderRadius: BorderRadius.circular(AppRadius.r8),
           ),
         ),
@@ -316,3 +316,4 @@ class _LoadingPanel extends StatelessWidget {
     );
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
 /// Clean card container replacing the old glassmorphic GlassContainer.
@@ -16,7 +17,7 @@ class GlassContainer extends StatelessWidget {
     required this.child,
     this.blur = 10,
     this.borderColor,
-    this.padding = const EdgeInsets.all(24),
+    this.padding = AppSpacing.paddingPage,
     this.borderRadius = AppRadius.lg,
   });
 

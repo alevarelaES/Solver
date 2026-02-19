@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -502,7 +503,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.s10, AppSpacing.md, AppSpacing.sm),
                           child: Text(
                             groupName,
                             style: const TextStyle(
@@ -552,7 +553,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1580,4 +1581,6 @@ class _SwitchRow extends StatelessWidget {
     );
   }
 }
+
+
 

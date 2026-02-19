@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/data/portfolio_trending_catalog.dart';
 import 'package:solver/features/portfolio/models/symbol_search_result.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/providers/selected_asset_provider.dart';
@@ -127,7 +128,7 @@ class _SearchPanel extends ConsumerWidget {
           Wrap(
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
-            children: ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'BTC/USD', 'ETH/USD']
+            children: marketQuickSearchSymbols
                 .map(
                   (symbol) => ActionChip(
                     label: Text(symbol),
@@ -290,8 +291,8 @@ class _MarketHero extends StatelessWidget {
     return AppPanel(
       variant: AppPanelVariant.elevated,
       backgroundColor: isDark
-          ? const Color(0xFF1B2428)
-          : const Color(0xFFF1F7F0),
+          ? AppColors.portfolioSurfaceDark
+          : AppColors.portfolioSurfaceLight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

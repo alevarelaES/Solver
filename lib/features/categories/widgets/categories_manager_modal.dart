@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/categories/models/category.dart';
@@ -38,7 +39,7 @@ class _CategoriesManagerDialogState
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620, maxHeight: 680),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -224,7 +225,7 @@ class _CategoriesManagerDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.s10, AppSpacing.sm, AppSpacing.sm),
                 child: Row(
                   children: [
                     Expanded(
@@ -261,7 +262,7 @@ class _CategoriesManagerDialogState
               const Divider(height: 1),
               if (items.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: EdgeInsets.all(AppSpacing.md),
                   child: Text(
                     'Aucune catégorie dans ce groupe',
                     style: TextStyle(
@@ -733,4 +734,6 @@ class _GroupDraft {
 
   const _GroupDraft({required this.name, required this.type});
 }
+
+
 

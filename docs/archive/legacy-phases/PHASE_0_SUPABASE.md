@@ -1,6 +1,6 @@
 # Phase 0 — Configuration Supabase
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [SECURITY.md](../SECURITY.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [SECURITY.md](../../SECURITY.md)
 >
 > **Statut :** ✅ Terminé
 >
@@ -240,3 +240,4 @@ Une fois toutes les cases cochées, les phases suivantes peuvent démarrer en pa
 
 - **→ Phase 1** : Backend .NET (nécessite `DB_CONNECTION_STRING` et `SUPABASE_SERVICE_ROLE_KEY`)
 - **→ Phase 2** : Flutter Foundation (nécessite `SUPABASE_URL` et `SUPABASE_ANON_KEY`)
+

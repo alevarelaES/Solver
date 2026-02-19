@@ -16,7 +16,7 @@ class SolverAiCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF243E0F), Color(0xFF121F08)],
+          colors: [AppColors.promoGradientStart, AppColors.promoGradientEnd],
         ),
         borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
@@ -67,7 +67,7 @@ class SolverAiCard extends StatelessWidget {
                 radius: AppRadius.sm,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 elevation: 4,
-                shadowColor: const Color(0xFF1E2E11).withValues(alpha: 0.4),
+                shadowColor: AppColors.shadowGreen.withValues(alpha: 0.4),
               ),
               child: Text(
                 AppStrings.dashboard.tryNow,
@@ -105,7 +105,7 @@ class UpgradeProCard extends StatelessWidget {
           // Icon
           const Icon(
             Icons.workspace_premium,
-            color: Color(0xFFF97316), // orange-500
+            color: AppColors.warningAccent,
             size: 28,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -113,7 +113,9 @@ class UpgradeProCard extends StatelessWidget {
           Text(
             AppStrings.dashboard.upgradeToPro,
             style: TextStyle(
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
               fontSize: 15,
               fontWeight: FontWeight.bold,
             ),
@@ -122,7 +124,9 @@ class UpgradeProCard extends StatelessWidget {
           Text(
             AppStrings.dashboard.upgradeDescription,
             style: TextStyle(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
               fontSize: 12,
             ),
           ),
@@ -135,7 +139,9 @@ class UpgradeProCard extends StatelessWidget {
                 // TODO: navigate to upgrade page
               },
               style: AppButtonStyles.outline(
-                foregroundColor: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                foregroundColor: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
                 side: BorderSide(
                   color: isDark ? AppColors.borderDark : AppColors.borderLight,
                 ),

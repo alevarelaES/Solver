@@ -1,6 +1,6 @@
 # Phase 5 — Vues Secondaires
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md)
 >
 > **Statut :** ✅ Complète
 >
@@ -362,3 +362,4 @@ Uniquement les transactions `completed` sont incluses dans les calculs.
 ## Passage à la Phase Suivante
 
 - **→ Phase 6** : Polish, responsive, tests, optimisations
+

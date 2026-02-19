@@ -2,7 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:solver/core/services/api_client.dart';
+import 'package:solver/features/portfolio/data/portfolio_cache_policy.dart';
 import 'package:solver/features/portfolio/models/time_series_point.dart';
+
+const _historyFreshTtl = Duration(minutes: 15);
+const _historyMaxStaleAge = Duration(hours: 12);
+const _sparklineFreshTtl = Duration(minutes: 10);
+const _sparklineMaxStaleAge = Duration(hours: 6);
+const _historyBatchApiMaxSymbols = 30;
+
+final _historyCache = <String, TimedCacheEntry<List<TimeSeriesPoint>>>{};
+final _sparklineCache =
+    <String, TimedCacheEntry<Map<String, List<TimeSeriesPoint>>>>{};
 
 @immutable
 class PriceHistoryRequest {
@@ -67,8 +78,16 @@ final priceHistoryProvider =
       params,
     ) async {
       final client = ref.read(apiClientProvider);
+      final normalized = params.symbol.trim().toUpperCase();
+      final cacheKey =
+          '$normalized|${params.interval.toLowerCase()}|${params.outputSize}';
+
+      final cached = _historyCache[cacheKey];
+      if (isCacheFresh(cached, _historyFreshTtl)) {
+        return cached!.value;
+      }
+
       try {
-        final normalized = params.symbol.trim().toUpperCase();
         final response = await client.get<Map<String, dynamic>>(
           '/api/market/history-batch',
           queryParameters: {
@@ -88,11 +107,25 @@ final priceHistoryProvider =
                 ? histories.values.first as List<dynamic>?
                 : const []);
 
-        return (fallback ?? const [])
+        final parsed = (fallback ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(TimeSeriesPoint.fromJson)
-            .toList();
+            .toList(growable: false);
+        if (parsed.isEmpty) {
+          if (isCacheUsable(cached, _historyMaxStaleAge)) {
+            return cached!.value;
+          }
+          return const [];
+        }
+        _historyCache[cacheKey] = TimedCacheEntry(
+          value: parsed,
+          storedAt: DateTime.now(),
+        );
+        return parsed;
       } on DioException catch (_) {
+        if (isCacheUsable(cached, _historyMaxStaleAge)) {
+          return cached!.value;
+        }
         return const [];
       }
     });
@@ -106,30 +139,64 @@ final sparklineBatchProvider =
       if (symbols.isEmpty) return const {};
 
       final client = ref.read(apiClientProvider);
+      final cacheKey =
+          '${symbols.join(',')}|${params.interval.toLowerCase()}|${params.outputSize}';
+      final cached = _sparklineCache[cacheKey];
+      if (isCacheFresh(cached, _sparklineFreshTtl)) {
+        return cached!.value;
+      }
+
       try {
-        final response = await client.get<Map<String, dynamic>>(
-          '/api/market/history-batch',
-          queryParameters: {
-            'symbols': symbols.join(','),
-            'interval': params.interval,
-            'outputsize': params.outputSize,
-          },
-        );
-
-        final historiesRaw =
-            response.data?['histories'] as Map<String, dynamic>? ?? const {};
-
         final result = <String, List<TimeSeriesPoint>>{};
-        for (final entry in historiesRaw.entries) {
-          final list = entry.value as List<dynamic>? ?? const [];
-          result[entry.key] = list
-              .whereType<Map<String, dynamic>>()
-              .map(TimeSeriesPoint.fromJson)
-              .toList();
+        for (final chunk in _chunkSymbols(symbols, _historyBatchApiMaxSymbols)) {
+          final response = await client.get<Map<String, dynamic>>(
+            '/api/market/history-batch',
+            queryParameters: {
+              'symbols': chunk.join(','),
+              'interval': params.interval,
+              'outputsize': params.outputSize,
+            },
+          );
+
+          final historiesRaw =
+              response.data?['histories'] as Map<String, dynamic>? ?? const {};
+
+          for (final entry in historiesRaw.entries) {
+            final list = entry.value as List<dynamic>? ?? const [];
+            result[entry.key] = list
+                .whereType<Map<String, dynamic>>()
+                .map(TimeSeriesPoint.fromJson)
+                .toList();
+          }
         }
 
+        if (result.isEmpty) {
+          if (isCacheUsable(cached, _sparklineMaxStaleAge)) {
+            return cached!.value;
+          }
+          return const {};
+        }
+        _sparklineCache[cacheKey] = TimedCacheEntry(
+          value: result,
+          storedAt: DateTime.now(),
+        );
         return result;
       } on DioException catch (_) {
+        if (isCacheUsable(cached, _sparklineMaxStaleAge)) {
+          return cached!.value;
+        }
         return const {};
       }
     });
+
+Iterable<List<String>> _chunkSymbols(List<String> symbols, int size) sync* {
+  if (size <= 0) {
+    yield symbols;
+    return;
+  }
+
+  for (var i = 0; i < symbols.length; i += size) {
+    final end = (i + size < symbols.length) ? i + size : symbols.length;
+    yield symbols.sublist(i, end);
+  }
+}

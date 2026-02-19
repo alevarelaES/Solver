@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 // ─── Spacing scale ────────────────────────────────────────────────────────────
 class AppSpacing {
   const AppSpacing._();
+  static const double s2 = 2;
+  static const double s3 = 3;
   static const double xs = 4;
+  static const double s6 = 6;
   static const double sm = 8;
+  static const double s10 = 10;
   static const double md = 12;
+  static const double s14 = 14;
   static const double lg = 16;
+  static const double s18 = 18;
   static const double xl = 20;
   static const double xxl = 24;
+  static const double s28 = 28;
   static const double xxxl = 32;
 
   /// Convenience EdgeInsets

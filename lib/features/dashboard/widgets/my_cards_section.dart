@@ -25,7 +25,9 @@ class MyCardsSection extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
               ),
               Text(
@@ -49,7 +51,10 @@ class MyCardsSection extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF2E5C1B), Color(0xFF143306)],
+                    colors: [
+                      AppColors.cardGradientGreenStart,
+                      AppColors.cardGradientGreenEnd,
+                    ],
                   ),
                   lastFour: '4930',
                   validFrom: '02/26',
@@ -61,7 +66,10 @@ class MyCardsSection extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF374151), Color(0xFF1F2937)],
+                    colors: [
+                      AppColors.cardGradientSlateStart,
+                      AppColors.cardGradientSlateEnd,
+                    ],
                   ),
                   lastFour: '8821',
                   validFrom: '05/25',
@@ -108,7 +116,7 @@ class _BankCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1E2E11).withValues(alpha: 0.2),
+              color: AppColors.shadowGreen.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -159,21 +167,30 @@ class _BankCard extends StatelessWidget {
             // Bottom: dates + CVV
             Row(
               children: [
-                _DateLabel(label: AppStrings.dashboard.validFrom, value: validFrom),
+                _DateLabel(
+                  label: AppStrings.dashboard.validFrom,
+                  value: validFrom,
+                ),
                 const SizedBox(width: AppSpacing.lg),
-                _DateLabel(label: AppStrings.dashboard.validUntil, value: validUntil),
+                _DateLabel(
+                  label: AppStrings.dashboard.validUntil,
+                  value: validUntil,
+                ),
                 const Spacer(),
                 // CVV dots
                 Row(
-                  children: List.generate(3, (_) => Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.only(left: 2),
-                    decoration: const BoxDecoration(
-                      color: Colors.white54,
-                      shape: BoxShape.circle,
+                  children: List.generate(
+                    3,
+                    (_) => Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(left: 2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white54,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  )),
+                  ),
                 ),
               ],
             ),

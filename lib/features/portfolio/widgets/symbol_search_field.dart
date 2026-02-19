@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/data/portfolio_symbol_catalog.dart';
 import 'package:solver/features/portfolio/models/symbol_search_result.dart';
 import 'package:solver/features/portfolio/providers/market_search_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
@@ -8,11 +9,13 @@ import 'package:solver/shared/widgets/app_panel.dart';
 class SymbolSearchField extends ConsumerStatefulWidget {
   final String label;
   final ValueChanged<SymbolSearchResult> onSelected;
+  final ValueChanged<String>? onQueryChanged;
 
   const SymbolSearchField({
     super.key,
     required this.label,
     required this.onSelected,
+    this.onQueryChanged,
   });
 
   @override
@@ -47,13 +50,14 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
           controller: _controller,
           decoration: InputDecoration(
             labelText: widget.label,
-            hintText: 'Ex: AAPL, TSLA, MSFT',
+            hintText: 'Ex: ${symbolSearchHintSymbols.join(', ')}',
             suffixIcon: query.isEmpty
                 ? const Icon(Icons.search)
                 : IconButton(
                     onPressed: () {
                       _controller.clear();
                       ref.read(symbolSearchQueryProvider.notifier).state = '';
+                      widget.onQueryChanged?.call('');
                       setState(() {});
                     },
                     icon: const Icon(Icons.close),
@@ -61,6 +65,7 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
           ),
           onChanged: (value) {
             ref.read(symbolSearchQueryProvider.notifier).state = value;
+            widget.onQueryChanged?.call(value);
             setState(() {});
           },
           validator: (value) {
@@ -89,7 +94,9 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
               if (results.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(AppSpacing.sm),
-                  child: Text('Aucun symbole trouve.'),
+                  child: Text(
+                    'Aucun symbole trouve. Vous pouvez saisir le ticker manuellement.',
+                  ),
                 );
               }
 
@@ -123,6 +130,7 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
                           _controller.text = result.symbol;
                           ref.read(symbolSearchQueryProvider.notifier).state =
                               '';
+                          widget.onQueryChanged?.call(result.symbol);
                           setState(() {});
                           widget.onSelected(result);
                         },

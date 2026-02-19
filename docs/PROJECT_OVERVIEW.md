@@ -135,19 +135,19 @@ Une transaction peut être créée en "batch" pour tous les mois restants de l'a
 
 ```
 docs/
-├── PROJECT_OVERVIEW.md       ← Ce fichier
-├── CONVENTIONS.md            ← Règles de code et nomenclature
-├── SECURITY.md               ← Règles de sécurité obligatoires
-└── phases/
-    ├── PHASE_0_SUPABASE.md   ← Configuration Supabase
-    ├── PHASE_1_BACKEND.md    ← API .NET
-    ├── PHASE_2_FLUTTER.md    ← Fondations Flutter
-    ├── PHASE_3_DASHBOARD.md  ← Vue Dashboard (core)
-    ├── PHASE_4_RECURRENCE.md ← Moteur de récurrence
-    ├── PHASE_5_VIEWS.md      ← Vues secondaires
-    └── PHASE_6_POLISH.md     ← Finalisation
+  PROJECT_OVERVIEW.md          # Ce fichier
+  CONVENTIONS.md               # Regles de code et nomenclature
+  SECURITY.md                  # Regles de securite obligatoires
+  refactor_master_plan.md      # Plan actif de refactor
+  refactor_backlog.md          # Suivi actif des lots
+  maintenance_governance.md    # Gouvernance PR/CI
+  archive/
+    legacy-phases/             # Anciennes phases historiques
+    legacy-ui-refonte/         # Ancienne feuille de route UI
+    2026-02-refactor-baseline/ # Baselines d'audit initiales
 ```
 
+Note: les anciens fichiers `PHASE_*` sont conserves pour tracabilite sous `docs/archive/legacy-phases/` et ne servent plus de reference active.
 ---
 
 ## Ordre d'Exécution des Phases
@@ -175,3 +175,4 @@ Chaque fichier de phase est **autonome** : il contient tout le contexte nécessa
 3. Lire `CONVENTIONS.md` et `SECURITY.md`
 4. Ne modifier que ce qui concerne sa phase
 5. Cocher les éléments de la checklist une fois complétés
+

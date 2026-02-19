@@ -1,6 +1,6 @@
 # Phase 6 — Polish, Tests et Finalisation
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md) | [SECURITY.md](../SECURITY.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md) | [SECURITY.md](../../SECURITY.md)
 >
 > **Statut :** ✅ Complète
 >
@@ -260,7 +260,7 @@ Le README doit permettre à un développeur de démarrer en moins de 15 minutes.
 
 ### Mise à jour des checklists dans les phases
 
-Vérifier et cocher tous les items dans les fichiers `docs/phases/*.md`.
+Verifier et cocher tous les items dans les fichiers `docs/archive/legacy-phases/*.md`.
 
 ### Checklist 6.6
 
@@ -310,3 +310,4 @@ Vérifier et cocher tous les items dans les fichiers `docs/phases/*.md`.
 **Documentation :**
 - [x] README complet
 - [x] Toutes les phases cochées
+

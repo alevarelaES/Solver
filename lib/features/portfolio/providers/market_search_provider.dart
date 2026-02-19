@@ -21,7 +21,7 @@ final symbolSearchProvider =
       final client = ref.read(apiClientProvider);
       final response = await client.get<Map<String, dynamic>>(
         '/api/market/search',
-        queryParameters: {'q': query},
+        queryParameters: {'q': query, 'limit': 100},
       );
 
       final list = response.data?['results'] as List<dynamic>? ?? const [];

@@ -1,6 +1,6 @@
 # Phase 4 — Moteur de Récurrence et Formulaire Transaction
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md)
 >
 > **Statut :** ✅ Terminé
 >
@@ -229,3 +229,4 @@ Dans le Dashboard et le Journal, l'utilisateur doit pouvoir marquer une transact
 ## Passage à la Phase Suivante
 
 - **→ Phase 5** : Vues secondaires (Journal, Échéancier, Budget, Analyse)
+

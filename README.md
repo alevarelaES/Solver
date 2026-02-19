@@ -40,8 +40,20 @@ flutter run -d chrome
 | Variable | Description |
 |---|---|
 | `DB_CONNECTION_STRING` | Chaine de connexion PostgreSQL (pooler Supabase) |
+| `DB_RUNTIME_CONNECTION_STRING` | (Optionnel) Chaine runtime directe (non-pooler), prioritaire sur `DB_CONNECTION_STRING` |
+| `DB_MIGRATIONS_CONNECTION_STRING` | Chaine directe (non-pooler) pour appliquer les migrations EF au demarrage |
+| `DB_APPLY_MIGRATIONS_ON_STARTUP` | Active/desactive les migrations EF automatiques au demarrage |
 | `SUPABASE_URL` | URL du projet Supabase (pour JWKS) |
 | `ALLOWED_ORIGINS` | (Production) Origines CORS autorisees, separees par des virgules |
+| `AUTH_ALLOW_HS256_FALLBACK` | Fallback legacy HS256 (desactive recommande hors dev) |
+| `JWT_SECRET` | Secret fallback HS256 (uniquement si fallback active) |
+| `JWT_VALIDATE_ISSUER` | Active la validation issuer JWT |
+| `JWT_VALIDATE_AUDIENCE` | Active la validation audience JWT |
+| `JWT_ALLOWED_AUDIENCES` | Audiences JWT autorisees (CSV) |
+
+Note migration Supabase:
+- Si `DB_CONNECTION_STRING` pointe vers `*.pooler.supabase.com`, les migrations EF auto doivent utiliser `DB_MIGRATIONS_CONNECTION_STRING` (connexion directe) ou etre desactivees via `DB_APPLY_MIGRATIONS_ON_STARTUP=false`.
+- Si tu observes des erreurs runtime pooler (`XX000 DbHandler exited`), configure `DB_RUNTIME_CONNECTION_STRING` vers l'hote direct (`db.<project-ref>.supabase.co`).
 
 ### Frontend (`.env.local` ou `config.json`)
 
@@ -83,7 +95,10 @@ solver/
     src/Solver.Api/ # API .NET 10 (Endpoints, Middleware, Models, DTOs, Services)
     tests/          # Tests xUnit
   docs/
-    phases/         # Phases d'implementation (PHASE_0 a PHASE_6)
+    refactor_master_plan.md   # Plan actif de refactor
+    refactor_backlog.md       # Etat d'avancement actif
+    maintenance_governance.md # Regles PR/CI et gouvernance
+    archive/                  # Documentation historique archivee
     PROJECT_OVERVIEW.md
     CONVENTIONS.md
     SECURITY.md

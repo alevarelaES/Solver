@@ -1,0 +1,60 @@
+name: PR Governance
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+jobs:
+  pr-checklist:
+    name: PR description contract
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    steps:
+      - name: Validate required PR sections
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = (context.payload.pull_request.body || "").trim();
+            const required = [
+              "## Summary",
+              "## Refactor/Architecture Checklist",
+              "## Runtime/Security Checklist (if backend touched)",
+              "## Validation Checklist (mandatory)",
+              "## Risk and Rollback",
+              "## Notes for reviewers"
+            ];
+
+            const missing = required.filter((section) => !body.includes(section));
+            if (missing.length > 0) {
+              core.setFailed(
+                "Missing required PR sections: " + missing.join(", ") +
+                ". Please use .github/pull_request_template.md."
+              );
+            }
+
+  quality-gate:
+    name: Verify Step Gate
+    runs-on: windows-latest
+    if: ${{ !github.event.pull_request.draft }}
+    needs: pr-checklist
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Run strict verification
+        shell: pwsh
+        run: ./tools/refactor/verify_step.ps1

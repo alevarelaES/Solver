@@ -9,13 +9,94 @@ using Solver.Api.Services;
 
 DotEnv.Load(options: new DotEnvOptions(envFilePaths: [".env"]));
 
+static string NormalizePgConnectionString(string raw, string envVarName)
+{
+    if (string.IsNullOrWhiteSpace(raw))
+    {
+        throw new InvalidOperationException($"{envVarName} is empty.");
+    }
+
+    if (!raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase)
+        && !raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        return raw;
+    }
+
+    if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri))
+    {
+        throw new InvalidOperationException($"{envVarName} URI is invalid.");
+    }
+
+    if (!string.Equals(uri.Scheme, "postgres", StringComparison.OrdinalIgnoreCase)
+        && !string.Equals(uri.Scheme, "postgresql", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException($"{envVarName} must use postgres/postgresql scheme.");
+    }
+
+    var userInfo = uri.UserInfo ?? string.Empty;
+    var userInfoParts = userInfo.Split(':', 2, StringSplitOptions.None);
+    var username = userInfoParts.Length > 0 ? Uri.UnescapeDataString(userInfoParts[0]) : string.Empty;
+    var password = userInfoParts.Length > 1 ? Uri.UnescapeDataString(userInfoParts[1]) : string.Empty;
+    var database = uri.AbsolutePath.Trim('/');
+    if (string.IsNullOrWhiteSpace(database))
+    {
+        database = "postgres";
+    }
+
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.IsDefaultPort ? 5432 : uri.Port,
+        Database = database,
+        Username = username
+    };
+    if (!string.IsNullOrWhiteSpace(password))
+    {
+        builder.Password = password;
+    }
+
+    var query = uri.Query;
+    if (!string.IsNullOrWhiteSpace(query))
+    {
+        var querySpan = query.AsSpan().TrimStart('?').ToString();
+        var items = querySpan.Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var item in items)
+        {
+            var idx = item.IndexOf('=');
+            if (idx <= 0 || idx >= item.Length - 1)
+            {
+                continue;
+            }
+
+            var key = Uri.UnescapeDataString(item[..idx]).Replace("_", " ", StringComparison.Ordinal);
+            var value = Uri.UnescapeDataString(item[(idx + 1)..]);
+            try
+            {
+                builder[key] = value;
+            }
+            catch
+            {
+                // Ignore unknown query params from URI-style DSN.
+            }
+        }
+    }
+
+    return builder.ConnectionString;
+}
+
 var builder = WebApplication.CreateBuilder(args);
+var isDevelopment = builder.Environment.IsDevelopment();
 
 // Database
-var rawConnectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+var baseConnectionStringRaw = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
     ?? throw new InvalidOperationException("DB_CONNECTION_STRING is not set.");
+var baseConnectionString = NormalizePgConnectionString(baseConnectionStringRaw, "DB_CONNECTION_STRING");
+var runtimeConnectionStringOverride = Environment.GetEnvironmentVariable("DB_RUNTIME_CONNECTION_STRING");
+var runtimeRawConnectionString = string.IsNullOrWhiteSpace(runtimeConnectionStringOverride)
+    ? baseConnectionString
+    : NormalizePgConnectionString(runtimeConnectionStringOverride, "DB_RUNTIME_CONNECTION_STRING");
 
-var connectionStringBuilder = new NpgsqlConnectionStringBuilder(rawConnectionString);
+var connectionStringBuilder = new NpgsqlConnectionStringBuilder(runtimeRawConnectionString);
 var dbHost = connectionStringBuilder.Host ?? string.Empty;
 var forceDisablePooling = string.Equals(
     Environment.GetEnvironmentVariable("DB_DISABLE_POOLING"),
@@ -34,7 +115,8 @@ var connectionString = connectionStringBuilder.ConnectionString;
 builder.Services.AddDbContext<SolverDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
         npgsql
-            .EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), null)
+            // Keep EF provider retry disabled here: app-level retry is centralized
+            // and this avoids connector disposal races during startup migrations.
             // Stability over throughput: avoid multi-command EF batches that can
             // trigger connector disposal races with some Npgsql/runtime combos.
             .MaxBatchSize(1)));
@@ -60,6 +142,29 @@ builder.Services.AddSingleton<TwelveDataRateLimiter>();
 builder.Services.AddScoped<TwelveDataService>();
 builder.Services.AddSingleton<TwelveDataWebSocketService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TwelveDataWebSocketService>());
+builder.Services.AddSingleton<DbRetryService>();
+builder.Services.AddScoped<AccountsService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<AnalysisService>();
+builder.Services.AddScoped<CategoriesService>();
+builder.Services.AddScoped<BudgetService>();
+builder.Services.AddScoped<GoalsService>();
+builder.Services.AddScoped<TransactionsService>();
+builder.Services.AddScoped<PortfolioService>();
+builder.Services.AddScoped<WatchlistService>();
+builder.Services.AddScoped<MarketService>();
+
+// Auth hardening (fail-fast in non-dev when auth material is missing)
+var supabaseUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
+var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+var allowLegacyHs256 = AppRuntimeSecurity.GetBoolEnv("AUTH_ALLOW_HS256_FALLBACK", isDevelopment);
+if (!isDevelopment &&
+    string.IsNullOrWhiteSpace(supabaseUrl) &&
+    !(allowLegacyHs256 && !string.IsNullOrWhiteSpace(jwtSecret)))
+{
+    throw new InvalidOperationException(
+        "Authentication is not configured for non-development. Configure SUPABASE_URL or enable AUTH_ALLOW_HS256_FALLBACK with JWT_SECRET.");
+}
 
 // Finnhub (company profile, news, recommendations)
 var finnhubApiKey = Environment.GetEnvironmentVariable("FINNHUB_API_KEY") ?? "";
@@ -86,16 +191,29 @@ builder.Services.AddResponseCompression(options =>
 });
 
 // CORS
-var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
+var allowedOriginsParseResult = AppRuntimeSecurity.ParseAllowedOriginsDetailed(
+    Environment.GetEnvironmentVariable("ALLOWED_ORIGINS"));
+var allowedOrigins = allowedOriginsParseResult.Origins;
+if (!isDevelopment && allowedOriginsParseResult.InvalidEntries.Length > 0)
+{
+    throw new InvalidOperationException(
+        $"ALLOWED_ORIGINS contains invalid entries: {string.Join(", ", allowedOriginsParseResult.InvalidEntries)}");
+}
+if (!isDevelopment && allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException(
+        "ALLOWED_ORIGINS must be configured in non-development environments.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        if (!string.IsNullOrEmpty(allowedOrigins))
+        if (allowedOrigins.Length > 0)
         {
             // Production: restrict to specific origins
             policy
-                .WithOrigins(allowedOrigins.Split(','))
+                .WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         }
@@ -103,7 +221,7 @@ builder.Services.AddCors(options =>
         {
             // Development: allow localhost
             policy
-                .SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+                .SetIsOriginAllowed(AppRuntimeSecurity.IsLocalDevelopmentOrigin)
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         }
@@ -118,137 +236,56 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Lightweight schema bootstrap for category preferences.
-using (var scope = app.Services.CreateScope())
+// Schema updates via EF migrations, then data migrations.
+var applyMigrationsOnStartup = AppRuntimeSecurity.GetBoolEnv(
+    "DB_APPLY_MIGRATIONS_ON_STARTUP",
+    true);
+var migrationConnectionString = Environment.GetEnvironmentVariable("DB_MIGRATIONS_CONNECTION_STRING");
+var hasMigrationConnection = !string.IsNullOrWhiteSpace(migrationConnectionString)
+    && !string.Equals(migrationConnectionString, "false", StringComparison.OrdinalIgnoreCase);
+var usePrimaryConnectionForMigrations = !hasMigrationConnection;
+var primaryConnectionHost = new NpgsqlConnectionStringBuilder(baseConnectionString).Host ?? string.Empty;
+var primaryConnectionUsesSupabasePooler = primaryConnectionHost.Contains(
+    "pooler.supabase.com",
+    StringComparison.OrdinalIgnoreCase);
+
+if (applyMigrationsOnStartup)
 {
-    var db = scope.ServiceProvider.GetRequiredService<SolverDbContext>();
-    await db.Database.ExecuteSqlRawAsync("""
-        CREATE TABLE IF NOT EXISTS category_groups (
-            id uuid PRIMARY KEY,
-            user_id uuid NOT NULL,
-            name text NOT NULL,
-            type text NOT NULL,
-            sort_order integer NOT NULL DEFAULT 0,
-            is_archived boolean NOT NULL DEFAULT false,
-            created_at timestamp with time zone NOT NULL DEFAULT now(),
-            updated_at timestamp with time zone NOT NULL DEFAULT now()
-        );
-        CREATE INDEX IF NOT EXISTS ix_category_groups_user_id
-            ON category_groups (user_id);
-        CREATE INDEX IF NOT EXISTS ix_category_groups_user_type_sort
-            ON category_groups (user_id, type, sort_order);
+    if (usePrimaryConnectionForMigrations && primaryConnectionUsesSupabasePooler)
+    {
+        const string poolerMigrationMessage =
+            "Automatic EF migrations are disabled when DB_CONNECTION_STRING points to Supabase pooler. " +
+            "Set DB_MIGRATIONS_CONNECTION_STRING to a direct database host connection string " +
+            "(recommended) or set DB_APPLY_MIGRATIONS_ON_STARTUP=false.";
 
-        ALTER TABLE accounts ADD COLUMN IF NOT EXISTS group_id uuid NULL;
-        CREATE INDEX IF NOT EXISTS ix_accounts_user_id_group_id
-            ON accounts (user_id, group_id);
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT 1 FROM pg_constraint
-                WHERE conname = 'fk_accounts_group_id'
-            ) THEN
-                ALTER TABLE accounts
-                ADD CONSTRAINT fk_accounts_group_id
-                FOREIGN KEY (group_id)
-                REFERENCES category_groups (id)
-                ON DELETE SET NULL;
-            END IF;
-        END $$;
+        if (!app.Environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(poolerMigrationMessage);
+        }
 
-        CREATE TABLE IF NOT EXISTS category_preferences (
-            account_id uuid NOT NULL,
-            user_id uuid NOT NULL,
-            sort_order integer NOT NULL DEFAULT 0,
-            is_archived boolean NOT NULL DEFAULT false,
-            created_at timestamp with time zone NOT NULL DEFAULT now(),
-            updated_at timestamp with time zone NOT NULL DEFAULT now(),
-            CONSTRAINT pk_category_preferences PRIMARY KEY (account_id, user_id),
-            CONSTRAINT fk_category_preferences_account_id FOREIGN KEY (account_id)
-                REFERENCES accounts (id) ON DELETE CASCADE
-        );
-        CREATE INDEX IF NOT EXISTS ix_category_preferences_user_id
-            ON category_preferences (user_id);
+        app.Logger.LogWarning(poolerMigrationMessage);
+    }
+    else
+    {
+        var migrationBuilder = new NpgsqlConnectionStringBuilder(
+            usePrimaryConnectionForMigrations
+                ? baseConnectionString
+                : NormalizePgConnectionString(migrationConnectionString!, "DB_MIGRATIONS_CONNECTION_STRING"));
+        migrationBuilder.Pooling = false;
+        migrationBuilder.Multiplexing = false;
+        migrationBuilder.NoResetOnClose = true;
 
-        CREATE TABLE IF NOT EXISTS budget_plan_months (
-            id uuid PRIMARY KEY,
-            user_id uuid NOT NULL,
-            year integer NOT NULL,
-            month integer NOT NULL,
-            forecast_disposable_income numeric(14,2) NOT NULL DEFAULT 0,
-            use_gross_income_base boolean NOT NULL DEFAULT false,
-            created_at timestamp with time zone NOT NULL DEFAULT now(),
-            updated_at timestamp with time zone NOT NULL DEFAULT now(),
-            CONSTRAINT ck_budget_plan_months_month CHECK (month BETWEEN 1 AND 12)
-        );
-        ALTER TABLE budget_plan_months ADD COLUMN IF NOT EXISTS use_gross_income_base boolean NOT NULL DEFAULT false;
-        CREATE UNIQUE INDEX IF NOT EXISTS ux_budget_plan_months_user_year_month
-            ON budget_plan_months (user_id, year, month);
-        CREATE INDEX IF NOT EXISTS ix_budget_plan_months_user_id
-            ON budget_plan_months (user_id);
+        var migrationOptions = new DbContextOptionsBuilder<SolverDbContext>()
+            .UseNpgsql(
+                migrationBuilder.ConnectionString,
+                npgsql => npgsql.MaxBatchSize(1))
+            .Options;
 
-        CREATE TABLE IF NOT EXISTS budget_plan_group_allocations (
-            id uuid PRIMARY KEY,
-            user_id uuid NOT NULL,
-            plan_month_id uuid NOT NULL REFERENCES budget_plan_months(id) ON DELETE CASCADE,
-            group_id uuid NOT NULL REFERENCES category_groups(id) ON DELETE CASCADE,
-            input_mode text NOT NULL DEFAULT 'percent',
-            planned_percent numeric(8,4) NOT NULL DEFAULT 0,
-            planned_amount numeric(14,2) NOT NULL DEFAULT 0,
-            priority integer NOT NULL DEFAULT 0,
-            created_at timestamp with time zone NOT NULL DEFAULT now(),
-            updated_at timestamp with time zone NOT NULL DEFAULT now(),
-            CONSTRAINT ck_budget_plan_group_allocations_mode CHECK (input_mode IN ('percent', 'amount'))
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS ux_budget_plan_allocations_month_group
-            ON budget_plan_group_allocations (plan_month_id, group_id);
-        CREATE INDEX IF NOT EXISTS ix_budget_plan_group_allocations_user_id
-            ON budget_plan_group_allocations (user_id);
-
-        CREATE TABLE IF NOT EXISTS saving_goals (
-            id uuid PRIMARY KEY,
-            user_id uuid NOT NULL,
-            name text NOT NULL,
-            goal_type text NOT NULL DEFAULT 'savings',
-            target_amount numeric(14,2) NOT NULL,
-            target_date date NOT NULL,
-            initial_amount numeric(14,2) NOT NULL DEFAULT 0,
-            monthly_contribution numeric(14,2) NOT NULL DEFAULT 0,
-            auto_contribution_enabled boolean NOT NULL DEFAULT false,
-            auto_contribution_start_date date NULL,
-            priority integer NOT NULL DEFAULT 0,
-            is_archived boolean NOT NULL DEFAULT false,
-            created_at timestamp with time zone NOT NULL DEFAULT now(),
-            updated_at timestamp with time zone NOT NULL DEFAULT now()
-        );
-        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS goal_type text NOT NULL DEFAULT 'savings';
-        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS auto_contribution_enabled boolean NOT NULL DEFAULT false;
-        ALTER TABLE saving_goals ADD COLUMN IF NOT EXISTS auto_contribution_start_date date NULL;
-        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_id
-            ON saving_goals (user_id);
-        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_priority
-            ON saving_goals (user_id, priority);
-        CREATE INDEX IF NOT EXISTS ix_saving_goals_user_goal_type
-            ON saving_goals (user_id, goal_type);
-
-        CREATE TABLE IF NOT EXISTS saving_goal_entries (
-            id uuid PRIMARY KEY,
-            goal_id uuid NOT NULL REFERENCES saving_goals(id) ON DELETE CASCADE,
-            user_id uuid NOT NULL,
-            entry_date date NOT NULL,
-            amount numeric(14,2) NOT NULL,
-            note text NULL,
-            is_auto boolean NOT NULL DEFAULT false,
-            created_at timestamp with time zone NOT NULL DEFAULT now()
-        );
-        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_user_id
-            ON saving_goal_entries (user_id);
-        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_goal_id
-            ON saving_goal_entries (goal_id);
-        CREATE INDEX IF NOT EXISTS ix_saving_goal_entries_user_date
-            ON saving_goal_entries (user_id, entry_date);
-        """);
-    await CategoryResetMigration.ApplyAsync(db);
-    await CategoryGroupBackfillMigration.ApplyAsync(db);
+        await using var migrationDb = new SolverDbContext(migrationOptions);
+        await migrationDb.Database.MigrateAsync();
+        await CategoryResetMigration.ApplyAsync(migrationDb);
+        await CategoryGroupBackfillMigration.ApplyAsync(migrationDb);
+    }
 }
 
 // Pipeline order matters
@@ -271,3 +308,4 @@ app.MapWatchlistEndpoints();
 app.MapMarketEndpoints();
 
 app.Run();
+

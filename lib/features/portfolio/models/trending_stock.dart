@@ -29,6 +29,26 @@ class TrendingStock {
     );
   }
 
+  TrendingStock copyWith({
+    String? symbol,
+    String? name,
+    double? price,
+    double? changePercent,
+    String? currency,
+    bool? isStale,
+    String? assetType,
+  }) {
+    return TrendingStock(
+      symbol: symbol ?? this.symbol,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      changePercent: changePercent ?? this.changePercent,
+      currency: currency ?? this.currency,
+      isStale: isStale ?? this.isStale,
+      assetType: assetType ?? this.assetType,
+    );
+  }
+
   static double? _asDouble(dynamic value) {
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);

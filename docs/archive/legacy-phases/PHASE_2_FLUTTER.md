@@ -1,6 +1,6 @@
 # Phase 2 — Fondations Flutter
 
-> Références : [PROJECT_OVERVIEW.md](../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../CONVENTIONS.md) | [SECURITY.md](../SECURITY.md)
+> Références : [PROJECT_OVERVIEW.md](../../PROJECT_OVERVIEW.md) | [CONVENTIONS.md](../../CONVENTIONS.md) | [SECURITY.md](../../SECURITY.md)
 >
 > **Statut :** ✅ Terminé
 >
@@ -356,3 +356,4 @@ Toutes les erreurs Dio sont transformées en types d'erreur métier :
 
 La Phase 2 terminée débloque :
 - **→ Phase 3** : Dashboard (peut démarrer dès que Phase 1 ET Phase 2 sont terminées)
+

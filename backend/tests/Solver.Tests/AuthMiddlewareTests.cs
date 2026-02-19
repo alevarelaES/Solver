@@ -62,6 +62,18 @@ public class AuthMiddlewareTests
     }
 
     [Fact]
+    public async Task InvalidAuthorizationScheme_Returns401()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers.Authorization = "Token abc.def.ghi";
+
+        var middleware = new SupabaseAuthMiddleware(_ => Task.CompletedTask);
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(401, context.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task MalformedToken_Returns401()
     {
         var (middleware, context) = Setup(CreateToken(TestUserId, malformed: true));

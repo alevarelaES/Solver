@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/features/portfolio/data/portfolio_symbol_catalog.dart';
 
 class AssetLogo extends StatelessWidget {
   final String symbol;
@@ -57,7 +58,7 @@ class AssetLogo extends StatelessWidget {
         .first
         .replaceAll('X:', '');
 
-    final coin = _coinFromSymbol(normalized);
+    final coin = resolveCoinSymbol(normalized);
     final isCrypto = assetType.toLowerCase() == 'crypto' || coin != null;
     if (isCrypto) {
       final token = (coin ?? base).toLowerCase();
@@ -70,7 +71,7 @@ class AssetLogo extends StatelessWidget {
 
     if (base.isEmpty) return urls;
 
-    final domain = _knownDomains[base];
+    final domain = knownLogoDomains[base];
     if (domain != null) {
       urls.add('https://logo.clearbit.com/$domain');
     }
@@ -80,19 +81,6 @@ class AssetLogo extends StatelessWidget {
     );
 
     return urls;
-  }
-
-  String? _coinFromSymbol(String raw) {
-    if (raw.contains('/')) return raw.split('/').first;
-    if (raw.startsWith('X:')) return raw.substring(2);
-    return switch (raw) {
-      'BTCUSD' || 'BTCUSDT' => 'BTC',
-      'ETHUSD' || 'ETHUSDT' => 'ETH',
-      'SOLUSD' || 'SOLUSDT' => 'SOL',
-      'BNBUSD' || 'BNBUSDT' => 'BNB',
-      'XRPUSD' || 'XRPUSDT' => 'XRP',
-      _ => null,
-    };
   }
 }
 
@@ -141,27 +129,6 @@ class _ResilientNetworkLogoState extends State<_ResilientNetworkLogo> {
     );
   }
 }
-
-const Map<String, String> _knownDomains = {
-  'AAPL': 'apple.com',
-  'MSFT': 'microsoft.com',
-  'NVDA': 'nvidia.com',
-  'AMZN': 'amazon.com',
-  'TSLA': 'tesla.com',
-  'META': 'meta.com',
-  'GOOGL': 'google.com',
-  'NFLX': 'netflix.com',
-  'INTC': 'intel.com',
-  'AMD': 'amd.com',
-  'WMT': 'walmart.com',
-  'DIS': 'disney.com',
-  'PYPL': 'paypal.com',
-  'UBER': 'uber.com',
-  'CRM': 'salesforce.com',
-  'JPM': 'jpmorganchase.com',
-  'V': 'visa.com',
-  'JNJ': 'jnj.com',
-};
 
 class _FallbackBadge extends StatelessWidget {
   final String symbol;

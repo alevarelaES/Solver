@@ -43,6 +43,53 @@ class AppColors {
   static const surfaceDialog = surfaceLight;
   static const surfaceElevated = Color(0xFFF9FAFB);
   static const surfaceHeader = Color(0xFFF3F4F6);
+  static const surfaceMuted = Color(0xFFF8FAFC);
+  static const surfaceSoft = Color(0xFFF4F6F8);
+  static const surfaceSoftAlt = Color(0xFFFAFBFC);
+  static const surfaceTableHeader = Color(0xFFF6F8FB);
+  static const surfaceTablePanel = Color(0xFFF3F5F8);
+  static const surfaceTableRowAlt = Color(0xFFFBFCFD);
+  static const surfaceTableRowAccent = Color(0xFFF4F7FA);
+  static const surfaceTableRowStripe = Color(0xFFF7FAFD);
+  static const surfaceHeaderAlt = Color(0xFFEEF2F7);
+  static const surfaceSuccessHeader = Color(0xFFEAF2E3);
+  static const surfaceSuccess = Color(0xFFF7FBF4);
+  static const surfaceSuccessSoft = Color(0xFFF7FAF4);
+  static const surfaceDanger = Color(0xFFFEE2E2);
+  static const surfaceDangerSoft = Color(0xFFFFF5F5);
+  static const surfaceWarningSoft = Color(0xFFFFFAF0);
+  static const surfaceNeutralSoft = Color(0xFFFAFCF8);
+  static const surfaceInfoSoft = Color(0xFFE7ECF3);
+  static const borderStrong = Color(0xFFD7DEE8);
+  static const borderTable = Color(0xFFD4DBE5);
+  static const borderTableRow = Color(0xFFD9E0EA);
+  static const borderInputStrong = Color(0xFFD2DAE6);
+  static const borderSuccessSoft = Color(0xFFCCD9BE);
+  static const borderSuccess = Color(0xFFDCE7D3);
+  static const successStrong = Color(0xFF15803D);
+  static const successLime = Color(0xFF84CC16);
+  static const warningStrong = Color(0xFFB45309);
+  static const warningDeep = Color(0xFFEA580C);
+  static const warningAccent = Color(0xFFF97316);
+  static const warningBright = Color(0xFFEAB308);
+  static const dangerStrong = Color(0xFFB91C1C);
+  static const dangerDeep = Color(0xFF7F1D1D);
+  static const successTint = Color(0xFFBBF7D0);
+  static const successTintSoft = Color(0xFFDCFCE7);
+  static const dangerTint = Color(0xFFFCA5A5);
+  static const textMutedStrong = Color(0xFF4B5563);
+  static const gray300 = Color(0xFFD1D5DB);
+  static const shadowGreen = Color(0xFF1E2E11);
+  static const cardGradientGreenStart = Color(0xFF2E5C1B);
+  static const cardGradientGreenEnd = Color(0xFF143306);
+  static const cardGradientSlateStart = Color(0xFF374151);
+  static const cardGradientSlateEnd = Color(0xFF1F2937);
+  static const promoGradientStart = Color(0xFF243E0F);
+  static const promoGradientEnd = Color(0xFF121F08);
+  static const portfolioSurfaceDark = Color(0xFF1A2327);
+  static const portfolioSurfaceLight = Color(0xFFF0F7EE);
+  static const shadowOverlaySm = Color(0x12000000);
+  static const shadowOverlayMd = Color(0x14000000);
 
   static const chartColors = <Color>[
     primary,
@@ -93,27 +140,38 @@ class AppTheme {
     final isDark = brightness == Brightness.dark;
     final base = ThemeData(brightness: brightness, useMaterial3: true);
 
-    final background = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final background = isDark
+        ? AppColors.backgroundDark
+        : AppColors.backgroundLight;
     final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final border = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final textDisabled = isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight;
-    final fieldFill = isDark ? const Color(0xFF2A2A2A) : AppColors.surfaceElevated;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    final textDisabled = isDark
+        ? AppColors.textDisabledDark
+        : AppColors.textDisabledLight;
+    final fieldFill = isDark
+        ? const Color(0xFF2A2A2A)
+        : AppColors.surfaceElevated;
 
-    final colorScheme = (isDark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
-      primary: AppColors.primary,
-      secondary: AppColors.primaryDark,
-      error: AppColors.danger,
-      surface: surface,
-      onPrimary: Colors.white,
-      onSurface: textPrimary,
-    );
+    final colorScheme =
+        (isDark ? const ColorScheme.dark() : const ColorScheme.light())
+            .copyWith(
+              primary: AppColors.primary,
+              secondary: AppColors.primaryDark,
+              error: AppColors.danger,
+              surface: surface,
+              onPrimary: Colors.white,
+              onSurface: textPrimary,
+            );
 
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).apply(
-      bodyColor: textPrimary,
-      displayColor: textPrimary,
-    );
+    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
+      base.textTheme,
+    ).apply(bodyColor: textPrimary, displayColor: textPrimary);
 
     return base.copyWith(
       colorScheme: colorScheme,

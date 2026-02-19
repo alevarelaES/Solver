@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/features/portfolio/models/symbol_search_result.dart';
 import 'package:solver/features/portfolio/providers/watchlist_provider.dart';
@@ -28,13 +29,19 @@ class AddWatchlistDialog extends ConsumerStatefulWidget {
 
 class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
   SymbolSearchResult? _selectedSymbol;
+  String _symbolQuery = '';
+  String _manualAssetType = 'stock';
   bool _submitting = false;
   String? _error;
 
   Future<void> _submit() async {
     final selected = _selectedSymbol;
-    if (selected == null) {
-      setState(() => _error = 'Selectionnez un symbole depuis la liste.');
+    final manualSymbol = _symbolQuery.trim().toUpperCase();
+    if (selected == null && manualSymbol.isEmpty) {
+      setState(
+        () => _error =
+            'Saisissez un symbole ou selectionnez-en un dans la liste.',
+      );
       return;
     }
 
@@ -44,14 +51,22 @@ class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
     });
 
     try {
+      final resolvedSymbol =
+          selected?.symbol.trim().toUpperCase() ?? manualSymbol;
+      final resolvedName = selected?.name.trim().isNotEmpty == true
+          ? selected!.name.trim()
+          : resolvedSymbol;
+      final resolvedAssetType = selected != null
+          ? _normalizeAssetType(selected.type)
+          : _manualAssetType;
       await ref
           .read(watchlistMutationsProvider)
           .add(
             AddWatchlistRequest(
-              symbol: selected.symbol,
-              exchange: selected.exchange,
-              name: selected.name,
-              assetType: _normalizeAssetType(selected.type),
+              symbol: resolvedSymbol,
+              exchange: selected?.exchange,
+              name: resolvedName,
+              assetType: resolvedAssetType,
             ),
           );
 
@@ -73,7 +88,7 @@ class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,8 +103,37 @@ class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
             onSelected: (symbol) {
               setState(() {
                 _selectedSymbol = symbol;
+                _symbolQuery = symbol.symbol;
                 _error = null;
               });
+            },
+            onQueryChanged: (value) {
+              final normalized = value.trim().toUpperCase();
+              setState(() {
+                _symbolQuery = value;
+                if (_selectedSymbol != null &&
+                    normalized != _selectedSymbol!.symbol.toUpperCase()) {
+                  _selectedSymbol = null;
+                }
+                _error = null;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _manualAssetType,
+            decoration: const InputDecoration(
+              labelText: 'Type actif (si saisie manuelle)',
+            ),
+            items: const [
+              DropdownMenuItem(value: 'stock', child: Text('Action')),
+              DropdownMenuItem(value: 'etf', child: Text('ETF')),
+              DropdownMenuItem(value: 'crypto', child: Text('Crypto')),
+              DropdownMenuItem(value: 'forex', child: Text('Forex')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _manualAssetType = value);
             },
           ),
           if (_error != null) ...[

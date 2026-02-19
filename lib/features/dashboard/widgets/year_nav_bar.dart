@@ -15,7 +15,10 @@ class YearNavBar extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -78,7 +81,7 @@ class _NavButton extends StatelessWidget {
         icon: Icon(icon, size: 18),
         style: AppButtonStyles.iconSurface(
           backgroundColor: onPressed != null
-              ? (isDark ? AppColors.borderDark : const Color(0xFFF3F4F6))
+              ? (isDark ? AppColors.borderDark : AppColors.surfaceHeader)
               : Colors.transparent,
           radius: AppRadius.sm,
         ),

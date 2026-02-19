@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
@@ -31,12 +32,12 @@ class KpiCard extends StatelessWidget {
         : '${amount.toStringAsFixed(1)}${suffix ?? ''}';
 
     return GlassContainer(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.r10),
@@ -47,7 +48,9 @@ class KpiCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

@@ -16,6 +16,8 @@ import 'package:solver/features/dashboard/widgets/pending_invoices_section.dart'
 import 'package:solver/features/dashboard/widgets/recent_activities.dart';
 import 'package:solver/features/dashboard/widgets/year_nav_bar.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
+import 'package:solver/shared/widgets/page_header.dart';
+import 'package:solver/shared/widgets/page_scaffold.dart';
 
 class DashboardView extends ConsumerWidget {
   const DashboardView({super.key});
@@ -56,37 +58,34 @@ class _DashboardContent extends StatelessWidget {
     final isDesktop = width >= AppBreakpoints.desktop;
     final isCompact = width < AppBreakpoints.tablet;
 
-    return SingleChildScrollView(
-      padding: AppSpacing.paddingPage,
+    return AppPageScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const YearNavBar(),
-              if (isCompact)
-                const SizedBox(width: AppSpacing.md)
-              else
-                ElevatedButton.icon(
+          AppPageHeader(
+            title: 'Tableau de bord',
+            subtitle: 'Suivi global de vos finances en temps reel.',
+            trailing: isCompact
+                ? null
+                : ElevatedButton.icon(
                   onPressed: () => showTransactionFormModal(context, ref),
                   icon: const Icon(Icons.add, color: Colors.white, size: 16),
                   label: Text(AppStrings.dashboard.transaction),
                 ),
-            ],
-          ),
-          if (isCompact) ...[
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => showTransactionFormModal(context, ref),
-                icon: const Icon(Icons.add, color: Colors.white, size: 16),
-                label: Text(AppStrings.dashboard.transaction),
-              ),
+            bottom: Row(
+              children: [
+                const Expanded(child: YearNavBar()),
+                if (isCompact) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  ElevatedButton.icon(
+                    onPressed: () => showTransactionFormModal(context, ref),
+                    icon: const Icon(Icons.add, color: Colors.white, size: 16),
+                    label: Text(AppStrings.dashboard.transaction),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
           const SizedBox(height: AppSpacing.xxl),
           if (isDesktop) _buildDesktopLayout(width) else _buildMobileLayout(),
           const SizedBox(height: AppSpacing.xxxl),

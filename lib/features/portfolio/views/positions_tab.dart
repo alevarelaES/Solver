@@ -11,57 +11,6 @@ import 'package:solver/features/portfolio/widgets/asset_row.dart';
 import 'package:solver/features/portfolio/widgets/asset_sidebar.dart';
 import 'package:solver/features/portfolio/widgets/portfolio_dashboard.dart';
 
-const Set<String> _knownStockSymbols = {
-  'AAPL',
-  'MSFT',
-  'NVDA',
-  'AMZN',
-  'GOOGL',
-  'META',
-  'TSLA',
-  'NFLX',
-  'AMD',
-  'INTC',
-  'JPM',
-  'V',
-  'JNJ',
-  'WMT',
-  'DIS',
-  'PYPL',
-  'BA',
-  'CRM',
-  'UBER',
-  'PG',
-};
-
-const Set<String> _knownEtfSymbols = {
-  'SPY',
-  'QQQ',
-  'VTI',
-  'VOO',
-  'IWM',
-  'DIA',
-  'XLF',
-  'XLE',
-  'XLK',
-  'ARKK',
-  'GLD',
-  'SLV',
-};
-
-const Set<String> _knownCryptoSymbols = {
-  'BTC/USD',
-  'ETH/USD',
-  'SOL/USD',
-  'BNB/USD',
-  'XRP/USD',
-  'ADA/USD',
-  'DOGE/USD',
-  'AVAX/USD',
-  'DOT/USD',
-  'LINK/USD',
-};
-
 class PositionsTab extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
@@ -81,17 +30,6 @@ class PositionsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedAssetProvider);
-    final trending = ref.watch(trendingProvider).valueOrNull;
-    final preferredSymbols = <String>{
-      ..._knownStockSymbols,
-      ..._knownEtfSymbols,
-      ..._knownCryptoSymbols,
-      ...?trending?.stocks.map((s) => s.symbol.trim().toUpperCase()),
-      ...?trending?.crypto.map((s) => s.symbol.trim().toUpperCase()),
-    };
-    final cleanedHoldings = holdings
-        .where((holding) => _isKnownHolding(holding, preferredSymbols))
-        .toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -100,7 +38,7 @@ class PositionsTab extends ConsumerWidget {
         if (isDesktop) {
           return _DesktopLayout(
             summary: summary,
-            holdings: cleanedHoldings,
+            holdings: holdings,
             sparklineBySymbol: sparklineBySymbol,
             selected: selected,
             onAddHolding: onAddHolding,
@@ -109,7 +47,7 @@ class PositionsTab extends ConsumerWidget {
 
         return _MobileLayout(
           summary: summary,
-          holdings: cleanedHoldings,
+          holdings: holdings,
           sparklineBySymbol: sparklineBySymbol,
           selected: selected,
           onAddHolding: onAddHolding,
@@ -171,13 +109,7 @@ class _DesktopLayout extends ConsumerWidget {
 
   SelectedAsset? _resolveSelected(WidgetRef ref) {
     if (selected != null) {
-      final selectedSymbol = selected!.symbol.trim().toUpperCase();
-      final inCleanedHoldings = holdings.any(
-        (h) => h.symbol.trim().toUpperCase() == selectedSymbol,
-      );
-      if (inCleanedHoldings || _isKnownSymbol(selectedSymbol)) {
-        return selected;
-      }
+      return selected;
     }
     if (holdings.isNotEmpty) {
       final first = holdings.first;
@@ -338,25 +270,4 @@ class _MobileLayout extends ConsumerWidget {
       ),
     );
   }
-}
-
-bool _isKnownHolding(Holding holding, Set<String> preferredSymbols) {
-  final symbol = holding.symbol.trim().toUpperCase();
-  final price = holding.currentPrice ?? 0;
-  if (symbol.isEmpty || price <= 0) return false;
-
-  if (preferredSymbols.contains(symbol)) return true;
-
-  if (symbol.contains('/')) {
-    return _knownCryptoSymbols.contains(symbol);
-  }
-
-  return false;
-}
-
-bool _isKnownSymbol(String symbol) {
-  if (_knownStockSymbols.contains(symbol)) return true;
-  if (_knownEtfSymbols.contains(symbol)) return true;
-  if (_knownCryptoSymbols.contains(symbol)) return true;
-  return false;
 }

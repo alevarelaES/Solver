@@ -56,7 +56,7 @@ class ExpenseBreakdown extends StatelessWidget {
       AppColors.primary,
       AppColors.primaryDark,
       AppColors.primaryDarker,
-      const Color(0xFFD1D5DB),
+      AppColors.gray300,
       AppColors.warning,
       AppColors.info,
     ];

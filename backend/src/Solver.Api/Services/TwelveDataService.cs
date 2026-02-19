@@ -132,16 +132,17 @@ public class TwelveDataService
         return results;
     }
 
-    public async Task<List<TwelveDataSymbolSearch>> SearchSymbolsAsync(string query)
+    public async Task<List<TwelveDataSymbolSearch>> SearchSymbolsAsync(string query, int limit = 100)
     {
         if (!await _rateLimiter.TryAcquireAsync())
             return [];
 
         try
         {
+            var clampedLimit = Math.Clamp(limit, 10, 120);
             var client = _httpClientFactory.CreateClient("TwelveData");
             var response = await client.GetFromJsonAsync<TwelveDataSymbolSearchResponse>(
-                $"/symbol_search?symbol={Uri.EscapeDataString(query)}&apikey={_config.ApiKey}");
+                $"/symbol_search?symbol={Uri.EscapeDataString(query)}&outputsize={clampedLimit}&apikey={_config.ApiKey}");
             return response?.Data ?? [];
         }
         catch (Exception ex)
