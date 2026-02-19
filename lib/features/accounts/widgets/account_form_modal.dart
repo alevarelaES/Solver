@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -54,7 +55,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
       ref.invalidate(dashboardDataProvider);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() { _error = 'Erreur lors de la création'; _loading = false; });
+      setState(() { _error = AppStrings.forms.createError; _loading = false; });
     }
   }
 
@@ -79,7 +80,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Nouveau compte', style: AppTextStyles.title),
+                    Text(AppStrings.forms.newAccount, style: AppTextStyles.title),
                     IconButton(
                       icon: const Icon(Icons.close, color: AppColors.textSecondary),
                       onPressed: () => Navigator.of(context).pop(),
@@ -92,8 +93,8 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 TextFormField(
                   controller: _nameCtrl,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: const InputDecoration(labelText: 'Nom du compte'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                  decoration: InputDecoration(labelText: AppStrings.forms.accountName),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.forms.required : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -101,26 +102,26 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 TextFormField(
                   controller: _groupCtrl,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: const InputDecoration(labelText: 'Groupe (ex: Charges fixes)'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+                  decoration: InputDecoration(labelText: AppStrings.forms.accountGroupHint),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? AppStrings.forms.required : null,
                 ),
                 const SizedBox(height: 16),
 
                 // Type
-                const Text('Type', style: AppTextStyles.label),
+                Text(AppStrings.forms.typeLabel, style: AppTextStyles.label),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 12,
                   runSpacing: 8,
                   children: [
                     _TypeChip(
-                      label: 'Dépense',
+                      label: AppStrings.forms.typeExpense,
                       selected: _type == 'expense',
                       color: AppColors.softRed,
                       onTap: () => setState(() => _type = 'expense'),
                     ),
                     _TypeChip(
-                      label: 'Revenu',
+                      label: AppStrings.forms.typeIncome,
                       selected: _type == 'income',
                       color: AppColors.neonEmerald,
                       onTap: () => setState(() => _type = 'income'),
@@ -133,7 +134,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Montant fixe', style: TextStyle(color: AppColors.textSecondary)),
+                    Text(AppStrings.forms.fixedAmount, style: const TextStyle(color: AppColors.textSecondary)),
                     Switch(
                       value: _isFixed,
                       activeThumbColor: AppColors.electricBlue,
@@ -154,7 +155,7 @@ class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                     onPressed: _loading ? null : _submit,
                     child: _loading
                         ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Créer le compte'),
+                        : Text(AppStrings.forms.createAccountBtn),
                   ),
                 ),
               ],

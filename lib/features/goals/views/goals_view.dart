@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
 import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
@@ -27,7 +29,9 @@ String _editableInputValue(double value, {int maxDecimals = 0}) {
 bool _isDebtType(String value) => value.toLowerCase() == 'debt';
 
 String _typeLabel(String value) =>
-    _isDebtType(value) ? 'Remboursement' : 'Objectif';
+    _isDebtType(value)
+        ? AppStrings.goals.typeLabelDebt
+        : AppStrings.goals.typeLabelGoal;
 
 bool _isAchievedStatus(String status) => status.toLowerCase() == 'achieved';
 
@@ -75,9 +79,9 @@ int _projectedDelayMonths(SavingGoal goal) {
 
 _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
   if (_isAchievedStatus(goal.status) || goal.remainingAmount <= 0.01) {
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.achieved,
-      label: 'Atteint',
+      label: AppStrings.goals.statusReached,
       color: AppColors.primary,
       icon: Icons.check_circle_rounded,
     );
@@ -85,9 +89,9 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
 
   final days = _daysUntil(goal.targetDate);
   if (days < 0) {
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.overdue,
-      label: 'Echeance depassee',
+      label: AppStrings.goals.alertOverdueDeadline,
       color: AppColors.danger,
       icon: Icons.error_rounded,
     );
@@ -104,16 +108,16 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
 
   if (days <= 15) {
     if (!hasPlan || coverage < 0.80 || delayMonths >= 1) {
-      return const _GoalAlertAssessment(
+      return _GoalAlertAssessment(
         level: _GoalAlertLevel.critical,
-        label: 'Urgence: echeance proche',
+        label: AppStrings.goals.alertUrgentSoon,
         color: AppColors.danger,
         icon: Icons.priority_high_rounded,
       );
     }
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.attention,
-      label: 'Attention: bientot',
+      label: AppStrings.goals.alertAttentionSoon,
       color: AppColors.warning,
       icon: Icons.warning_amber_rounded,
     );
@@ -121,17 +125,17 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
 
   if (days <= 30) {
     if (!hasPlan || coverage < 0.55 || delayMonths >= 2) {
-      return const _GoalAlertAssessment(
+      return _GoalAlertAssessment(
         level: _GoalAlertLevel.critical,
-        label: 'Urgence: ajustement fort',
+        label: AppStrings.goals.alertUrgentAdjustment,
         color: AppColors.danger,
         icon: Icons.priority_high_rounded,
       );
     }
     if (coverage < 0.95 || delayMonths >= 1) {
-      return const _GoalAlertAssessment(
+      return _GoalAlertAssessment(
         level: _GoalAlertLevel.attention,
-        label: 'Attention: a ajuster',
+        label: AppStrings.goals.alertAttentionAdjust,
         color: AppColors.warning,
         icon: Icons.warning_amber_rounded,
       );
@@ -140,9 +144,9 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
 
   if (days <= 60) {
     if (!hasPlan || coverage < 0.75 || delayMonths >= 2) {
-      return const _GoalAlertAssessment(
+      return _GoalAlertAssessment(
         level: _GoalAlertLevel.attention,
-        label: 'Attention: approche',
+        label: AppStrings.goals.alertAttentionApproach,
         color: AppColors.warning,
         icon: Icons.warning_amber_rounded,
       );
@@ -150,35 +154,35 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
   }
 
   if (days <= 90 && coverage < 0.65 && delayMonths >= 1) {
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.attention,
-      label: 'Attention: rythme faible',
+      label: AppStrings.goals.alertAttentionLowRhythm,
       color: AppColors.warning,
       icon: Icons.warning_amber_rounded,
     );
   }
 
   if (!hasPlan && goal.remainingAmount > 0) {
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.normal,
-      label: 'A planifier',
+      label: AppStrings.goals.alertToPlan,
       color: AppColors.textSecondary,
       icon: Icons.schedule_rounded,
     );
   }
 
   if (coverage < 0.95 || delayMonths >= 1) {
-    return const _GoalAlertAssessment(
+    return _GoalAlertAssessment(
       level: _GoalAlertLevel.normal,
-      label: 'A ajuster',
+      label: AppStrings.goals.alertToAdjust,
       color: AppColors.textSecondary,
       icon: Icons.tune_rounded,
     );
   }
 
-  return const _GoalAlertAssessment(
+  return _GoalAlertAssessment(
     level: _GoalAlertLevel.normal,
-    label: 'Sur trajectoire',
+    label: AppStrings.goals.alertOnTrack,
     color: AppColors.successStrong,
     icon: Icons.track_changes_rounded,
   );
@@ -187,12 +191,12 @@ _GoalAlertAssessment _assessGoalAlert(SavingGoal goal) {
 String _deadlineLabel(SavingGoal goal) {
   final days = _daysUntil(goal.targetDate);
   if (_isAchievedStatus(goal.status)) {
-    return 'Atteint - cible ${_formatDateShort(goal.targetDate)}';
+    return AppStrings.goals.achievedDeadline(_formatDateShort(goal.targetDate));
   }
-  if (days < 0) return 'Retard de ${days.abs()} jours';
-  if (days == 0) return 'Echeance aujourd\'hui';
-  if (days == 1) return 'Echeance demain';
-  return 'Echeance dans $days jours';
+  if (days < 0) return AppStrings.goals.overdueByDays(days.abs());
+  if (days == 0) return AppStrings.goals.deadlineToday;
+  if (days == 1) return AppStrings.goals.deadlineTomorrow;
+  return AppStrings.goals.deadlineInDays(days);
 }
 
 int _monthsRemaining(DateTime from, DateTime target) {
@@ -268,7 +272,7 @@ _DebtRiskAssessment _assessDebtRisk(SavingGoal goal, double? monthlyMargin) {
 
   if (score >= 70) {
     return _DebtRiskAssessment(
-      label: 'Risque eleve',
+      label: AppStrings.goals.statusUrgent,
       color: AppColors.danger,
       projectedDelayMonths: delayMonths,
       marginAfterPayment: marginAfterPayment,
@@ -276,14 +280,14 @@ _DebtRiskAssessment _assessDebtRisk(SavingGoal goal, double? monthlyMargin) {
   }
   if (score >= 40) {
     return _DebtRiskAssessment(
-      label: 'Risque moyen',
+      label: AppStrings.goals.statusLate,
       color: AppColors.warningStrong,
       projectedDelayMonths: delayMonths,
       marginAfterPayment: marginAfterPayment,
     );
   }
   return _DebtRiskAssessment(
-    label: 'Risque faible',
+    label: AppStrings.goals.statusOnTrack,
     color: AppColors.primary,
     projectedDelayMonths: delayMonths,
     marginAfterPayment: marginAfterPayment,
@@ -302,5 +306,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
   void _withState(VoidCallback cb) => setState(cb);
 
   @override
-  Widget build(BuildContext context) => _buildGoalsView(context);
+  Widget build(BuildContext context) {
+    ref.watch(appCurrencyProvider);
+    return _buildGoalsView(context);
+  }
 }

@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/l10n/app_strings.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
@@ -23,22 +25,6 @@ part 'journal_view.header.part.dart';
 part 'journal_view.filters.part.dart';
 part 'journal_view.table.part.dart';
 part 'journal_view.detail.part.dart';
-
-const _months = <String>[
-  '',
-  'Janvier',
-  'Fevrier',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Aout',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Decembre',
-];
 
 final _selectedTxIdProvider = StateProvider<String?>((ref) => null);
 
@@ -108,13 +94,14 @@ class JournalView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final txAsync = ref.watch(journalVisibleTransactionsProvider);
     final transactions = txAsync.valueOrNull ?? const <Transaction>[];
 
     if (txAsync.hasError && transactions.isEmpty) {
       return Center(
         child: Text(
-          'Erreur: ${txAsync.error}',
+          AppStrings.journal.error(txAsync.error!),
           style: const TextStyle(color: AppColors.danger),
         ),
       );

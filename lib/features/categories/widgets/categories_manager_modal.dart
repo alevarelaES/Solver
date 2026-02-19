@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -46,9 +47,9 @@ class _CategoriesManagerDialogState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Gérer groupes et catégories',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  Text(
+                    AppStrings.forms.manageCategoriesTitle,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
@@ -61,20 +62,20 @@ class _CategoriesManagerDialogState
                   TextButton.icon(
                     onPressed: _saving ? null : _createGroup,
                     icon: const Icon(Icons.create_new_folder_outlined),
-                    label: const Text('Nouveau groupe'),
+                    label: Text(AppStrings.forms.newGroupBtn),
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: _saving ? null : _createCategory,
                     icon: const Icon(Icons.add),
-                    label: const Text('Nouvelle catégorie'),
+                    label: Text(AppStrings.forms.newCategoryBtn),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Un groupe organise les dépenses/revenus. Une catégorie sert à accumuler les opérations dans ce groupe.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              Text(
+                AppStrings.forms.categoriesManagerHint,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 10),
               Expanded(
@@ -83,7 +84,7 @@ class _CategoriesManagerDialogState
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(
                     child: Text(
-                      'Erreur catégories: $e',
+                      AppStrings.forms.categoriesError(e),
                       style: const TextStyle(color: AppColors.softRed),
                     ),
                   ),
@@ -92,7 +93,7 @@ class _CategoriesManagerDialogState
                         const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(
                       child: Text(
-                        'Erreur groupes: $e',
+                        AppStrings.forms.groupsError(e),
                         style: const TextStyle(color: AppColors.softRed),
                       ),
                     ),
@@ -124,14 +125,14 @@ class _CategoriesManagerDialogState
       children: [
         ..._buildTypeSections(
           type: 'expense',
-          title: 'Dépenses',
+          title: AppStrings.forms.typeExpensePlural,
           groups: activeGroups,
           categories: activeCategories,
         ),
         const SizedBox(height: 14),
         ..._buildTypeSections(
           type: 'income',
-          title: 'Revenus',
+          title: AppStrings.forms.typeIncomePlural,
           groups: activeGroups,
           categories: activeCategories,
         ),
@@ -139,9 +140,9 @@ class _CategoriesManagerDialogState
           const SizedBox(height: 14),
           const Divider(height: 1),
           const SizedBox(height: 12),
-          const Text(
-            'Archives',
-            style: TextStyle(
+          Text(
+            AppStrings.forms.archives,
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.textSecondary,
@@ -151,8 +152,8 @@ class _CategoriesManagerDialogState
           ...archivedGroups.map(
             (g) => ListTile(
               dense: true,
-              title: Text('${g.name} (${g.isIncome ? 'Revenu' : 'Dépense'})'),
-              subtitle: const Text('Groupe archive'),
+              title: Text('${g.name} (${g.isIncome ? AppStrings.forms.typeIncome : AppStrings.forms.typeExpense})'),
+              subtitle: Text(AppStrings.forms.archivedGroup),
               trailing: IconButton(
                 onPressed: _saving ? null : () => _archiveGroup(g, false),
                 icon: const Icon(Icons.unarchive_outlined, size: 18),
@@ -189,11 +190,11 @@ class _CategoriesManagerDialogState
 
     if (sectionGroups.isEmpty) {
       result.add(
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'Aucun groupe',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            AppStrings.forms.noGroups,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ),
       );
@@ -247,25 +248,25 @@ class _CategoriesManagerDialogState
                     IconButton(
                       onPressed: _saving ? null : () => _editGroup(group),
                       icon: const Icon(Icons.edit_outlined, size: 18),
-                      tooltip: 'Renommer groupe',
+                      tooltip: AppStrings.forms.renameGroup,
                     ),
                     IconButton(
                       onPressed: _saving
                           ? null
                           : () => _archiveGroup(group, true),
                       icon: const Icon(Icons.archive_outlined, size: 18),
-                      tooltip: 'Archiver groupe',
+                      tooltip: AppStrings.forms.archiveGroup,
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1),
               if (items.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(AppSpacing.md),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Text(
-                    'Aucune catégorie dans ce groupe',
-                    style: TextStyle(
+                    AppStrings.forms.noCategories,
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textSecondary,
                     ),
@@ -297,7 +298,7 @@ class _CategoriesManagerDialogState
           IconButton(
             onPressed: _saving ? null : () => _editCategory(c),
             icon: const Icon(Icons.edit_outlined, size: 18),
-            tooltip: 'Renommer',
+            tooltip: AppStrings.common.edit,
           ),
           IconButton(
             onPressed: _saving
@@ -307,7 +308,7 @@ class _CategoriesManagerDialogState
               c.isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
               size: 18,
             ),
-            tooltip: c.isArchived ? 'Desarchiver' : 'Archiver',
+            tooltip: c.isArchived ? AppStrings.forms.unarchive : AppStrings.forms.archive,
           ),
         ],
       ),
@@ -326,10 +327,8 @@ class _CategoriesManagerDialogState
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Création de groupe indisponible: mets à jour/redémarre le backend.',
-          ),
+        SnackBar(
+          content: Text(AppStrings.forms.createGroupUnavailable),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -350,10 +349,8 @@ class _CategoriesManagerDialogState
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Renommage de groupe indisponible sur cette version backend.',
-          ),
+        SnackBar(
+          content: Text(AppStrings.forms.renameGroupUnavailable),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -371,10 +368,8 @@ class _CategoriesManagerDialogState
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Archivage de groupe indisponible sur cette version backend.',
-          ),
+        SnackBar(
+          content: Text(AppStrings.forms.archiveGroupUnavailable),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -516,22 +511,22 @@ class _CategoriesManagerDialogState
           final availableGroups = groupsForType();
           return AlertDialog(
             title: Text(
-              initial == null ? 'Nouvelle catégorie' : 'Modifier catégorie',
+              initial == null ? AppStrings.forms.newCategoryTitle : AppStrings.forms.editCategoryTitle,
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nom'),
+                  decoration: InputDecoration(labelText: AppStrings.forms.nameLabel),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: type,
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
-                    DropdownMenuItem(value: 'income', child: Text('Revenu')),
+                  decoration: InputDecoration(labelText: AppStrings.forms.typeLabel),
+                  items: [
+                    DropdownMenuItem(value: 'expense', child: Text(AppStrings.forms.typeExpense)),
+                    DropdownMenuItem(value: 'income', child: Text(AppStrings.forms.typeIncome)),
                   ],
                   onChanged: (v) {
                     setLocalState(() {
@@ -545,7 +540,7 @@ class _CategoriesManagerDialogState
                 if (availableGroups.isNotEmpty && !creatingNewGroup)
                   DropdownButtonFormField<String>(
                     initialValue: selectedGroupId,
-                    decoration: const InputDecoration(labelText: 'Groupe'),
+                    decoration: InputDecoration(labelText: AppStrings.forms.categoryGroup),
                     items: availableGroups
                         .map(
                           (g) => DropdownMenuItem(
@@ -568,17 +563,17 @@ class _CategoriesManagerDialogState
                     ),
                     label: Text(
                       creatingNewGroup
-                          ? 'Utiliser un groupe existant'
-                          : 'Créer un nouveau groupe',
+                          ? AppStrings.forms.useExistingGroup
+                          : AppStrings.forms.createNewGroup,
                     ),
                   ),
                 ),
                 if (creatingNewGroup)
                   TextField(
                     controller: newGroupCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nouveau groupe',
-                      hintText: 'Ex: Activites, Charges fixes',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.forms.newGroupName,
+                      hintText: AppStrings.forms.newGroupHint,
                     ),
                   ),
               ],
@@ -586,7 +581,7 @@ class _CategoriesManagerDialogState
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Annuler'),
+                child: Text(AppStrings.common.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -628,7 +623,7 @@ class _CategoriesManagerDialogState
                     ),
                   );
                 },
-                child: const Text('Enregistrer'),
+                child: Text(AppStrings.common.save),
               ),
             ],
           );
@@ -649,22 +644,22 @@ class _CategoriesManagerDialogState
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setLocalState) => AlertDialog(
-          title: Text(initial == null ? 'Nouveau groupe' : 'Renommer groupe'),
+          title: Text(initial == null ? AppStrings.forms.newGroupTitle : AppStrings.forms.renameGroupTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nom du groupe'),
+                decoration: InputDecoration(labelText: AppStrings.forms.groupNameLabel),
               ),
               if (initial == null) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: type,
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
-                    DropdownMenuItem(value: 'income', child: Text('Revenu')),
+                  decoration: InputDecoration(labelText: AppStrings.forms.typeLabel),
+                  items: [
+                    DropdownMenuItem(value: 'expense', child: Text(AppStrings.forms.typeExpense)),
+                    DropdownMenuItem(value: 'income', child: Text(AppStrings.forms.typeIncome)),
                   ],
                   onChanged: (v) => setLocalState(() => type = v ?? 'expense'),
                 ),
@@ -674,7 +669,7 @@ class _CategoriesManagerDialogState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Annuler'),
+              child: Text(AppStrings.common.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -682,7 +677,7 @@ class _CategoriesManagerDialogState
                 if (name.isEmpty) return;
                 Navigator.pop(ctx, _GroupDraft(name: name, type: type));
               },
-              child: const Text('Enregistrer'),
+              child: Text(AppStrings.common.save),
             ),
           ],
         ),

@@ -118,7 +118,7 @@ class _KpiCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            AppFormats.currency.format(data.amount),
+            AppFormats.formatFromChf(data.amount),
             style: GoogleFonts.robotoMono(
               fontSize: 20,
               fontWeight: FontWeight.bold,

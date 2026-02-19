@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
 import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
@@ -41,6 +43,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(appCurrencyProvider);
     final selectedMonth = ref.watch(selectedBudgetMonthProvider);
     final monthKey = BudgetMonthKey(
       year: selectedMonth.year,
@@ -53,7 +56,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
         child: Text(
-          'Erreur budget: $e',
+          AppStrings.budget.errorBudget(e),
           style: const TextStyle(color: AppColors.danger),
         ),
       ),
@@ -97,10 +100,9 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppPageHeader(
-                title: 'Budget',
-                subtitle:
-                    'Planifiez vos allocations mensuelles et suivez vos marges.',
+              AppPageHeader(
+                title: AppStrings.budget.title,
+                subtitle: AppStrings.budget.subtitleFull,
               ),
               const SizedBox(height: AppSpacing.md),
               _PlannerTopBar(
@@ -178,7 +180,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'ALLOCATION PAR GROUPE (${rows.length})',
+                    AppStrings.budget.allocationByGroup(rows.length),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -213,8 +215,11 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                   ),
                   Text(
                     totals.overLimit
-                        ? 'Allocation manuelle depasse la capacite restante'
-                        : 'Manuel: ${totals.manualPercent.toStringAsFixed(1)}% / ${totals.manualCapacityPercent.toStringAsFixed(1)}%',
+                        ? AppStrings.budget.overLimitMsg
+                        : AppStrings.budget.manualPctLabel(
+                            totals.manualPercent.toStringAsFixed(1),
+                            totals.manualCapacityPercent.toStringAsFixed(1),
+                          ),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,

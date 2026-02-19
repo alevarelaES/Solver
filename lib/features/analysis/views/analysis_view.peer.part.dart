@@ -26,7 +26,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PROJECTED SAVINGS GROWTH (5YR)',
+            AppStrings.analysis.projectedSavingsTitle,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -52,7 +52,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.r20),
                 ),
                 child: Text(
-                  'Aggressive Strategy',
+                  AppStrings.analysis.aggressiveStrategy,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -102,7 +102,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MONTHLY YIELD',
+                        AppStrings.analysis.monthlyYield,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -113,7 +113,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '+${AppFormats.currency.format(monthlySavings)}',
+                        '+${AppFormats.formatFromChf(monthlySavings)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -138,7 +138,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'PROJECTED ROI',
+                        AppStrings.analysis.projectedRoi,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -197,7 +197,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Compound Effect',
+                        AppStrings.analysis.compoundEffect,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -208,7 +208,7 @@ class _ProjectedSavingsCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Current trajectory adds ${AppFormats.currencyRaw.format(projectedTotal * 0.17)} in passive appreciation by 2030.',
+                        AppStrings.analysis.compoundNote(AppFormats.currencyRaw.format(projectedTotal * 0.17)),
                         style: TextStyle(
                           fontSize: 10,
                           color: isDark
@@ -254,8 +254,8 @@ class _PeerComparisonCard extends StatelessWidget {
               iconBg: bgColors[idx].withValues(alpha: 0.1),
               iconColor: bgColors[idx],
               title: g.group,
-              subtitle:
-                  'Vs. ${AppFormats.currencyRaw.format(g.total * 0.85)}k median peers',
+              subtitle: AppStrings.analysis.vsMedianPeers(
+                  AppFormats.currencyRaw.format(g.total * 0.85)),
               percent: isOptimal
                   ? '-${(100 - g.percentage).toStringAsFixed(1)}%'
                   : '+${(g.percentage - 25).toStringAsFixed(1)}%',
@@ -302,7 +302,7 @@ class _PeerComparisonCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'PEER COMPARISON INDEX',
+                AppStrings.analysis.peerComparisonTitle,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -321,7 +321,7 @@ class _PeerComparisonCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.r4),
                 ),
                 child: Text(
-                  'TOP 10% SEGMENT',
+                  AppStrings.analysis.topSegment,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -359,7 +359,7 @@ class _PeerComparisonCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'EFFICIENCY INDEX SCORE',
+                  AppStrings.analysis.efficiencyScore,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -462,7 +462,7 @@ class _PeerComparisonRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${item.percent} ${item.isOptimal ? "Optimal" : "Above"}',
+              '${item.percent} ${item.isOptimal ? AppStrings.analysis.peerOptimal : AppStrings.analysis.peerAbove}',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
@@ -12,6 +13,7 @@ class GoalsPrioritySummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final goalsAsync = ref.watch(goalsProvider);
 
@@ -192,7 +194,7 @@ class _GoalLine extends StatelessWidget {
                 ),
               ),
               Text(
-                AppFormats.currencyCompact.format(goal.remainingAmount),
+                AppFormats.formatFromChfCompact(goal.remainingAmount),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,

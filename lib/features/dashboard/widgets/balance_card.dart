@@ -64,7 +64,7 @@ class BalanceCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           // Balance amount
           Text(
-            AppFormats.currency.format(data.currentBalance),
+            AppFormats.formatFromChf(data.currentBalance),
             style: GoogleFonts.robotoMono(
               color: Colors.white,
               fontSize: 26,
@@ -73,7 +73,7 @@ class BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Limite mensuelle: ${AppFormats.currencyCompact.format(spent)} / ${AppFormats.currencyCompact.format(monthlyLimit)}',
+            'Limite mensuelle: ${AppFormats.formatFromChfCompact(spent)} / ${AppFormats.formatFromChfCompact(monthlyLimit)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,

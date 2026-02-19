@@ -352,7 +352,7 @@ class _TransactionTileState extends ConsumerState<_TransactionTile> {
 
           // Amount
           Text(
-            AppFormats.currency.format(t.amount),
+            AppFormats.formatFromChf(t.amount),
             style: TextStyle(
               color: t.isPending ? AppColors.textSecondary : color,
               fontWeight: FontWeight.w600,

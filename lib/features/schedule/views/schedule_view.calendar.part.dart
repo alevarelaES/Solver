@@ -277,7 +277,7 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      AppFormats.currency.format(transaction.amount),
+                      AppFormats.formatFromChf(transaction.amount),
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,

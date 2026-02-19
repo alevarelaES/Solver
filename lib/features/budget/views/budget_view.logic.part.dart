@@ -223,7 +223,7 @@ extension _BudgetViewLogic on _BudgetViewState {
         _drafts[row.group.groupId] = current.copyWith(amount: clamped);
         if (value > clamped + 0.0001 || value + 0.0001 < clamped) {
           _draftError =
-              'Plage autorisee pour ${row.group.groupName}: ${AppFormats.currencyCompact.format(row.minAllowedAmount)} - ${AppFormats.currencyCompact.format(row.maxAllowedAmount)}';
+              'Plage autorisee pour ${row.group.groupName}: ${AppFormats.formatFromChfCompact(row.minAllowedAmount)} - ${AppFormats.formatFromChfCompact(row.maxAllowedAmount)}';
         }
       } else {
         final clamped = value
@@ -248,16 +248,16 @@ extension _BudgetViewLogic on _BudgetViewState {
         }
       }
       if (error.response?.statusCode == 503) {
-        return 'Serveur temporairement indisponible. Reessayez dans quelques secondes.';
+        return AppStrings.budget.saveErrorServer;
       }
     }
-    return 'Erreur de sauvegarde du plan.';
+    return AppStrings.budget.saveError;
   }
 
   Future<void> _savePlan(BudgetStats stats, _PlanTotals totals) async {
     if (totals.overLimit) {
       _withState(() {
-        _draftError = 'Le total depasse 100%.';
+        _draftError = AppStrings.budget.totalExceeds;
       });
       return;
     }
@@ -299,9 +299,9 @@ extension _BudgetViewLogic on _BudgetViewState {
         _dirty = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Plan budget enregistre')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.budget.planSaved)),
+        );
       }
     } catch (error) {
       _withState(() {
@@ -321,18 +321,16 @@ extension _BudgetViewLogic on _BudgetViewState {
       final discard = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Modifier le mois'),
-          content: const Text(
-            'Des changements non sauvegardes seront perdus. Continuer ?',
-          ),
+          title: Text(AppStrings.budget.changeMonthTitle),
+          content: Text(AppStrings.budget.unsavedChangesLost),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(AppStrings.common.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Continuer'),
+              child: Text(AppStrings.budget.continueAction),
             ),
           ],
         ),
@@ -353,11 +351,7 @@ extension _BudgetViewLogic on _BudgetViewState {
     if (disposableIncome <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Definis d\'abord un revenu disponible positif pour ce mois.',
-          ),
-        ),
+        SnackBar(content: Text(AppStrings.budget.needPositiveIncome)),
       );
       return;
     }
@@ -382,16 +376,16 @@ extension _BudgetViewLogic on _BudgetViewState {
           );
 
           return AlertDialog(
-            title: const Text('Creer une epargne mensuelle'),
+            title: Text(AppStrings.budget.createSavingsGoalTitle),
             content: SizedBox(
               width: 460,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Le Budget gere les depenses. L\'epargne est geree via Objectifs.',
-                    style: TextStyle(
+                  Text(
+                    AppStrings.budget.savingsBudgetDesc,
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -401,8 +395,8 @@ extension _BudgetViewLogic on _BudgetViewState {
                   TextField(
                     controller: nameCtrl,
                     onChanged: (_) => setLocalState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de l\'objectif',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.budget.goalNameLabel,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -415,8 +409,8 @@ extension _BudgetViewLogic on _BudgetViewState {
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
                     ],
-                    decoration: const InputDecoration(
-                      labelText: 'Pourcentage du revenu disponible (%)',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.budget.goalPercentLabel,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -425,8 +419,8 @@ extension _BudgetViewLogic on _BudgetViewState {
                     onChanged: (_) => setLocalState(() {}),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Horizon (mois)',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.budget.goalHorizonLabel,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -442,7 +436,10 @@ extension _BudgetViewLogic on _BudgetViewState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Mensuel: ${AppFormats.currencyCompact.format(monthly)} (${pct.toStringAsFixed(1)}%)',
+                          AppStrings.budget.monthlyAmountLabel(
+                            AppFormats.formatFromChfCompact(monthly),
+                            pct.toStringAsFixed(1),
+                          ),
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w800,
@@ -450,7 +447,12 @@ extension _BudgetViewLogic on _BudgetViewState {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Objectif cible: ${AppFormats.currencyCompact.format(target)} sur $validMonths mois (jusqu\'a ${_monthNames[targetDate.month - 1]} ${targetDate.year})',
+                          AppStrings.budget.goalTargetLabel(
+                            AppFormats.formatFromChfCompact(target),
+                            validMonths,
+                            AppStrings.common.monthsFull[targetDate.month - 1],
+                            targetDate.year,
+                          ),
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w700,
@@ -466,11 +468,11 @@ extension _BudgetViewLogic on _BudgetViewState {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Annuler'),
+                child: Text(AppStrings.common.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Creer'),
+                child: Text(AppStrings.forms.create),
               ),
             ],
           );
@@ -481,7 +483,7 @@ extension _BudgetViewLogic on _BudgetViewState {
     if (confirmed != true) return;
 
     final goalName = nameCtrl.text.trim().isEmpty
-        ? 'Epargne mensuelle'
+        ? AppStrings.budget.defaultGoalName
         : nameCtrl.text.trim();
     final pct = _parseNumber(percentCtrl.text).clamp(0, 100).toDouble();
     final months = (int.tryParse(monthsCtrl.text.trim()) ?? 12).clamp(1, 120);
@@ -490,9 +492,7 @@ extension _BudgetViewLogic on _BudgetViewState {
     if (monthly <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le pourcentage doit etre superieur a 0%.'),
-        ),
+        SnackBar(content: Text(AppStrings.budget.needPositivePercent)),
       );
       return;
     }
@@ -520,10 +520,13 @@ extension _BudgetViewLogic on _BudgetViewState {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Objectif "$goalName" cree (${AppFormats.currencyCompact.format(monthly)}/mois).',
+            AppStrings.budget.goalCreated(
+              goalName,
+              AppFormats.formatFromChfCompact(monthly),
+            ),
           ),
           action: SnackBarAction(
-            label: 'Ouvrir Objectifs',
+            label: AppStrings.budget.openGoals,
             onPressed: () => context.go('/goals'),
           ),
         ),
@@ -532,7 +535,7 @@ extension _BudgetViewLogic on _BudgetViewState {
       final data = error.response?.data;
       final message = data is Map<String, dynamic> && data['error'] is String
           ? data['error'] as String
-          : 'Erreur de creation de l\'objectif.';
+          : AppStrings.budget.createGoalError;
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,

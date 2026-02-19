@@ -196,10 +196,10 @@ class _TransactionTable extends StatelessWidget {
           const Divider(height: 1, color: AppColors.borderTable),
           Expanded(
             child: rows.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      'Aucune transaction sur ce filtre',
-                      style: TextStyle(
+                      AppStrings.journal.noTransactionsFilter,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                       ),
@@ -316,7 +316,7 @@ class _MonthHeaderRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Gagne ${AppFormats.currency.format(totals.income)}',
+                      AppStrings.journal.earned(AppFormats.formatFromChf(totals.income)),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -325,7 +325,7 @@ class _MonthHeaderRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      'Depense ${AppFormats.currency.format(totals.expense)}',
+                      AppStrings.journal.spent(AppFormats.formatFromChf(totals.expense)),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -370,7 +370,7 @@ class _TableHeader extends ConsumerWidget {
               Expanded(
                 flex: 4,
                 child: _SortableHeaderLabel(
-                  label: 'TRANSACTION',
+                  label: AppStrings.journal.colTransaction,
                   style: style,
                   active: sort.column == _JournalSortColumn.date,
                   ascending: sort.ascending,
@@ -380,7 +380,7 @@ class _TableHeader extends ConsumerWidget {
               Expanded(
                 flex: 2,
                 child: _SortableHeaderLabel(
-                  label: 'MONTANT',
+                  label: AppStrings.journal.colAmount,
                   style: style,
                   active: sort.column == _JournalSortColumn.amount,
                   ascending: sort.ascending,
@@ -403,7 +403,7 @@ class _TableHeader extends ConsumerWidget {
             Expanded(
               flex: 2,
               child: _SortableHeaderLabel(
-                label: 'DATE',
+                label: AppStrings.journal.colDate,
                 style: style,
                 active: sort.column == _JournalSortColumn.date,
                 ascending: sort.ascending,
@@ -413,7 +413,7 @@ class _TableHeader extends ConsumerWidget {
             Expanded(
               flex: 4,
               child: _SortableHeaderLabel(
-                label: 'LIBELLE',
+                label: AppStrings.journal.colLabel,
                 style: style,
                 active: sort.column == _JournalSortColumn.label,
                 ascending: sort.ascending,
@@ -423,7 +423,7 @@ class _TableHeader extends ConsumerWidget {
             Expanded(
               flex: 2,
               child: Text(
-                'GROUPE',
+                AppStrings.journal.colGroup,
                 style: style.copyWith(
                   color: AppColors.textPrimary.withAlpha(180),
                 ),
@@ -432,7 +432,7 @@ class _TableHeader extends ConsumerWidget {
             Expanded(
               flex: 3,
               child: Text(
-                'DESCRIPTION',
+                AppStrings.journal.colDescription,
                 style: style.copyWith(
                   color: AppColors.textPrimary.withAlpha(180),
                 ),
@@ -441,7 +441,7 @@ class _TableHeader extends ConsumerWidget {
             Expanded(
               flex: 2,
               child: _SortableHeaderLabel(
-                label: 'MONTANT',
+                label: AppStrings.journal.colAmount,
                 style: style,
                 active: sort.column == _JournalSortColumn.amount,
                 ascending: sort.ascending,
@@ -624,7 +624,7 @@ class _TransactionRowState extends State<_TransactionRow> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '$amountPrefix${AppFormats.currency.format(transaction.amount)}',
+                        '$amountPrefix${AppFormats.formatFromChf(transaction.amount)}',
                         textAlign: TextAlign.end,
                         style: TextStyle(
                           fontSize: 14,
@@ -709,7 +709,7 @@ class _TransactionRowState extends State<_TransactionRow> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '$amountPrefix${AppFormats.currency.format(transaction.amount)}',
+                        '$amountPrefix${AppFormats.formatFromChf(transaction.amount)}',
                         textAlign: TextAlign.end,
                         style: TextStyle(
                           fontSize: 15,

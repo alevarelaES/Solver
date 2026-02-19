@@ -63,9 +63,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
-        title: const Text(
-          'Marquer comme payee',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.markAsPaid,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: TextField(
           controller: ctrl,
@@ -75,16 +75,16 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           ],
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
-            labelText: 'Montant (${AppFormats.currencyCode})',
+            labelText: AppStrings.journal.amountLabelCode(AppFormats.currencyCode),
             prefixText: '${AppFormats.currencySymbol} ',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              AppStrings.common.cancel,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           ElevatedButton(
@@ -93,7 +93,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               final amount = double.tryParse(ctrl.text.replaceAll(',', '.'));
               _validate(overrideAmount: amount);
             },
-            child: const Text('Confirmer'),
+            child: Text(AppStrings.journal.confirmAction),
           ),
         ],
       ),
@@ -115,9 +115,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          title: const Text(
-            'Modifier la transaction',
-            style: TextStyle(color: AppColors.textPrimary),
+          title: Text(
+            AppStrings.journal.editTransaction,
+            style: const TextStyle(color: AppColors.textPrimary),
           ),
           content: SizedBox(
             width: 420,
@@ -181,7 +181,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                   ],
                   decoration: InputDecoration(
-                    labelText: 'Montant (${AppFormats.currencyCode})',
+                    labelText: AppStrings.journal.amountLabelCode(AppFormats.currencyCode),
                     prefixText: '${AppFormats.currencySymbol} ',
                   ),
                 ),
@@ -189,8 +189,8 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 TextField(
                   controller: noteCtrl,
                   maxLength: 500,
-                  decoration: const InputDecoration(
-                    labelText: 'Note (optionnel)',
+                  decoration: InputDecoration(
+                    labelText: AppStrings.goals.noteOptional,
                   ),
                 ),
               ],
@@ -199,14 +199,14 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text(
-                'Annuler',
-                style: TextStyle(color: AppColors.textSecondary),
+              child: Text(
+                AppStrings.common.cancel,
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Enregistrer'),
+              child: Text(AppStrings.common.save),
             ),
           ],
         ),
@@ -220,7 +220,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Montant invalide')));
+      ).showSnackBar(SnackBar(content: Text(AppStrings.journal.invalidAmount)));
       return;
     }
 
@@ -268,7 +268,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               child: IconButton(
                 onPressed: widget.onClose,
                 icon: const Icon(Icons.close),
-                tooltip: 'Fermer',
+                tooltip: AppStrings.common.close,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -294,7 +294,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Transaction #${tx.id.substring(0, 8).toUpperCase()}',
+                      AppStrings.journal.transactionRef(tx.id.substring(0, 8).toUpperCase()),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -308,7 +308,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '$amountPrefix${AppFormats.currency.format(tx.amount)}',
+                    '$amountPrefix${AppFormats.formatFromChf(tx.amount)}',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
@@ -330,23 +330,23 @@ class _DetailViewState extends ConsumerState<_DetailView> {
             spacing: 24,
             children: [
               _DetailField(
-                label: 'Date',
+                label: AppStrings.journal.detailDate,
                 icon: Icons.calendar_today,
                 value: DateFormat('dd MMMM yyyy', 'fr_FR').format(tx.date),
               ),
               _DetailField(
-                label: 'Compte',
+                label: AppStrings.journal.detailAccount,
                 icon: Icons.account_balance_wallet_outlined,
                 value: tx.accountName ?? tx.accountId,
               ),
               _DetailField(
-                label: 'Type',
-                value: tx.isAuto ? 'Automatique' : 'Manuel',
+                label: AppStrings.journal.detailType,
+                value: tx.isAuto ? AppStrings.journal.typeAuto : AppStrings.journal.typeManual,
                 chipColor: tx.isAuto ? AppColors.primary : AppColors.info,
                 isChip: true,
               ),
               _DetailField(
-                label: 'Statut',
+                label: AppStrings.journal.detailStatus,
                 value: _statusLabel(tx),
                 chipColor: tx.isCompleted
                     ? AppColors.primary
@@ -366,8 +366,8 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               if (tx.isPending) ...[
                 _ActionTextButton(
                   icon: Icons.check_circle_outline,
-                  label: 'Payer',
-                  tooltip: 'Marquer payee',
+                  label: AppStrings.journal.actionPay,
+                  tooltip: AppStrings.journal.actionPayTooltip,
                   color: AppColors.primary,
                   loading: _loading,
                   onTap: _showValidateDialog,
@@ -375,24 +375,24 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               ],
               _ActionTextButton(
                 icon: Icons.edit_outlined,
-                label: 'Modifier',
-                tooltip: 'Modifier',
+                label: AppStrings.journal.actionEdit,
+                tooltip: AppStrings.journal.actionEdit,
                 color: AppColors.textDisabled,
                 onTap: _showEditDialog,
               ),
               _ActionTextButton(
                 icon: Icons.print_outlined,
-                label: 'Imprimer',
-                tooltip: 'Imprimer',
+                label: AppStrings.journal.actionPrint,
+                tooltip: AppStrings.journal.actionPrint,
                 color: AppColors.textDisabled,
                 onTap: () {},
               ),
               TextButton.icon(
                 onPressed: _loading ? null : _delete,
                 icon: const Icon(Icons.delete_outline, size: 15),
-                label: const Text(
-                  'Supprimer',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                label: Text(
+                  AppStrings.journal.actionDelete,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                 ),
                 style: AppButtonStyles.dangerOutline(radius: AppRadius.r9),
               ),
@@ -732,8 +732,8 @@ String? _transactionDescription(Transaction tx) {
 }
 
 String _statusLabel(Transaction tx) {
-  if (tx.isCompleted) return 'Paye';
-  if (tx.isAuto) return 'Auto a venir';
-  return 'A payer';
+  if (tx.isCompleted) return AppStrings.journal.statusPaid;
+  if (tx.isAuto) return AppStrings.journal.statusAutoUpcoming;
+  return AppStrings.journal.statusToPay;
 }
 

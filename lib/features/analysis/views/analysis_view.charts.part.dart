@@ -14,8 +14,8 @@ class _YoYLineChartCard extends StatelessWidget {
 
     for (int i = 0; i < data.byMonth.length; i++) {
       final m = data.byMonth[i];
-      incomeSpots.add(FlSpot(i.toDouble(), m.income));
-      expenseSpots.add(FlSpot(i.toDouble(), m.expenses));
+      incomeSpots.add(FlSpot(i.toDouble(), AppFormats.fromChf(m.income)));
+      expenseSpots.add(FlSpot(i.toDouble(), AppFormats.fromChf(m.expenses)));
     }
 
     // Calculate spread growth
@@ -39,7 +39,7 @@ class _YoYLineChartCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Year-over-Year Income vs Expense Growth',
+                      AppStrings.analysis.yoyChartTitle,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -48,7 +48,7 @@ class _YoYLineChartCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Strategic view of wealth accumulation efficiency',
+                      AppStrings.analysis.yoyChartSubtitle,
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -66,13 +66,13 @@ class _YoYLineChartCard extends StatelessWidget {
                 children: [
                   _ChartLegendItem(
                     color: AppColors.primary,
-                    label: 'NET INCOME GROWTH',
+                    label: AppStrings.analysis.netIncomeGrowth,
                     isDashed: false,
                   ),
                   const SizedBox(width: 16),
                   _ChartLegendItem(
                     color: AppColors.danger,
-                    label: 'EXPENSE TREND',
+                    label: AppStrings.analysis.expenseTrend,
                     isDashed: true,
                   ),
                 ],
@@ -184,7 +184,7 @@ class _YoYLineChartCard extends StatelessWidget {
                         getTooltipItems: (spots) => spots.map((spot) {
                           final isIncome = spot.barIndex == 0;
                           return LineTooltipItem(
-                            '${isIncome ? "Revenus" : "Dépenses"}\n${AppFormats.currencySymbol} ${AppFormats.currencyRaw.format(spot.y)}',
+                            '${isIncome ? AppStrings.analysis.incomeLabel : AppStrings.analysis.expenseLabel}\n${AppFormats.currencySymbol} ${AppFormats.currencyRaw.format(spot.y)}',
                             TextStyle(
                               color: isIncome
                                   ? AppColors.primary
@@ -219,7 +219,7 @@ class _YoYLineChartCard extends StatelessWidget {
                       ],
                     ),
                     child: Text(
-                      '+${spreadGrowth.toStringAsFixed(0)}% Spread Growth',
+                      AppStrings.analysis.spreadGrowthBadge(spreadGrowth.toStringAsFixed(0)),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,

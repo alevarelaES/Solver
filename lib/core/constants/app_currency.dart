@@ -17,9 +17,9 @@ extension AppCurrencyX on AppCurrency {
       case AppCurrency.chf:
         return 'CHF';
       case AppCurrency.eur:
-        return 'EUR';
+        return '€';
       case AppCurrency.usd:
-        return 'USD';
+        return '\$';
     }
   }
 

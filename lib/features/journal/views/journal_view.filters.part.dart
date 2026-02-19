@@ -11,12 +11,12 @@ class _JournalFilterBar extends ConsumerWidget {
     final now = DateTime.now();
     final defaultFocusMonth = filters.year == now.year ? now.month : 1;
     final monthLabel = filters.month != null
-        ? _months[filters.month!]
-        : 'Mois courant (${_months[defaultFocusMonth]})';
+        ? AppStrings.common.monthsFull[filters.month! - 1]
+        : AppStrings.journal.currentMonthLabel(AppStrings.common.monthsFull[defaultFocusMonth - 1]);
     final dateLabel = _dateFilterLabel(columnFilters);
     final textLabel = columnFilters.label.trim().isEmpty
-        ? 'Tous libelles'
-        : 'Libelle: ${columnFilters.label.trim()}';
+        ? AppStrings.journal.allLabels
+        : AppStrings.journal.labelFilter(columnFilters.label.trim());
     final amountLabel = _amountFilterLabel(columnFilters);
     final activeCount = _activeColumnFiltersCount(columnFilters);
     final accountsAsync = ref.watch(accountsProvider);
@@ -53,7 +53,7 @@ class _JournalFilterBar extends ConsumerWidget {
                                 .firstOrNull;
                       return _FilterChip(
                         icon: Icons.account_balance_wallet,
-                        label: selected?.name ?? 'Tous les comptes',
+                        label: selected?.name ?? AppStrings.journal.allAccounts,
                         onTap: () =>
                             _pickAccount(context, ref, filters, accounts),
                       );
@@ -82,7 +82,7 @@ class _JournalFilterBar extends ConsumerWidget {
                   if (columnFilters.hasActiveFilters)
                     _FilterChip(
                       icon: Icons.filter_alt_off_outlined,
-                      label: 'Reinitialiser',
+                      label: AppStrings.journal.resetLabel,
                       showChevron: false,
                       onTap: () => _clearColumnFilters(ref),
                     ),
@@ -127,7 +127,7 @@ class _JournalFilterBar extends ConsumerWidget {
                     const SizedBox(width: 8),
                     _FilterChip(
                       icon: Icons.filter_alt_off_outlined,
-                      label: 'Reinitialiser',
+                      label: AppStrings.journal.resetLabel,
                       showChevron: false,
                       onTap: () {
                         _clearColumnFilters(ref);
@@ -152,9 +152,9 @@ class _JournalFilterBar extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Annee',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.yearPickerTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         children: List.generate(6, (i) {
           final year = now.year - i;
@@ -188,16 +188,16 @@ class _JournalFilterBar extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Mois',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.monthPickerTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop(0),
-            child: const Text(
-              'Mois courant',
-              style: TextStyle(color: AppColors.textPrimary),
+            child: Text(
+              AppStrings.journal.currentMonth,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
           ),
           ...List.generate(12, (index) {
@@ -205,7 +205,7 @@ class _JournalFilterBar extends ConsumerWidget {
             return SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop(month),
               child: Text(
-                _months[month],
+                AppStrings.common.monthsFull[month - 1],
                 style: TextStyle(
                   color: month == filters.month
                       ? AppColors.primary
@@ -239,16 +239,16 @@ class _JournalFilterBar extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Compte',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.accountPickerTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop('__all__'),
-            child: const Text(
-              'Tous',
-              style: TextStyle(color: AppColors.textPrimary),
+            child: Text(
+              AppStrings.journal.all,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
           ),
           ...accounts.map((a) {
@@ -282,30 +282,30 @@ class _JournalFilterBar extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Statut',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.statusPickerTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop('__all__'),
-            child: const Text(
-              'Tous statuts',
-              style: TextStyle(color: AppColors.textPrimary),
+            child: Text(
+              AppStrings.journal.allStatuses,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop('pending'),
-            child: const Text(
-              'A payer',
-              style: TextStyle(color: AppColors.textPrimary),
+            child: Text(
+              AppStrings.journal.filterToPay,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(dialogContext).pop('completed'),
-            child: const Text(
-              'Payees',
-              style: TextStyle(color: AppColors.textPrimary),
+            child: Text(
+              AppStrings.journal.filterPaidPlural,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -318,33 +318,33 @@ class _JournalFilterBar extends ConsumerWidget {
   }
 
   String _statusFilterLabel(String? status) {
-    if (status == 'pending') return 'A payer';
-    if (status == 'completed') return 'Payees';
-    return 'Tous statuts';
+    if (status == 'pending') return AppStrings.journal.filterToPay;
+    if (status == 'completed') return AppStrings.journal.filterPaidPlural;
+    return AppStrings.journal.allStatuses;
   }
 
   String _dateFilterLabel(JournalColumnFilters filters) {
     final fmt = DateFormat('dd/MM/yyyy');
     final from = filters.fromDate;
     final to = filters.toDate;
-    if (from == null && to == null) return 'Toutes dates';
+    if (from == null && to == null) return AppStrings.journal.allDates;
     if (from != null && to != null) {
-      if (_sameDay(from, to)) return 'Date: ${fmt.format(from)}';
-      return 'Du ${fmt.format(from)} au ${fmt.format(to)}';
+      if (_sameDay(from, to)) return AppStrings.journal.dateExact(fmt.format(from));
+      return AppStrings.journal.dateRange(fmt.format(from), fmt.format(to));
     }
-    if (from != null) return 'A partir du ${fmt.format(from)}';
-    return 'Jusqu au ${fmt.format(to!)}';
+    if (from != null) return AppStrings.journal.dateFrom(fmt.format(from));
+    return AppStrings.journal.dateTo(fmt.format(to!));
   }
 
   String _amountFilterLabel(JournalColumnFilters filters) {
     final min = filters.minAmount;
     final max = filters.maxAmount;
-    if (min == null && max == null) return 'Tous montants';
+    if (min == null && max == null) return AppStrings.journal.allAmounts;
     if (min != null && max != null) {
-      return '${AppFormats.currency.format(min)} - ${AppFormats.currency.format(max)}';
+      return '${AppFormats.formatFromChf(min)} - ${AppFormats.formatFromChf(max)}';
     }
-    if (min != null) return '>= ${AppFormats.currency.format(min)}';
-    return '<= ${AppFormats.currency.format(max!)}';
+    if (min != null) return AppStrings.journal.amountMin(AppFormats.formatFromChf(min));
+    return AppStrings.journal.amountMax(AppFormats.formatFromChf(max!));
   }
 
   int _activeColumnFiltersCount(JournalColumnFilters filters) {
@@ -368,9 +368,9 @@ class _JournalFilterBar extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setLocalState) => AlertDialog(
             backgroundColor: AppColors.surfaceElevated,
-            title: const Text(
-              'Filtrer par date',
-              style: TextStyle(color: AppColors.textPrimary),
+            title: Text(
+              AppStrings.journal.filterByDate,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
             content: SizedBox(
               width: 360,
@@ -379,7 +379,7 @@ class _JournalFilterBar extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _DateFilterInput(
-                    label: 'Date min',
+                    label: AppStrings.journal.dateMin,
                     date: from,
                     onTap: () async {
                       final selected = await showDatePicker(
@@ -395,7 +395,7 @@ class _JournalFilterBar extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   _DateFilterInput(
-                    label: 'Date max',
+                    label: AppStrings.journal.dateMax,
                     date: to,
                     onTap: () async {
                       final selected = await showDatePicker(
@@ -415,22 +415,22 @@ class _JournalFilterBar extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text(
-                  'Annuler',
-                  style: TextStyle(color: AppColors.textSecondary),
+                child: Text(
+                  AppStrings.common.cancel,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(<DateTime?>[]),
-                child: const Text(
-                  'Effacer',
-                  style: TextStyle(color: AppColors.textSecondary),
+                child: Text(
+                  AppStrings.journal.clearFilter,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               ElevatedButton(
                 onPressed: () =>
                     Navigator.of(dialogContext).pop(<DateTime?>[from, to]),
-                child: const Text('Appliquer'),
+                child: Text(AppStrings.journal.applyFilter),
               ),
             ],
           ),
@@ -465,36 +465,36 @@ class _JournalFilterBar extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Filtrer par libelle',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          AppStrings.journal.filterByLabel,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLength: 80,
           style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(labelText: 'Libelle contient...'),
+          decoration: InputDecoration(labelText: AppStrings.journal.labelContains),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              AppStrings.common.cancel,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(''),
-            child: const Text(
-              'Effacer',
-              style: TextStyle(color: AppColors.textSecondary),
+            child: Text(
+              AppStrings.journal.clearFilter,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           ElevatedButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Appliquer'),
+            child: Text(AppStrings.journal.applyFilter),
           ),
         ],
       ),
@@ -524,9 +524,9 @@ class _JournalFilterBar extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setLocalState) => AlertDialog(
             backgroundColor: AppColors.surfaceElevated,
-            title: const Text(
-              'Filtrer par montant',
-              style: TextStyle(color: AppColors.textPrimary),
+            title: Text(
+              AppStrings.journal.filterByAmount,
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
             content: SizedBox(
               width: 360,
@@ -542,7 +542,7 @@ class _JournalFilterBar extends ConsumerWidget {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                     ],
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Montant min'),
+                    decoration: InputDecoration(labelText: AppStrings.journal.amountMinLabel),
                   ),
                   const SizedBox(height: 10),
                   TextField(
@@ -554,7 +554,7 @@ class _JournalFilterBar extends ConsumerWidget {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                     ],
                     style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Montant max'),
+                    decoration: InputDecoration(labelText: AppStrings.journal.amountMaxLabel),
                   ),
                   if (error != null) ...[
                     const SizedBox(height: 8),
@@ -572,16 +572,16 @@ class _JournalFilterBar extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text(
-                  'Annuler',
-                  style: TextStyle(color: AppColors.textSecondary),
+                child: Text(
+                  AppStrings.common.cancel,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(<double?>[]),
-                child: const Text(
-                  'Effacer',
-                  style: TextStyle(color: AppColors.textSecondary),
+                child: Text(
+                  AppStrings.journal.clearFilter,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               ElevatedButton(
@@ -593,16 +593,16 @@ class _JournalFilterBar extends ConsumerWidget {
                   final maxInvalid =
                       maxCtrl.text.trim().isNotEmpty && max == null;
                   if (minInvalid || maxInvalid) {
-                    setLocalState(() => error = 'Montant invalide');
+                    setLocalState(() => error = AppStrings.journal.invalidAmount);
                     return;
                   }
                   if (min != null && max != null && max < min) {
-                    setLocalState(() => error = 'Montant max < montant min');
+                    setLocalState(() => error = AppStrings.journal.amountMaxLtMin);
                     return;
                   }
                   Navigator.of(dialogContext).pop(<double?>[min, max]);
                 },
-                child: const Text('Appliquer'),
+                child: Text(AppStrings.journal.applyFilter),
               ),
             ],
           ),
@@ -752,7 +752,7 @@ class _DateFilterInput extends StatelessWidget {
                 icon: const Icon(Icons.clear, size: 16),
                 color: AppColors.textDisabled,
                 splashRadius: 16,
-                tooltip: 'Effacer',
+                tooltip: AppStrings.journal.clearFilterTooltip,
               ),
           ],
         ),
@@ -949,9 +949,9 @@ class _FilterDialogState extends State<_FilterDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      title: const Text(
-        'Filtres avances',
-        style: TextStyle(
+      title: Text(
+        AppStrings.journal.advancedFilters,
+        style: const TextStyle(
           color: AppColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w800,
@@ -965,9 +965,9 @@ class _FilterDialogState extends State<_FilterDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Account
-              const Text(
-                'Compte',
-                style: TextStyle(
+              Text(
+                AppStrings.journal.accountPickerTitle,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -995,14 +995,14 @@ class _FilterDialogState extends State<_FilterDialog> {
                   fontSize: 13,
                   color: AppColors.textPrimary,
                 ),
-                hint: const Text(
-                  'Tous les comptes',
-                  style: TextStyle(fontSize: 13),
+                hint: Text(
+                  AppStrings.journal.allAccounts,
+                  style: const TextStyle(fontSize: 13),
                 ),
                 items: [
-                  const DropdownMenuItem<String>(
+                  DropdownMenuItem<String>(
                     value: null,
-                    child: Text('Tous les comptes'),
+                    child: Text(AppStrings.journal.allAccounts),
                   ),
                   ...accounts.map(
                     (a) => DropdownMenuItem<String>(
@@ -1016,9 +1016,9 @@ class _FilterDialogState extends State<_FilterDialog> {
               const SizedBox(height: 16),
 
               // Date range
-              const Text(
-                'Plage de dates',
-                style: TextStyle(
+              Text(
+                AppStrings.journal.dateRangeLabel,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -1029,7 +1029,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                 children: [
                   Expanded(
                     child: _DateFilterInput(
-                      label: 'Date min',
+                      label: AppStrings.journal.dateMin,
                       date: _fromDate,
                       onTap: () async {
                         final d = await showDatePicker(
@@ -1046,7 +1046,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _DateFilterInput(
-                      label: 'Date max',
+                      label: AppStrings.journal.dateMax,
                       date: _toDate,
                       onTap: () async {
                         final d = await showDatePicker(
@@ -1065,9 +1065,9 @@ class _FilterDialogState extends State<_FilterDialog> {
               const SizedBox(height: 16),
 
               // Label
-              const Text(
-                'Libelle',
-                style: TextStyle(
+              Text(
+                AppStrings.journal.labelFieldLabel,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -1082,7 +1082,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                   color: AppColors.textPrimary,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Contient...',
+                  hintText: AppStrings.journal.labelContains,
                   counterText: '',
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1101,9 +1101,9 @@ class _FilterDialogState extends State<_FilterDialog> {
               const SizedBox(height: 16),
 
               // Amount range
-              const Text(
-                'Montant',
-                style: TextStyle(
+              Text(
+                AppStrings.journal.amountFieldLabel,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
@@ -1126,7 +1126,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Min',
+                        hintText: AppStrings.journal.amountMinHint,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -1167,7 +1167,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Max',
+                        hintText: AppStrings.journal.amountMaxHint,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -1196,9 +1196,9 @@ class _FilterDialogState extends State<_FilterDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text(
-            'Annuler',
-            style: TextStyle(color: AppColors.textSecondary),
+          child: Text(
+            AppStrings.common.cancel,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
         ),
         TextButton(
@@ -1212,9 +1212,9 @@ class _FilterDialogState extends State<_FilterDialog> {
             );
             Navigator.of(context).pop();
           },
-          child: const Text(
-            'Effacer tout',
-            style: TextStyle(color: AppColors.textSecondary),
+          child: Text(
+            AppStrings.journal.clearAll,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
         ),
         ElevatedButton(
@@ -1234,7 +1234,7 @@ class _FilterDialogState extends State<_FilterDialog> {
             );
             Navigator.of(context).pop();
           },
-          child: const Text('Appliquer'),
+          child: Text(AppStrings.journal.applyFilter),
         ),
       ],
     );

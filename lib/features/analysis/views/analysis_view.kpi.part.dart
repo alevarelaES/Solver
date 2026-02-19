@@ -49,23 +49,23 @@ class _StrategicKpiRow extends StatelessWidget {
         final isNarrow = constraints.maxWidth < 600;
         final cards = [
           _StratKpiCard(
-            label: 'GROWTH VS PREV. YEAR',
+            label: AppStrings.analysis.growthLabel,
             value: '+${growthPercent.toStringAsFixed(1)}%',
-            subtitle: 'Income Momentum',
+            subtitle: AppStrings.analysis.incomeMomentum,
             subtitleColor: AppColors.primary,
             trailing: _MiniLineChart(),
           ),
           _StratKpiCard(
-            label: 'SAVINGS VELOCITY',
+            label: AppStrings.analysis.savingsVelocityLabel,
             value: '${savingsVelocity.toStringAsFixed(1)}%',
-            subtitle: 'Target: 60%',
+            subtitle: AppStrings.analysis.savingsTarget,
             subtitleColor: AppColors.primary,
             trailing: _MiniProgressBar(value: savingsVelocity / 100),
           ),
           _StratKpiCard(
-            label: 'FINANCIAL FREEDOM DATE',
-            value: 'Sept 2038',
-            subtitle: '-2 Years vs Jan Estimate',
+            label: AppStrings.analysis.freedomDateLabel,
+            value: AppStrings.analysis.kpiFreedomValue,
+            subtitle: AppStrings.analysis.kpiFreedomSub,
             subtitleColor: AppColors.warning,
             trailing: Icon(
               Icons.auto_awesome,

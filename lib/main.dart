@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:solver/core/config/app_config.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/providers/exchange_rate_provider.dart';
 import 'package:solver/core/router/app_router.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -40,6 +41,9 @@ class SolverApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final currency = ref.watch(appCurrencyProvider);
     AppFormats.setCurrency(currency);
+
+    // Apply exchange rates whenever they load (or currency changes triggers a refresh).
+    ref.watch(exchangeRateProvider).whenData(AppFormats.setRates);
 
     return MaterialApp.router(
       title: 'Solver',

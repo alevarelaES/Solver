@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -174,6 +176,7 @@ class ScheduleView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final upcomingAsync = ref.watch(upcomingTransactionsProvider);
     final isCalendar = ref.watch(_calendarModeProvider);
     final scope = ref.watch(_invoiceScopeProvider);

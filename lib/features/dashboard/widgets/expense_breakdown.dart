@@ -130,7 +130,7 @@ class ExpenseBreakdown extends StatelessWidget {
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Text(
-                            AppFormats.currencyCompact.format(
+                            AppFormats.formatFromChfCompact(
                               entries[i].amount,
                             ),
                             maxLines: 1,

@@ -234,15 +234,19 @@ class _GoalCard extends StatelessWidget {
     final delayText = risk == null
         ? null
         : risk.projectedDelayMonths == null
-        ? 'Retard previsionnel: indetermine'
-        : 'Retard previsionnel: ${risk.projectedDelayMonths} mois';
+        ? AppStrings.goals.delayUnknown
+        : AppStrings.goals.delayMonths(risk.projectedDelayMonths!);
     final marginText = risk == null
         ? null
         : risk.marginAfterPayment == null
-        ? 'Marge restante apres mensualite: indisponible'
+        ? AppStrings.goals.marginUnavailable
         : risk.marginAfterPayment! >= 0
-        ? 'Marge restante apres mensualite: ${AppFormats.currencyCompact.format(risk.marginAfterPayment)}'
-        : 'Marge restante apres mensualite: -${AppFormats.currencyCompact.format(risk.marginAfterPayment!.abs())}';
+        ? AppStrings.goals.marginAfterPayment(
+            AppFormats.formatFromChfCompact(risk.marginAfterPayment!),
+          )
+        : AppStrings.goals.marginAfterPayment(
+            '-${AppFormats.formatFromChfCompact(risk.marginAfterPayment!.abs())}',
+          );
     final style =
         AppButtonStyles.outline(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -353,9 +357,9 @@ class _GoalCard extends StatelessWidget {
                       height: 1.0,
                     ),
                   ),
-                  const Text(
-                    'complete',
-                    style: TextStyle(
+                  Text(
+                    AppStrings.goals.completedLabel,
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w700,
                       fontSize: 11,
@@ -380,7 +384,10 @@ class _GoalCard extends StatelessWidget {
               runSpacing: 4,
               children: [
                 Text(
-                  'Actuel ${AppFormats.currencyCompact.format(goal.currentAmount)} / Cible ${AppFormats.currencyCompact.format(goal.targetAmount)}',
+                  AppStrings.goals.currentVsTarget(
+                    AppFormats.formatFromChfCompact(goal.currentAmount),
+                    AppFormats.formatFromChfCompact(goal.targetAmount),
+                  ),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.textSecondary,
@@ -388,8 +395,12 @@ class _GoalCard extends StatelessWidget {
                 ),
                 Text(
                   isDebt
-                      ? 'Reste a rembourser ${AppFormats.currencyCompact.format(goal.remainingAmount)}'
-                      : 'Reste ${AppFormats.currencyCompact.format(goal.remainingAmount)}',
+                      ? AppStrings.goals.remainingToRepay(
+                          AppFormats.formatFromChfCompact(goal.remainingAmount),
+                        )
+                      : AppStrings.goals.remainingGoal(
+                          AppFormats.formatFromChfCompact(goal.remainingAmount),
+                        ),
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     color: isAchieved
@@ -464,34 +475,44 @@ class _GoalCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               badge(
-                '${isDebt ? 'Mensuel remboursement' : 'Mensuel actuel'}: ${AppFormats.currencyCompact.format(goal.monthlyContribution)}',
+                '${isDebt ? AppStrings.goals.monthlyRepayment : AppStrings.goals.monthlyCurrent}: ${AppFormats.formatFromChfCompact(goal.monthlyContribution)}',
                 AppColors.textSecondary,
                 icon: Icons.repeat_rounded,
               ),
               if (goal.autoContributionEnabled && goal.monthlyContribution > 0)
                 badge(
                   goal.autoContributionStartDate == null
-                      ? (isDebt ? 'Paiement auto actif' : 'Depot auto actif')
+                      ? (isDebt
+                            ? AppStrings.goals.autoPaymentActive
+                            : AppStrings.goals.autoDepositActive)
                       : (isDebt
-                            ? 'Auto le ${goal.autoContributionStartDate!.day} de chaque mois'
-                            : 'Depot le ${goal.autoContributionStartDate!.day} de chaque mois'),
+                            ? AppStrings.goals.autoPaymentDay(
+                                goal.autoContributionStartDate!.day,
+                              )
+                            : AppStrings.goals.autoDepositDay(
+                                goal.autoContributionStartDate!.day,
+                              )),
                   AppColors.primary,
                   icon: Icons.bolt_rounded,
                 ),
               badge(
-                'Recommande: ${AppFormats.currencyCompact.format(goal.recommendedMonthly)}',
+                AppStrings.goals.recommended(
+                  AppFormats.formatFromChfCompact(goal.recommendedMonthly),
+                ),
                 AppColors.textPrimary,
                 icon: Icons.calculate_rounded,
               ),
               badge(
-                'Mois restants: ${goal.monthsRemaining}',
+                AppStrings.goals.monthsRemainingCount(goal.monthsRemaining),
                 AppColors.textSecondary,
                 icon: Icons.date_range_rounded,
               ),
               badge(
                 projected == null
-                    ? 'Projection: non calculee'
-                    : 'Projection: ${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+                    ? AppStrings.goals.projectionUnknown
+                    : AppStrings.goals.projection(
+                        '${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+                      ),
                 AppColors.textSecondary,
                 icon: Icons.auto_graph_rounded,
               ),
@@ -509,19 +530,23 @@ class _GoalCard extends StatelessWidget {
                   size: 16,
                 ),
                 style: style,
-                label: Text(isDebt ? 'Paiement' : 'Depot / Retrait'),
+                label: Text(
+                  isDebt
+                      ? AppStrings.goals.payment
+                      : AppStrings.goals.depositWithdraw,
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: onHistory,
                 icon: const Icon(Icons.history_rounded, size: 16),
                 style: style,
-                label: const Text('Historique'),
+                label: Text(AppStrings.goals.historyAction),
               ),
               OutlinedButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_rounded, size: 16),
                 style: style,
-                label: const Text('Modifier'),
+                label: Text(AppStrings.common.edit),
               ),
               TextButton.icon(
                 onPressed: onArchive,
@@ -531,7 +556,11 @@ class _GoalCard extends StatelessWidget {
                     TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                   ),
                 ),
-                label: Text(goal.isArchived ? 'Desarchiver' : 'Archiver'),
+                label: Text(
+                  goal.isArchived
+                      ? AppStrings.goals.unarchiveAction
+                      : AppStrings.goals.archiveAction,
+                ),
               ),
             ],
           ),

@@ -75,9 +75,13 @@ class _FinancialOverviewChartState
       }
     }
 
+    // Convert CHF amounts to the active currency before charting.
+    final convertedIncomes = incomes.map(AppFormats.fromChf).toList();
+    final convertedExpenses = expenses.map(AppFormats.fromChf).toList();
+
     final buckets = _buildBuckets(
-      incomes: incomes,
-      expenses: expenses,
+      incomes: convertedIncomes,
+      expenses: convertedExpenses,
       range: _range,
       year: widget.year,
       currentYear: currentYear,

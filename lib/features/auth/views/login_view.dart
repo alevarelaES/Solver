@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -44,7 +45,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Une erreur est survenue. Réessaie.');
+      setState(() => _errorMessage = AppStrings.auth.errorUnknown);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,7 +88,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       children: [
                         TextFormField(
                           controller: _emailController,
-                          decoration: const InputDecoration(labelText: 'Email'),
+                          decoration: InputDecoration(labelText: AppStrings.auth.emailLabel),
                           keyboardType: TextInputType.emailAddress,
                           validator: (v) =>
                               v == null || !v.contains('@') ? 'Email invalide' : null,
@@ -95,7 +96,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
-                          decoration: const InputDecoration(labelText: 'Mot de passe'),
+                          decoration: InputDecoration(labelText: AppStrings.auth.passwordLabel),
                           obscureText: true,
                           validator: (v) =>
                               v == null || v.length < 6 ? 'Mot de passe trop court' : null,
@@ -120,7 +121,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Se connecter'),
+                              : Text(AppStrings.auth.loginButton),
                         ),
                       ],
                     ),

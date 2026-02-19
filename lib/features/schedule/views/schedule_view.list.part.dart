@@ -36,7 +36,7 @@ class _ListViewBody extends ConsumerWidget {
         children: [
           Expanded(
             child: _SectionColumn(
-              title: 'Prelevements auto',
+              title: AppStrings.schedule.sectionAuto,
               icon: Icons.bolt,
               color: _autoColor,
               transactions: data.autoList,
@@ -51,7 +51,7 @@ class _ListViewBody extends ConsumerWidget {
           const SizedBox(width: 24),
           Expanded(
             child: _SectionColumn(
-              title: 'Factures manuelles',
+              title: AppStrings.schedule.sectionManual,
               icon: Icons.description_outlined,
               color: _manualColor,
               transactions: data.manualList,
@@ -155,7 +155,7 @@ class _SectionColumn extends StatelessWidget {
             const Spacer(),
             if (!showReferenceTotal)
               Text(
-                AppFormats.currency.format(total),
+                AppFormats.formatFromChf(total),
                 style: TextStyle(
                   color: color,
                   fontWeight: FontWeight.w700,
@@ -167,7 +167,7 @@ class _SectionColumn extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    AppFormats.currency.format(visibleTotal),
+                    AppFormats.formatFromChf(visibleTotal),
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.w700,
@@ -175,7 +175,7 @@ class _SectionColumn extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '(${AppFormats.currency.format(total)})',
+                    '(${AppFormats.formatFromChf(total)})',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -188,11 +188,11 @@ class _SectionColumn extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         if (transactions.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(AppSpacing.xl),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Text(
-              'Aucune echeance',
-              style: TextStyle(color: AppColors.textSecondary),
+              AppStrings.schedule.noDeadlines,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           )
         else

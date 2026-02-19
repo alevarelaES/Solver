@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/l10n/app_strings.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,20 +13,6 @@ import 'package:solver/shared/widgets/page_scaffold.dart';
 
 part 'spreadsheet_view.widgets.part.dart';
 
-const _monthHeaders = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Avr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Aou',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 final _numFmt = NumberFormat('#,##0', 'fr_CH');
 
@@ -33,13 +22,14 @@ String _formatSignedAmount(
   bool isEstimated = false,
 }) {
   if (value == 0) return '0';
-  final signed = '${isIncome ? '+' : '-'}${_numFmt.format(value.abs())}';
+  final converted = AppFormats.fromChf(value.abs());
+  final signed = '${isIncome ? '+' : '-'}${_numFmt.format(converted)}';
   return isEstimated ? '~$signed' : signed;
 }
 
 String _formatSignedNet(double value) {
   if (value == 0) return '0';
-  return '${value > 0 ? '+' : '-'}${_numFmt.format(value.abs())}';
+  return '${value > 0 ? '+' : '-'}${_numFmt.format(AppFormats.fromChf(value.abs()))}';
 }
 
 class SpreadsheetView extends ConsumerStatefulWidget {
@@ -170,6 +160,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(appCurrencyProvider);
     final year = ref.watch(spreadsheetYearProvider);
     final mode = ref.watch(spreadsheetProjectionModeProvider);
     final dataAsync = ref.watch(spreadsheetDataProvider);
@@ -194,8 +185,8 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppPageHeader(
-            title: 'Plan strategique',
-            subtitle: '$year prevision annuelle',
+            title: AppStrings.spreadsheet.pageTitle,
+            subtitle: AppStrings.spreadsheet.yearSubtitle(year),
             trailing: _SpreadsheetHeaderControls(
               mode: mode,
               year: year,
@@ -223,13 +214,13 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Erreur lors du chargement du tableau',
+                      AppStrings.spreadsheet.loadError,
                       style: TextStyle(color: mutedColor),
                     ),
                     const SizedBox(height: 10),
                     FilledButton(
                       onPressed: () => ref.invalidate(spreadsheetDataProvider),
-                      child: const Text('Reessayer'),
+                      child: Text(AppStrings.common.retry),
                     ),
                   ],
                 ),
@@ -319,7 +310,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                     child: Row(
                       children: [
                         _HeaderCell(
-                          text: 'Category',
+                          text: AppStrings.spreadsheet.colCategory,
                           width: catWidth,
                           alignment: Alignment.centerLeft,
                           isDark: isDark,
@@ -330,7 +321,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                         ),
                         ...List.generate(12, (i) {
                           return _HeaderCell(
-                            text: _monthHeaders[i],
+                            text: AppStrings.common.monthsShort[i],
                             width: cellWidth,
                             alignment: Alignment.center,
                             isDark: isDark,
@@ -350,7 +341,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                           );
                         }),
                         _HeaderCell(
-                          text: 'Total',
+                          text: AppStrings.spreadsheet.colTotal,
                           width: totalWidth,
                           isDark: isDark,
                           borderColor: borderColor,
@@ -411,7 +402,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                   ),
                                 ),
                               _TotalRow(
-                                label: 'TOTAL ${section.label.toUpperCase()}',
+                                label: AppStrings.spreadsheet.totalSection(section.label),
                                 totals: data.sectionTotals(section.id, mode),
                                 grandTotal: data.sectionGrandTotal(
                                   section.id,
@@ -477,7 +468,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                     height: headerHeight,
                     color: headerBg,
                     child: _HeaderCell(
-                      text: 'Category',
+                      text: AppStrings.spreadsheet.colCategory,
                       width: catWidth,
                       alignment: Alignment.centerLeft,
                       isDark: isDark,
@@ -518,7 +509,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                   textColor: textColor,
                                 ),
                               _PinnedTotalCell(
-                                label: 'TOTAL ${section.label.toUpperCase()}',
+                                label: AppStrings.spreadsheet.totalSection(section.label),
                                 borderColor: borderColor,
                                 isDark: isDark,
                                 isIncome: section.isIncome,

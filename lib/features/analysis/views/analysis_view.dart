@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/features/analysis/data/analysis_peer_catalog.dart';
 import 'package:solver/features/analysis/providers/analysis_provider.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
@@ -35,6 +37,7 @@ class AnalysisView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final year = ref.watch(selectedAnalysisYearProvider);
     final dataAsync = ref.watch(analysisDataProvider(year));
     final currentYear = DateTime.now().year;
@@ -45,8 +48,8 @@ class AnalysisView extends ConsumerWidget {
       child: Column(
         children: [
           AppPageHeader(
-            title: 'Analyse',
-            subtitle: 'Vue consolidee des tendances et performances.',
+            title: AppStrings.analysis.title,
+            subtitle: AppStrings.analysis.subtitle,
             trailing: _AnalysisYearControls(
               year: year,
               currentYear: currentYear,
@@ -68,7 +71,7 @@ class AnalysisView extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Text(
-                  'Erreur: $e',
+                  AppStrings.analysis.error(e),
                   style: const TextStyle(color: AppColors.danger),
                 ),
               ),

@@ -88,7 +88,7 @@ class SpendingLimit extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                AppFormats.currencyCompact.format(spent),
+                AppFormats.formatFromChfCompact(spent),
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark
@@ -97,7 +97,7 @@ class SpendingLimit extends StatelessWidget {
                 ),
               ),
               Text(
-                AppFormats.currencyCompact.format(income),
+                AppFormats.formatFromChfCompact(income),
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark

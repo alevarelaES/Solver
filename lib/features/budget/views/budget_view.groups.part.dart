@@ -158,7 +158,9 @@ class _GroupCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Payees: ${AppFormats.currencyCompact.format(paidAmount)}',
+                    AppStrings.budget.paidLabel(
+                      AppFormats.formatFromChfCompact(paidAmount),
+                    ),
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w800,
@@ -167,7 +169,9 @@ class _GroupCard extends StatelessWidget {
                   ),
                   if (pendingAmount > 0)
                     Text(
-                      'A payer: ${AppFormats.currencyCompact.format(pendingAmount)}',
+                      AppStrings.budget.pendingLabel(
+                        AppFormats.formatFromChfCompact(pendingAmount),
+                      ),
                       style: TextStyle(
                         color: AppColors.warning,
                         fontWeight: FontWeight.w900,
@@ -180,7 +184,10 @@ class _GroupCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${row.group.categories.length} categories - ${row.group.isFixedGroup ? 'Fixe' : 'Variable/Mixte'}',
+            AppStrings.budget.categoriesInfo(
+              row.group.categories.length,
+              row.group.isFixedGroup,
+            ),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w600,
@@ -197,7 +204,7 @@ class _GroupCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               ChoiceChip(
-                label: const Text('Montant'),
+                label: Text(AppStrings.budget.amountChipLabel),
                 selected: row.draft.inputMode == 'amount',
                 onSelected: (_) => onModeChanged(row, 'amount'),
               ),
@@ -231,7 +238,7 @@ class _GroupCard extends StatelessWidget {
               Text(
                 row.draft.inputMode == 'amount'
                     ? '${row.plannedPercent.toStringAsFixed(1)}%'
-                    : AppFormats.currencyCompact.format(row.plannedAmount),
+                    : AppFormats.formatFromChfCompact(row.plannedAmount),
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
@@ -257,7 +264,7 @@ class _GroupCard extends StatelessWidget {
             children: [
               Text(
                 row.draft.inputMode == 'amount'
-                    ? AppFormats.currencyCompact.format(row.minAllowedAmount)
+                    ? AppFormats.formatFromChfCompact(row.minAllowedAmount)
                     : '${row.minAllowedPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 11,
@@ -268,7 +275,7 @@ class _GroupCard extends StatelessWidget {
               const Spacer(),
               Text(
                 row.draft.inputMode == 'amount'
-                    ? AppFormats.currencyCompact.format(safeSliderMax)
+                    ? AppFormats.formatFromChfCompact(safeSliderMax)
                     : '${row.maxAllowedPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 11,
@@ -283,10 +290,14 @@ class _GroupCard extends StatelessWidget {
             children: [
               Text(
                 !hasEnvelope && committedAmount > 0
-                    ? 'Montant deja engage ce mois: ${AppFormats.currencyCompact.format(committedAmount)}'
+                    ? AppStrings.budget.committedThisMonth(
+                        AppFormats.formatFromChfCompact(committedAmount),
+                      )
                     : !hasEnvelope
-                    ? 'Budget non defini'
-                    : 'Deja engage (paye + a payer): ${usagePct.toStringAsFixed(0)}%',
+                    ? AppStrings.budget.noExpenses
+                    : AppStrings.budget.committedPct(
+                        usagePct.toStringAsFixed(0),
+                      ),
                 style: TextStyle(
                   color: overUsage && hasEnvelope
                       ? AppColors.danger
@@ -298,10 +309,14 @@ class _GroupCard extends StatelessWidget {
               const Spacer(),
               Text(
                 !hasEnvelope
-                    ? 'Budget planifie: 0'
+                    ? AppStrings.budget.noBudgetPlanned
                     : spentDelta >= 0
-                    ? 'Reste libre: ${AppFormats.currencyCompact.format(spentDelta)}'
-                    : 'Depassement deja engage: ${AppFormats.currencyCompact.format(-spentDelta)}',
+                    ? AppStrings.budget.freeRemaining(
+                        AppFormats.formatFromChfCompact(spentDelta),
+                      )
+                    : AppStrings.budget.overdraftEngaged(
+                        AppFormats.formatFromChfCompact(-spentDelta),
+                      ),
                 style: TextStyle(
                   color: hasEnvelope && spentDelta < 0
                       ? AppColors.danger
@@ -351,7 +366,9 @@ class _GroupCard extends StatelessWidget {
               runSpacing: 6,
               children: [
                 Text(
-                  'Rouge: deja paye ${AppFormats.currencyCompact.format(paidAmount)}',
+                  AppStrings.budget.redLabel(
+                    AppFormats.formatFromChfCompact(paidAmount),
+                  ),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -359,7 +376,9 @@ class _GroupCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Jaune: a payer ${AppFormats.currencyCompact.format(pendingAmount)}',
+                  AppStrings.budget.yellowLabel(
+                    AppFormats.formatFromChfCompact(pendingAmount),
+                  ),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -367,7 +386,11 @@ class _GroupCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Vert: libre ${AppFormats.currencyCompact.format(spentDelta > 0 ? spentDelta : 0)}',
+                  AppStrings.budget.greenLabel(
+                    AppFormats.formatFromChfCompact(
+                      spentDelta > 0 ? spentDelta : 0,
+                    ),
+                  ),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -380,7 +403,9 @@ class _GroupCard extends StatelessWidget {
           if (lockedByCommitted) ...[
             const SizedBox(height: 6),
             Text(
-              'On a automatiquement mis ce plan au minimum de ${AppFormats.currencyCompact.format(row.minAllowedAmount)} pour ne pas descendre sous le deja engage.',
+              AppStrings.budget.lockedByCommittedMin(
+                AppFormats.formatFromChfCompact(row.minAllowedAmount),
+              ),
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -391,7 +416,9 @@ class _GroupCard extends StatelessWidget {
           if (overflowAmount > 0 && hasEnvelope) ...[
             const SizedBox(height: 4),
             Text(
-              'Attention: ${AppFormats.currencyCompact.format(overflowAmount)} deja engages au-dessus du plan.',
+              AppStrings.budget.overflowEngaged(
+                AppFormats.formatFromChfCompact(overflowAmount),
+              ),
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,

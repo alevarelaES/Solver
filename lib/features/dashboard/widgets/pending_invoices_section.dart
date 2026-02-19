@@ -6,6 +6,7 @@ import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
@@ -24,6 +25,7 @@ class _PendingInvoicesSectionState
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final upcomingAsync = ref.watch(upcomingTransactionsProvider);
 
@@ -296,7 +298,7 @@ class _PendingInvoicesSectionState
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    AppFormats.currencyCompact.format(t.amount),
+                                    AppFormats.formatFromChfCompact(t.amount),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,

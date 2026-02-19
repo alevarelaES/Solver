@@ -1,20 +1,5 @@
 part of 'budget_view.dart';
 
-const _monthNames = <String>[
-  'Janvier',
-  'Fevrier',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Aout',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Decembre',
-];
-
 class _GroupDraft {
   final String inputMode; // percent | amount
   final double percent;

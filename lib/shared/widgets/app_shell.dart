@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_currency.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/main.dart';
@@ -115,7 +116,7 @@ class _TopHeader extends StatelessWidget {
               ref.read(themeModeProvider.notifier).state =
                   current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
             },
-            tooltip: isDark ? 'Mode clair' : 'Mode sombre',
+            tooltip: isDark ? AppStrings.ui.themeTooltipLight : AppStrings.ui.themeTooltipDark,
           ),
           const SizedBox(width: 4),
           CircleAvatar(
@@ -169,7 +170,7 @@ class _MobileControls extends StatelessWidget {
               ref.read(themeModeProvider.notifier).state =
                   current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
             },
-            tooltip: isDark ? 'Mode clair' : 'Mode sombre',
+            tooltip: isDark ? AppStrings.ui.themeTooltipLight : AppStrings.ui.themeTooltipDark,
           ),
         ],
       ),
@@ -190,7 +191,7 @@ class _CurrencyMenuButton extends StatelessWidget {
 
     return PopupMenuButton<AppCurrency>(
       initialValue: selected,
-      tooltip: 'Devise',
+      tooltip: AppStrings.ui.currencyTooltip,
       onSelected: (currency) {
         ref.read(appCurrencyProvider.notifier).setCurrency(currency);
       },

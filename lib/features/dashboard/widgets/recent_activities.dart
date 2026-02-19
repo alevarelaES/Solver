@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -26,6 +27,7 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final recentAsync = ref.watch(recentTransactionsProvider);
 
@@ -432,7 +434,7 @@ class _TransactionRowState extends State<_TransactionRow> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  '${isExpense ? '-' : '+'}${AppFormats.currency.format(tx.amount)}',
+                  '${isExpense ? '-' : '+'}${AppFormats.formatFromChf(tx.amount)}',
                   textAlign: TextAlign.right,
                   style: GoogleFonts.robotoMono(
                     fontSize: 13,

@@ -7,8 +7,8 @@ class _JournalHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return AppPageHeader(
-      title: 'Journal des Transactions',
-      subtitle: 'Suivre les transactions, puis ouvrir le detail au clic.',
+      title: AppStrings.journal.titleFull,
+      subtitle: AppStrings.journal.subtitleFull,
       trailing: isMobile
           ? _AddEntryButton(compact: true)
           : SizedBox(
@@ -37,7 +37,7 @@ class _SearchBar extends ConsumerWidget {
       },
       style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: AppInputStyles.search(
-        hintText: 'Rechercher une transaction...',
+        hintText: AppStrings.journal.searchHint,
         suffixIcon: Container(
           margin: const EdgeInsets.all(AppSpacing.sm),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -68,7 +68,7 @@ class _AddEntryButton extends ConsumerWidget {
     return ElevatedButton.icon(
       onPressed: () => showTransactionFormModal(context, ref),
       icon: const Icon(Icons.add, color: Colors.white, size: 16),
-      label: Text(compact ? 'Ajouter' : 'Nouvelle ecriture'),
+      label: Text(compact ? AppStrings.journal.addButton : AppStrings.journal.newEntry),
     );
   }
 }

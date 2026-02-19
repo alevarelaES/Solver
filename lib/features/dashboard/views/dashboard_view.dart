@@ -5,6 +5,7 @@ import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
 import 'package:solver/features/dashboard/widgets/balance_card.dart';
 import 'package:solver/features/dashboard/widgets/expense_breakdown.dart';
@@ -24,6 +25,7 @@ class DashboardView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final year = ref.watch(selectedYearProvider);
     final dashboardAsync = ref.watch(dashboardDataProvider(year));
 

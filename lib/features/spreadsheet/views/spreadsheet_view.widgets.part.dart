@@ -137,8 +137,8 @@ class _ProjectionModeSwitch extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          chip('Prudent', SpreadsheetProjectionMode.prudent),
-          chip('Prevision', SpreadsheetProjectionMode.prevision),
+          chip(AppStrings.spreadsheet.modePrudent, SpreadsheetProjectionMode.prudent),
+          chip(AppStrings.spreadsheet.modePrevision, SpreadsheetProjectionMode.prevision),
         ],
       ),
     );
@@ -159,8 +159,8 @@ class _ProjectionHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = mode == SpreadsheetProjectionMode.prudent
-        ? 'Mode prudent: revenus non confirmes exclus.'
-        : 'Mode prevision: les revenus estimes sont inclus (prefixe ~).';
+        ? AppStrings.spreadsheet.hintPrudent
+        : AppStrings.spreadsheet.hintPrevision;
 
     return Container(
       height: 34,
@@ -610,7 +610,7 @@ class _NetCashFlowRow extends StatelessWidget {
             padding: const EdgeInsets.only(left: 16, right: 12),
             alignment: Alignment.centerLeft,
             child: Text(
-              'NET CASH FLOW',
+              AppStrings.spreadsheet.netCashFlow,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,

@@ -49,7 +49,8 @@
       "Bash(__NEW_LINE_d80d8b39f878adc3__ echo \"\")",
       "Bash(__NEW_LINE_6d714845611db07e__ echo \"\")",
       "Bash(dart analyze:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(wc:*)"
     ]
   }
 }

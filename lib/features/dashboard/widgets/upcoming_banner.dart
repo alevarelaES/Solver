@@ -43,7 +43,7 @@ class UpcomingBanner extends ConsumerWidget {
                 ),
               ),
               Text(
-                AppFormats.currencyCompact.format(data.grandTotal),
+                AppFormats.formatFromChfCompact(data.grandTotal),
                 style: GoogleFonts.robotoMono(
                   color: AppColors.warning,
                   fontSize: 13,

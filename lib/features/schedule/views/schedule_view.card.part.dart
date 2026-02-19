@@ -211,7 +211,7 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    AppFormats.currency.format(t.amount),
+                    AppFormats.formatFromChf(t.amount),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -252,7 +252,7 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
                                   ),
                                 ),
                               ),
-                          child: Text(_isOverdue ? 'Payer' : 'Valider'),
+                          child: Text(_isOverdue ? AppStrings.schedule.pay : AppStrings.schedule.validate),
                         ),
                       ),
                   ],

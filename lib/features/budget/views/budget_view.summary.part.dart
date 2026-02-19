@@ -22,7 +22,7 @@ class _PlannerTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final monthLabel =
-        '${_monthNames[selectedMonth.month - 1]} ${selectedMonth.year}';
+        '${AppStrings.common.monthsFull[selectedMonth.month - 1]} ${selectedMonth.year}';
 
     final actions = Wrap(
       spacing: 10,
@@ -30,15 +30,18 @@ class _PlannerTopBar extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (dirty)
-          const Text(
-            'Modifications non sauvegardees',
-            style: TextStyle(
+          Text(
+            AppStrings.budget.unsavedChanges,
+            style: const TextStyle(
               color: AppColors.warningStrong,
               fontWeight: FontWeight.w700,
               fontSize: 12,
             ),
           ),
-        OutlinedButton(onPressed: onReset, child: const Text('Recharger')),
+        OutlinedButton(
+          onPressed: onReset,
+          child: Text(AppStrings.budget.reload),
+        ),
         ElevatedButton.icon(
           onPressed: saving ? null : onSave,
           icon: saving
@@ -48,7 +51,7 @@ class _PlannerTopBar extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.save_outlined, size: 18),
-          label: Text(saving ? 'Sauvegarde...' : 'Sauvegarder le plan'),
+          label: Text(saving ? AppStrings.budget.saving : AppStrings.budget.save),
         ),
       ],
     );
@@ -168,9 +171,12 @@ class _PlannerHero extends StatelessWidget {
               border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Text(
-              'Etape 1: choisis la base du plan.\n'
-              'Par defaut, on recommande ${AppFormats.currencyCompact.format(netRecommendedInput)} '
-              '(revenu ${AppFormats.currencyCompact.format(grossReferenceIncome)} - factures manuelles ${AppFormats.currencyCompact.format(manualCommittedAmount)} - prelevements auto ${AppFormats.currencyCompact.format(autoAmount)}).',
+              AppStrings.budget.step1Desc(
+                AppFormats.formatFromChfCompact(netRecommendedInput),
+                AppFormats.formatFromChfCompact(grossReferenceIncome),
+                AppFormats.formatFromChfCompact(manualCommittedAmount),
+                AppFormats.formatFromChfCompact(autoAmount),
+              ),
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -183,9 +189,9 @@ class _PlannerHero extends StatelessWidget {
             runSpacing: 10,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Text(
-                'Base de plan (modifiable)',
-                style: TextStyle(
+              Text(
+                AppStrings.budget.basePlan,
+                style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   color: AppColors.textSecondary,
                 ),
@@ -211,8 +217,8 @@ class _PlannerHero extends StatelessWidget {
               ),
               Text(
                 useGrossIncomeBase
-                    ? 'Mode brut: on ne retire pas les factures automatiquement.'
-                    : 'Mode net recommande: base deja nettoyee avant repartition.',
+                    ? AppStrings.budget.modeGross
+                    : AppStrings.budget.modeNet,
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
@@ -236,9 +242,9 @@ class _PlannerHero extends StatelessWidget {
                             onUseGrossIncomeBaseChanged(v ?? false),
                       ),
                       const SizedBox(width: 4),
-                      const Text(
-                        'Voir vraie somme brute (sans factures du mois)',
-                        style: TextStyle(
+                      Text(
+                        AppStrings.budget.showGross,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w700,
@@ -250,7 +256,10 @@ class _PlannerHero extends StatelessWidget {
               ),
               if (autoAmount > 0)
                 Text(
-                  'Prelevements auto reserves: ${AppFormats.currencyCompact.format(autoAmount)} (${autoPercent.toStringAsFixed(1)}%)',
+                  AppStrings.budget.autoReservedAmount(
+                    AppFormats.formatFromChfCompact(autoAmount),
+                    autoPercent.toStringAsFixed(1),
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: autoPercent > 100
@@ -261,7 +270,10 @@ class _PlannerHero extends StatelessWidget {
                 ),
               if (copiedFrom != null)
                 Text(
-                  'Plan recopie de ${_monthNames[copiedFrom!.month - 1]} ${copiedFrom!.year}',
+                  AppStrings.budget.copiedFrom(
+                    AppStrings.common.monthsFull[copiedFrom!.month - 1],
+                    copiedFrom!.year,
+                  ),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -284,29 +296,38 @@ class _PlannerHero extends StatelessWidget {
                   color: overLimit ? AppColors.danger : AppColors.primary,
                 ),
               ),
-              const Text(
-                'de la base deja repartie',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
               Text(
-                'Manual: ${manualPercent.toStringAsFixed(1)}% / ${manualCapacityPercent.toStringAsFixed(1)}%',
+                AppStrings.budget.alreadyAllocated,
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
                 ),
               ),
               Text(
-                '${AppFormats.currencyCompact.format(totalAmount)} deja repartis',
+                AppStrings.budget.manualPctLabel(
+                  manualPercent.toStringAsFixed(1),
+                  manualCapacityPercent.toStringAsFixed(1),
+                ),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                AppStrings.budget.alreadyDistributed(
+                  AppFormats.formatFromChfCompact(totalAmount),
+                ),
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
                   color: AppColors.danger,
                 ),
               ),
               Text(
-                '${remainingAmount >= 0 ? AppFormats.currencyCompact.format(remainingAmount) : '0'} encore libres',
+                AppStrings.budget.stillFree(
+                  remainingAmount >= 0
+                      ? AppFormats.formatFromChfCompact(remainingAmount)
+                      : '0',
+                ),
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   color: remainingAmount >= 0
@@ -318,9 +339,10 @@ class _PlannerHero extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Etape 2: capacite de repartition ${AppFormats.currencyCompact.format(manualCapacityAmount)} '
-            '- deja reparti ${AppFormats.currencyCompact.format(manualAmount)}'
-            '${remainingPercent < 0 ? ' - deficit global' : ''}',
+            AppStrings.budget.step2Desc(
+              AppFormats.formatFromChfCompact(manualCapacityAmount),
+              AppFormats.formatFromChfCompact(manualAmount),
+            ) + (remainingPercent < 0 ? AppStrings.budget.step2Deficit : ''),
             style: TextStyle(
               fontSize: 12,
               color: remainingPercent < 0
@@ -331,8 +353,9 @@ class _PlannerHero extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Etape 3: disponible reel apres toutes les factures du mois (payees + a payer + auto): '
-            '${AppFormats.currencyCompact.format(fullyNetAvailable)}',
+            AppStrings.budget.step3Desc(
+              AppFormats.formatFromChfCompact(fullyNetAvailable),
+            ),
             style: const TextStyle(
               fontSize: 11,
               color: AppColors.textSecondary,
@@ -389,9 +412,9 @@ class _SavingsQuickCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Epargne mensuelle',
-                  style: TextStyle(
+                Text(
+                  AppStrings.budget.savingsMonthly,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -400,8 +423,8 @@ class _SavingsQuickCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   canCreate
-                      ? 'Definis un % du revenu disponible pour creer un objectif d\'epargne.'
-                      : 'Definis le revenu disponible du mois pour activer l\'epargne mensuelle.',
+                      ? AppStrings.budget.savingsMonthlyDesc
+                      : AppStrings.budget.savingsMonthlyNoIncome,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -414,13 +437,13 @@ class _SavingsQuickCard extends StatelessWidget {
           const SizedBox(width: 10),
           OutlinedButton(
             onPressed: onOpenGoals,
-            child: const Text('Objectifs'),
+            child: Text(AppStrings.budget.goToGoals),
           ),
           const SizedBox(width: 8),
           ElevatedButton.icon(
             onPressed: canCreate ? onCreateGoal : null,
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Creer epargne'),
+            label: Text(AppStrings.budget.createSavings),
           ),
         ],
       ),
@@ -482,10 +505,10 @@ class _AutoReserveCard extends StatelessWidget {
                 color: AppColors.primary,
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Prelevements automatiques (reserves)',
-                  style: TextStyle(
+                  AppStrings.budget.autoReserved,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -493,7 +516,7 @@ class _AutoReserveCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${AppFormats.currencyCompact.format(autoAmount)} - ${autoPercent.toStringAsFixed(1)}%',
+                '${AppFormats.formatFromChfCompact(autoAmount)} - ${autoPercent.toStringAsFixed(1)}%',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,
@@ -503,9 +526,8 @@ class _AutoReserveCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Ces montants viennent des prelevements automatiques deja prevus.'
-            ' Vous n\'avez rien a ressaisir dans les cartes manuelles.',
+          Text(
+            AppStrings.budget.autoReservedDesc,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -520,11 +542,11 @@ class _AutoReserveCard extends StatelessWidget {
               children: [
                 for (final g in visible)
                   _buildAutoBadge(
-                    '${g.groupName}: ${AppFormats.currencyCompact.format(g.autoPlannedAmount)}',
+                    '${g.groupName}: ${AppFormats.formatFromChfCompact(g.autoPlannedAmount)}',
                   ),
                 if (remaining > 0)
                   _buildAutoBadge(
-                    '+$remaining autres',
+                    AppStrings.budget.moreOthers(remaining),
                     textColor: AppColors.textSecondary,
                   ),
               ],

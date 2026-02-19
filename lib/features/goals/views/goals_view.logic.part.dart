@@ -42,17 +42,23 @@ extension _GoalsViewLogic on _GoalsViewState {
 
           final isDebt = _isDebtType(goalType);
           final dialogTitle = goal == null
-              ? (isDebt ? 'Nouveau remboursement' : 'Nouvel objectif')
-              : (isDebt ? 'Modifier remboursement' : 'Modifier objectif');
+              ? (isDebt
+                    ? AppStrings.goals.newDebtTitle
+                    : AppStrings.goals.newGoalTitle)
+              : (isDebt
+                    ? AppStrings.goals.editDebtTitle
+                    : AppStrings.goals.editGoalTitle);
           final targetLabel = isDebt
-              ? 'Montant total de la dette (${AppFormats.currencyCode})'
-              : 'Montant cible (${AppFormats.currencyCode})';
+              ? AppStrings.goals.debtAmountLabel(AppFormats.currencyCode)
+              : AppStrings.goals.targetAmountLabel(AppFormats.currencyCode);
           final initialLabel = isDebt
-              ? 'Deja rembourse (${AppFormats.currencyCode})'
-              : 'Montant initial (${AppFormats.currencyCode})';
+              ? AppStrings.goals.alreadyRepaidLabel(AppFormats.currencyCode)
+              : AppStrings.goals.initialAmountLabel(AppFormats.currencyCode);
           final monthlyLabel = isDebt
-              ? 'Remboursement mensuel (${AppFormats.currencyCode})'
-              : 'Contribution mensuelle (${AppFormats.currencyCode})';
+              ? AppStrings.goals.monthlyRepaymentLabel(AppFormats.currencyCode)
+              : AppStrings.goals.monthlyContributionLabel(
+                  AppFormats.currencyCode,
+                );
 
           return AlertDialog(
             title: Text(dialogTitle),
@@ -66,7 +72,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                       children: [
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('Objectif'),
+                            label: Text(AppStrings.goals.typeLabelGoal),
                             selected: !_isDebtType(goalType),
                             selectedColor: AppColors.primary.withAlpha(28),
                             labelStyle: TextStyle(
@@ -82,7 +88,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                         const SizedBox(width: 8),
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('Remboursement'),
+                            label: Text(AppStrings.goals.typeLabelDebt),
                             selected: _isDebtType(goalType),
                             selectedColor: AppColors.danger.withAlpha(24),
                             labelStyle: TextStyle(
@@ -101,7 +107,9 @@ extension _GoalsViewLogic on _GoalsViewState {
                     TextField(
                       controller: nameCtrl,
                       onChanged: (_) => setLocalState(() {}),
-                      decoration: const InputDecoration(labelText: 'Nom'),
+                      decoration: InputDecoration(
+                        labelText: AppStrings.goals.namePlaceholder,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -151,16 +159,16 @@ extension _GoalsViewLogic on _GoalsViewState {
                       }),
                       title: Text(
                         isDebt
-                            ? 'Paiement automatique mensuel'
-                            : 'Depot automatique mensuel',
+                            ? AppStrings.goals.autoPaymentMonthly
+                            : AppStrings.goals.autoDepositMonthly,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      subtitle: const Text(
-                        'Si active, une entree auto est ajoutee chaque mois selon le montant mensuel.',
+                      subtitle: Text(
+                        AppStrings.goals.autoDesc,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
@@ -171,9 +179,9 @@ extension _GoalsViewLogic on _GoalsViewState {
                     if (autoContributionEnabled)
                       Row(
                         children: [
-                          const Text(
-                            'Date du premier depot auto',
-                            style: TextStyle(
+                          Text(
+                            AppStrings.goals.firstAutoDate,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AppColors.textSecondary,
                             ),
@@ -196,7 +204,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                             },
                             child: Text(
                               autoContributionStartDate == null
-                                  ? 'Choisir une date'
+                                  ? AppStrings.goals.chooseDate
                                   : '${autoContributionStartDate!.day.toString().padLeft(2, '0')}.${autoContributionStartDate!.month.toString().padLeft(2, '0')}.${autoContributionStartDate!.year}',
                             ),
                           ),
@@ -207,16 +215,16 @@ extension _GoalsViewLogic on _GoalsViewState {
                       controller: priorityCtrl,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        labelText: 'Priorite (0 = plus prioritaire)',
+                      decoration: InputDecoration(
+                        labelText: AppStrings.goals.priorityLabel,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Text(
-                          'Date cible',
-                          style: TextStyle(
+                        Text(
+                          AppStrings.goals.targetDateLabel,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             color: AppColors.textSecondary,
                           ),
@@ -253,7 +261,9 @@ extension _GoalsViewLogic on _GoalsViewState {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Recommande pour la date cible: ${AppFormats.currencyCompact.format(recommendedMonthly)} / mois',
+                            AppStrings.goals.recommendedForTarget(
+                              AppFormats.formatFromChfCompact(recommendedMonthly.toDouble()),
+                            ),
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontWeight: FontWeight.w800,
@@ -262,8 +272,10 @@ extension _GoalsViewLogic on _GoalsViewState {
                           const SizedBox(height: 6),
                           Text(
                             projected == null
-                                ? 'Avec ton montant mensuel: projection indisponible (0/mois)'
-                                : 'Avec ton montant mensuel: fin estimee ${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+                                ? AppStrings.goals.projectedUnavailable
+                                : AppStrings.goals.projectedWithMonthly(
+                                    '${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+                                  ),
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w700,
@@ -280,11 +292,11 @@ extension _GoalsViewLogic on _GoalsViewState {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Annuler'),
+                child: Text(AppStrings.common.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Sauvegarder'),
+                child: Text(AppStrings.common.save),
               ),
             ],
           );
@@ -330,13 +342,13 @@ extension _GoalsViewLogic on _GoalsViewState {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Enregistre')));
+        ).showSnackBar(SnackBar(content: Text(AppStrings.goals.saved)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Erreur de sauvegarde')));
+        ).showSnackBar(SnackBar(content: Text(AppStrings.goals.saveErrorMsg)));
       }
     }
   }
@@ -358,7 +370,7 @@ extension _GoalsViewLogic on _GoalsViewState {
           final invalidWithdraw = !isDeposit && projected < 0;
 
           return AlertDialog(
-            title: Text('Mouvement - ${goal.name}'),
+            title: Text(AppStrings.goals.movementTitle(goal.name)),
             content: SizedBox(
               width: 440,
               child: Column(
@@ -368,7 +380,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: const Text('Depot'),
+                          label: Text(AppStrings.goals.deposit),
                           selected: isDeposit,
                           onSelected: (_) =>
                               setLocalState(() => isDeposit = true),
@@ -377,7 +389,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: const Text('Retrait'),
+                          label: Text(AppStrings.goals.withdrawal),
                           selected: !isDeposit,
                           onSelected: (_) =>
                               setLocalState(() => isDeposit = false),
@@ -396,7 +408,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'Montant (${AppFormats.currencyCode})',
+                      labelText: AppStrings.goals.amountLabel(AppFormats.currencyCode),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -412,7 +424,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Disponible actuel: ${AppFormats.currencyCompact.format(availableNow)}',
+                          AppStrings.goals.availableNow(AppFormats.formatFromChfCompact(availableNow)),
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w700,
@@ -422,8 +434,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                         const SizedBox(height: 4),
                         Text(
                           isDeposit
-                              ? 'Apres depot: ${AppFormats.currencyCompact.format(projected)}'
-                              : 'Apres retrait: ${AppFormats.currencyCompact.format(projected)}',
+                              ? AppStrings.goals.afterDeposit(AppFormats.formatFromChfCompact(projected))
+                              : AppStrings.goals.afterWithdrawal(AppFormats.formatFromChfCompact(projected)),
                           style: TextStyle(
                             color: invalidWithdraw
                                 ? AppColors.danger
@@ -438,8 +450,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                   const SizedBox(height: 10),
                   TextField(
                     controller: noteCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Note (optionnel)',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.goals.noteOptional,
                     ),
                   ),
                 ],
@@ -448,11 +460,11 @@ extension _GoalsViewLogic on _GoalsViewState {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Annuler'),
+                child: Text(AppStrings.common.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Valider'),
+                child: Text(AppStrings.goals.validate),
               ),
             ],
           );
@@ -468,14 +480,14 @@ extension _GoalsViewLogic on _GoalsViewState {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Montant invalide')));
+          ).showSnackBar(SnackBar(content: Text(AppStrings.goals.invalidAmount)));
         }
         return;
       }
       if (!isDeposit && amount > availableNow) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Retrait superieur au disponible')),
+            SnackBar(content: Text(AppStrings.goals.withdrawalExceedsAvailable)),
           );
         }
         return;
@@ -493,10 +505,10 @@ extension _GoalsViewLogic on _GoalsViewState {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Mouvement enregistre')));
+        ).showSnackBar(SnackBar(content: Text(AppStrings.goals.movementSaved)));
       }
     } catch (e) {
-      String message = 'Erreur de mouvement';
+      String message = AppStrings.goals.movementError;
       if (e is DioException) {
         final data = e.response?.data;
         if (data is Map) {
@@ -535,7 +547,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                   children: [
                     Expanded(
                       child: Text(
-                        'Historique - ${goal.name}',
+                        AppStrings.goals.historyTitle(goal.name),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -544,7 +556,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Fermer'),
+                      child: Text(AppStrings.common.close),
                     ),
                   ],
                 ),
@@ -558,11 +570,11 @@ extension _GoalsViewLogic on _GoalsViewState {
                       return asyncEntries.when(
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Center(child: Text('Erreur: $e')),
+                        error: (e, _) => Center(child: Text(AppStrings.goals.historyError(e))),
                         data: (entries) {
                           if (entries.isEmpty) {
-                            return const Center(
-                              child: Text('Aucun mouvement pour cet element.'),
+                            return Center(
+                              child: Text(AppStrings.goals.noMovements),
                             );
                           }
                           return ListView.separated(
@@ -579,10 +591,12 @@ extension _GoalsViewLogic on _GoalsViewState {
                                 ),
                                 subtitle: Text(
                                   entry.note ??
-                                      (entry.isAuto ? 'Auto' : 'Manuel'),
+                                      (entry.isAuto
+                                          ? AppStrings.goals.autoEntry
+                                          : AppStrings.goals.manualEntry),
                                 ),
                                 trailing: Text(
-                                  '${isPositive ? '+' : '-'} ${AppFormats.currencyCompact.format(entry.amount.abs())}',
+                                  '${isPositive ? '+' : '-'} ${AppFormats.formatFromChfCompact(entry.amount.abs())}',
                                   style: TextStyle(
                                     color: isPositive
                                         ? AppColors.primary
@@ -635,10 +649,9 @@ extension _GoalsViewLogic on _GoalsViewState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppPageHeader(
-            title: 'Objectifs',
-            subtitle:
-                'Suivez vos objectifs d\'epargne et vos remboursements de dettes.',
+          AppPageHeader(
+            title: AppStrings.goals.title,
+            subtitle: AppStrings.goals.subtitle,
           ),
           const SizedBox(height: AppSpacing.md),
           AppPanel(
@@ -651,7 +664,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (e, _) => Text(
-                'Erreur objectifs: $e',
+                AppStrings.goals.historyError(e),
                 style: const TextStyle(color: AppColors.danger),
               ),
               data: (goals) {
@@ -777,22 +790,22 @@ extension _GoalsViewLogic on _GoalsViewState {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final compact = constraints.maxWidth < 980;
-                        final titleBlock = const Column(
+                        final titleBlock = Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'OBJECTIFS & REMBOURSEMENTS',
-                              style: TextStyle(
+                              AppStrings.goals.panelHeaderTitle,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textDisabled,
                                 fontSize: 11,
                                 letterSpacing: 1.1,
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'Trie automatiquement par echeance la plus proche',
-                              style: TextStyle(
+                              AppStrings.goals.panelHeaderSubtitle,
+                              style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -816,7 +829,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _TypeButton(
-                                    label: 'Objectifs',
+                                    label: AppStrings.goals.newGoalBtn,
                                     isActive: !_isDebtType(_activeType),
                                     activeColor: AppColors.primary,
                                     onTap: () => _withState(
@@ -824,7 +837,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                                     ),
                                   ),
                                   _TypeButton(
-                                    label: 'Remboursements',
+                                    label: AppStrings.goals.newDebtBtn,
                                     isActive: _isDebtType(_activeType),
                                     activeColor: AppColors.danger,
                                     onTap: () =>
@@ -839,8 +852,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                               icon: const Icon(Icons.add, size: 18),
                               label: Text(
                                 _isDebtType(_activeType)
-                                    ? 'Nouveau remboursement'
-                                    : 'Nouvel objectif',
+                                    ? AppStrings.goals.newDebtTitle
+                                    : AppStrings.goals.newGoalTitle,
                               ),
                             ),
                           ],
@@ -900,8 +913,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                               Expanded(
                                 child: Text(
                                   _isDebtType(_activeType)
-                                      ? 'Pilotage des remboursements'
-                                      : 'Tableau de pilotage des objectifs',
+                                      ? AppStrings.goals.panelTitleDebts
+                                      : AppStrings.goals.panelTitleGoals,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w900,
                                     fontSize: 17,
@@ -921,7 +934,7 @@ extension _GoalsViewLogic on _GoalsViewState {
                                   ),
                                 ),
                                 child: Text(
-                                  '${filtered.length} carte${filtered.length > 1 ? 's' : ''}',
+                                  AppStrings.goals.cardCount(filtered.length),
                                   style: TextStyle(
                                     color: typeColor,
                                     fontWeight: FontWeight.w800,
@@ -938,46 +951,49 @@ extension _GoalsViewLogic on _GoalsViewState {
                             children: [
                               _OverviewMetric(
                                 icon: Icons.flag_rounded,
-                                label: 'Cible totale',
-                                value: AppFormats.currencyCompact.format(
+                                label: AppStrings.goals.metricTotalTarget,
+                                value: AppFormats.formatFromChfCompact(
                                   totalTarget,
                                 ),
                                 accent: typeColor,
                               ),
                               _OverviewMetric(
                                 icon: Icons.account_balance_wallet_rounded,
-                                label: 'Capital actuel',
-                                value: AppFormats.currencyCompact.format(
+                                label: AppStrings.goals.metricCurrentCapital,
+                                value: AppFormats.formatFromChfCompact(
                                   totalCurrent,
                                 ),
                                 accent: AppColors.successStrong,
                               ),
                               _OverviewMetric(
                                 icon: Icons.trending_up_rounded,
-                                label: 'Progression moyenne',
+                                label: AppStrings.goals.metricAverageProgress,
                                 value: '${averageProgress.toStringAsFixed(1)}%',
                                 accent: AppColors.info,
                               ),
                               _OverviewMetric(
                                 icon: Icons.payments_rounded,
-                                label: 'Mensuel cumule',
-                                value: AppFormats.currencyCompact.format(
+                                label: AppStrings.goals.metricMonthlyTotal,
+                                value: AppFormats.formatFromChfCompact(
                                   totalMonthly,
                                 ),
                                 accent: AppColors.warning,
                               ),
                               _OverviewMetric(
                                 icon: Icons.notifications_active_rounded,
-                                label: 'Alertes',
-                                value:
-                                    '$overdueCount en retard / ${urgent.length} urgents / ${attention.length} attention',
+                                label: AppStrings.goals.metricAlerts,
+                                value: AppStrings.goals.alertSummary(
+                                  overdueCount,
+                                  urgent.length,
+                                  attention.length,
+                                ),
                                 accent: urgent.isNotEmpty || overdueCount > 0
                                     ? AppColors.danger
                                     : AppColors.warning,
                               ),
                               _OverviewMetric(
                                 icon: Icons.task_alt_rounded,
-                                label: 'Atteints',
+                                label: AppStrings.goals.metricAchieved,
                                 value: '${achieved.length}',
                                 accent: AppColors.primary,
                               ),
@@ -1002,8 +1018,12 @@ extension _GoalsViewLogic on _GoalsViewState {
                               ),
                               child: Text(
                                 monthlyMarginAvailable == null
-                                    ? 'Marge mensuelle restante: indisponible (ouvre Budget pour initialiser le mois).'
-                                    : 'Marge mensuelle restante apres allocations: ${AppFormats.currencyCompact.format(monthlyMarginAvailable)}',
+                                    ? AppStrings.goals.marginUnavailableMsg
+                                    : AppStrings.goals.monthlyMarginMsg(
+                                        AppFormats.formatFromChfCompact(
+                                          monthlyMarginAvailable,
+                                        ),
+                                      ),
                                 style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w700,
@@ -1026,8 +1046,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                         borderColor: AppColors.borderSubtle,
                         child: Text(
                           _isDebtType(_activeType)
-                              ? 'Aucun remboursement pour le moment.'
-                              : 'Aucun objectif pour le moment.',
+                              ? AppStrings.goals.noDebts
+                              : AppStrings.goals.noGoalsList,
                           style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
@@ -1040,9 +1060,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                         children: [
                           if (urgent.isNotEmpty)
                             buildSection(
-                              title: 'Urgence (rouge)',
-                              subtitle:
-                                  'Echeance tres proche ou depassee avec ecart important.',
+                              title: AppStrings.goals.sectionUrgent,
+                              subtitle: AppStrings.goals.sectionUrgentDesc,
                               icon: Icons.priority_high_rounded,
                               accent: AppColors.danger,
                               sectionGoals: urgent,
@@ -1050,9 +1069,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                           if (attention.isNotEmpty) ...[
                             if (urgent.isNotEmpty) const SizedBox(height: 10),
                             buildSection(
-                              title: 'Attention (orange)',
-                              subtitle:
-                                  'Echeance qui approche: un ajustement est conseille.',
+                              title: AppStrings.goals.sectionAttention,
+                              subtitle: AppStrings.goals.sectionAttentionDesc,
                               icon: Icons.warning_amber_rounded,
                               accent: AppColors.warning,
                               sectionGoals: attention,
@@ -1062,9 +1080,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                             if (urgent.isNotEmpty || attention.isNotEmpty)
                               const SizedBox(height: 10),
                             buildSection(
-                              title: 'En cours',
-                              subtitle:
-                                  'Progression normale, tries par date de cible.',
+                              title: AppStrings.goals.sectionInProgress,
+                              subtitle: AppStrings.goals.sectionInProgressDesc,
                               icon: Icons.timelapse_rounded,
                               accent: typeColor,
                               sectionGoals: regular,
@@ -1076,9 +1093,8 @@ extension _GoalsViewLogic on _GoalsViewState {
                                 regular.isNotEmpty)
                               const SizedBox(height: 10),
                             buildSection(
-                              title: 'Atteints',
-                              subtitle:
-                                  'Objectifs finalises, gardes ici pour suivi et historique.',
+                              title: AppStrings.goals.sectionAchieved,
+                              subtitle: AppStrings.goals.sectionAchievedDesc,
                               icon: Icons.verified_rounded,
                               accent: AppColors.primary,
                               sectionGoals: achieved,

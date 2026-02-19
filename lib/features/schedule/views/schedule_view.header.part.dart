@@ -22,7 +22,7 @@ class _HeroHeader extends ConsumerWidget {
         ? monthLabel
         : scope == _InvoiceScope.month
         ? monthLabel
-        : 'TOUTES PERIODES';
+        : AppStrings.schedule.allPeriods;
     final showReferenceTotal =
         !isCalendar &&
         scope == _InvoiceScope.all &&
@@ -32,7 +32,7 @@ class _HeroHeader extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TOTAL A PAYER - $periodLabel',
+          '${AppStrings.schedule.totalToPay} - $periodLabel',
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
@@ -45,7 +45,7 @@ class _HeroHeader extends ConsumerWidget {
           TextSpan(
             children: [
               TextSpan(
-                text: AppFormats.currency.format(data.visibleGrandTotal),
+                text: AppFormats.formatFromChf(data.visibleGrandTotal),
                 style: const TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w900,
@@ -55,7 +55,7 @@ class _HeroHeader extends ConsumerWidget {
               ),
               if (showReferenceTotal)
                 TextSpan(
-                  text: ' (${AppFormats.currency.format(data.grandTotal)})',
+                  text: ' (${AppFormats.formatFromChf(data.grandTotal)})',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -69,12 +69,12 @@ class _HeroHeader extends ConsumerWidget {
         const SizedBox(height: 12),
         Text(
           isCalendar
-              ? 'Calendrier du mois'
+              ? AppStrings.schedule.calendarMonth
               : scope == _InvoiceScope.month
-              ? 'Factures du mois'
+              ? AppStrings.schedule.monthInvoices
               : showReferenceTotal
-              ? 'Factures affichees (total complet entre parentheses)'
-              : 'Toutes les factures',
+              ? AppStrings.schedule.visibleWithTotal
+              : AppStrings.schedule.allInvoices,
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -153,17 +153,17 @@ class _ControlsPanel extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           _FilterGroup(
-            title: 'Vue',
+            title: AppStrings.schedule.viewLabel,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _ToggleChip(
-                  label: 'Liste',
+                  label: AppStrings.schedule.viewList,
                   isActive: !isCalendar,
                   onTap: () => onModeChanged(false),
                 ),
                 _ToggleChip(
-                  label: 'Calendrier',
+                  label: AppStrings.schedule.viewCalendar,
                   isActive: isCalendar,
                   onTap: () => onModeChanged(true),
                 ),
@@ -172,17 +172,17 @@ class _ControlsPanel extends StatelessWidget {
           ),
           if (showScope)
             _FilterGroup(
-              title: 'Periode',
+              title: AppStrings.schedule.periodLabel,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ToggleChip(
-                    label: 'Mois',
+                    label: AppStrings.schedule.periodMonth,
                     isActive: scope == _InvoiceScope.month,
                     onTap: () => onScopeChanged(_InvoiceScope.month),
                   ),
                   _ToggleChip(
-                    label: 'Toutes',
+                    label: AppStrings.schedule.periodAll,
                     isActive: scope == _InvoiceScope.all,
                     onTap: () => onScopeChanged(_InvoiceScope.all),
                   ),

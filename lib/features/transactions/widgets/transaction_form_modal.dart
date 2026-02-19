@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -238,24 +239,24 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_recurrence && _occurrences <= 0) {
-      setState(() => _error = 'Date de fin invalide pour la repetition');
+      setState(() => _error = AppStrings.forms.invalidRecurrenceEndDate);
       return;
     }
     if (_repaymentPlan) {
       final total = _repaymentTotalAmount;
       final monthly = _monthlyRepaymentAmount;
       if (total == null || total <= 0) {
-        setState(() => _error = 'Montant total a rembourser invalide');
+        setState(() => _error = AppStrings.forms.invalidRepaymentTotal);
         return;
       }
       if (monthly == null || monthly <= 0) {
-        setState(() => _error = 'Mensualite invalide');
+        setState(() => _error = AppStrings.forms.invalidMonthly);
         return;
       }
     }
     final selectedAccountId = _selectedAccountId;
     if (selectedAccountId == null) {
-      setState(() => _error = 'Sélectionnez un compte');
+      setState(() => _error = AppStrings.forms.selectAccount);
       return;
     }
 
@@ -315,8 +316,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           SnackBar(
             content: Text(
               createdCount > 1
-                  ? '$createdCount transaction(s) creee(s)'
-                  : 'Transaction creee',
+                  ? AppStrings.forms.transactionsCreated(createdCount)
+                  : AppStrings.forms.transactionCreated,
             ),
             backgroundColor: AppColors.neonEmerald,
             behavior: SnackBarBehavior.floating,
@@ -330,7 +331,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Erreur lors de la création';
+        _error = AppStrings.forms.createError;
         _loading = false;
       });
     }
@@ -560,9 +561,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Sélectionner un compte',
-                          style: TextStyle(
+                        Text(
+                          AppStrings.forms.selectAccountTitle,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                           ),
@@ -576,9 +577,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     const SizedBox(height: 8),
                     TextField(
                       onChanged: (v) => setLocalState(() => query = v),
-                      decoration: const InputDecoration(
-                        hintText: 'Rechercher une catégorie ou un groupe',
-                        prefixIcon: Icon(Icons.search),
+                      decoration: InputDecoration(
+                        hintText: AppStrings.forms.searchCategoryHint,
+                        prefixIcon: const Icon(Icons.search),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -586,19 +587,19 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                       spacing: 6,
                       children: [
                         ChoiceChip(
-                          label: const Text('Tout'),
+                          label: Text(AppStrings.forms.typeAll),
                           selected: typeFilter == 'all',
                           onSelected: (_) =>
                               setLocalState(() => typeFilter = 'all'),
                         ),
                         ChoiceChip(
-                          label: const Text('Dépenses'),
+                          label: Text(AppStrings.forms.typeExpensePlural),
                           selected: typeFilter == 'expense',
                           onSelected: (_) =>
                               setLocalState(() => typeFilter = 'expense'),
                         ),
                         ChoiceChip(
-                          label: const Text('Revenus'),
+                          label: Text(AppStrings.forms.typeIncomePlural),
                           selected: typeFilter == 'income',
                           onSelected: (_) =>
                               setLocalState(() => typeFilter = 'income'),
@@ -608,19 +609,19 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     const SizedBox(height: 12),
                     if (showQuickRows) ...[
                       buildQuickChips(
-                        'Suggestions',
+                        AppStrings.forms.suggestions,
                         suggested,
                         icon: Icons.auto_awesome_outlined,
                         accent: AppColors.primary,
                       ),
                       buildQuickChips(
-                        'Favoris',
+                        AppStrings.forms.favorites,
                         favorites,
                         icon: Icons.star_border,
                         accent: AppColors.warning,
                       ),
                       buildQuickChips(
-                        'Recents',
+                        AppStrings.forms.recents,
                         recents,
                         icon: Icons.history,
                         accent: AppColors.info,
@@ -628,15 +629,15 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     ],
                     Expanded(
                       child: filtered.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
-                                'Aucun résultat. Crée une catégorie rapide.',
+                                AppStrings.forms.noResultsCreateCategory,
                               ),
                             )
                           : ListView(
                               children: [
-                                buildSection('DEPENSES', expenses),
-                                buildSection('REVENUS', incomes),
+                                buildSection(AppStrings.forms.expensesSectionTitle, expenses),
+                                buildSection(AppStrings.forms.incomesSectionTitle, incomes),
                               ],
                             ),
                     ),
@@ -656,7 +657,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                               }
                             },
                             icon: const Icon(Icons.add),
-                            label: const Text('Catégorie rapide'),
+                            label: Text(AppStrings.forms.quickCategory),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -664,7 +665,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                           child: TextButton(
                             onPressed: () =>
                                 showCategoriesManagerModal(context, ref),
-                            child: const Text('Gérer groupes/cat.'),
+                            child: Text(AppStrings.forms.manageGroups),
                           ),
                         ),
                       ],
@@ -743,7 +744,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Catégorie "${created.name}" créée'),
+            content: Text(AppStrings.forms.categoryCreated(created.name)),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -758,7 +759,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(apiMessage ?? 'Erreur création catégorie'),
+            content: Text(apiMessage ?? AppStrings.forms.categoryCreateError),
             backgroundColor: AppColors.softRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -803,21 +804,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         builder: (context, setLocalState) {
           final options = groupsForType();
           return AlertDialog(
-            title: const Text('Création rapide catégorie'),
+            title: Text(AppStrings.forms.quickCategoryTitle),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nom catégorie'),
+                  decoration: InputDecoration(labelText: AppStrings.forms.categoryName),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: type,
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'expense', child: Text('Dépense')),
-                    DropdownMenuItem(value: 'income', child: Text('Revenu')),
+                  decoration: InputDecoration(labelText: AppStrings.forms.typeLabel),
+                  items: [
+                    DropdownMenuItem(value: 'expense', child: Text(AppStrings.forms.typeExpense)),
+                    DropdownMenuItem(value: 'income', child: Text(AppStrings.forms.typeIncome)),
                   ],
                   onChanged: (v) {
                     setLocalState(() {
@@ -831,7 +832,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 if (!createNewGroup && options.isNotEmpty)
                   DropdownButtonFormField<String>(
                     initialValue: selectedGroupId,
-                    decoration: const InputDecoration(labelText: 'Groupe'),
+                    decoration: InputDecoration(labelText: AppStrings.forms.categoryGroup),
                     items: options
                         .map(
                           (g) => DropdownMenuItem(
@@ -857,16 +858,16 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     ),
                     label: Text(
                       createNewGroup
-                          ? 'Utiliser un groupe existant'
-                          : 'Créer un nouveau groupe',
+                          ? AppStrings.forms.useExistingGroup
+                          : AppStrings.forms.createNewGroup,
                     ),
                   ),
                 ),
                 if (createNewGroup)
                   TextField(
                     controller: newGroupCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom nouveau groupe',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.forms.newGroupName,
                     ),
                   ),
               ],
@@ -874,7 +875,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Annuler'),
+                child: Text(AppStrings.common.cancel),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -916,7 +917,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     ),
                   );
                 },
-                child: const Text('Créer'),
+                child: Text(AppStrings.forms.create),
               ),
             ],
           );
@@ -959,8 +960,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Nouvelle transaction',
+                  Text(
+                    AppStrings.forms.newTransaction,
                     style: AppTextStyles.title,
                   ),
                   IconButton(
@@ -973,16 +974,16 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Sélectionne une catégorie existante ou crée-la directement ici.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              Text(
+                AppStrings.forms.newTransactionHint,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 18),
               categoriesAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_, _) => const Text(
-                  'Erreur de chargement des comptes',
-                  style: TextStyle(color: AppColors.softRed),
+                error: (_, _) => Text(
+                  AppStrings.forms.accountsLoadError,
+                  style: const TextStyle(color: AppColors.softRed),
                 ),
                 data: (categories) {
                   final deduped = _dedupeCategories(categories);
@@ -1038,13 +1039,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                         ),
                         borderRadius: BorderRadius.circular(AppRadius.md),
                         child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Compte',
-                            suffixIcon: Icon(Icons.expand_more),
+                          decoration: InputDecoration(
+                            labelText: AppStrings.forms.transactionAccount,
+                            suffixIcon: const Icon(Icons.expand_more),
                           ),
                           child: selected == null
-                              ? const Text(
-                                  'Choisir une catégorie',
+                              ? Text(
+                                  AppStrings.forms.chooseCategory,
                                   style: TextStyle(
                                     color: AppColors.textSecondary,
                                   ),
@@ -1104,13 +1105,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                               }
                             },
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Création rapide'),
+                            label: Text(AppStrings.forms.quickCreate),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
                             onPressed: () =>
                                 showCategoriesManagerModal(context, ref),
-                            child: const Text('Gérer groupes/cat.'),
+                            child: Text(AppStrings.forms.manageGroups),
                           ),
                         ],
                       ),
@@ -1123,8 +1124,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 onTap: _pickDate,
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
+                  decoration: InputDecoration(
+                    labelText: AppStrings.forms.transactionDate,
                     suffixIcon: Icon(
                       Icons.calendar_today_outlined,
                       size: 18,
@@ -1149,14 +1150,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: _repaymentPlan
-                      ? 'Mensualite (${AppFormats.currencyCode})'
-                      : 'Montant (${AppFormats.currencyCode})',
+                      ? AppStrings.forms.monthlyAmountLabel(AppFormats.currencyCode)
+                      : AppStrings.forms.amountWithCode(AppFormats.currencyCode),
                   prefixText: '${AppFormats.currencySymbol} ',
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Requis';
+                  if (v == null || v.trim().isEmpty) return AppStrings.forms.required;
                   final n = double.tryParse(v.replaceAll(',', '.'));
-                  if (n == null || n <= 0) return 'Montant invalide';
+                  if (n == null || n <= 0) return AppStrings.forms.invalidAmount;
                   return null;
                 },
               ),
@@ -1164,31 +1165,31 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               TextFormField(
                 controller: _noteCtrl,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  labelText: 'Note (optionnel)',
+                decoration: InputDecoration(
+                  labelText: AppStrings.forms.transactionNote,
                 ),
                 maxLength: 500,
               ),
               const SizedBox(height: 8),
               _SwitchRow(
-                label: 'Prelevement automatique',
+                label: AppStrings.forms.transactionIsAuto,
                 value: _isAuto,
                 onChanged: (v) => setState(() => _isAuto = v),
               ),
               _SwitchRow(
-                label: 'Deja paye',
+                label: AppStrings.forms.alreadyPaid,
                 value: _isPaid,
                 onChanged: (v) => setState(() => _isPaid = v),
                 color: AppColors.neonEmerald,
                 helperText: _isPaid
-                    ? 'Coche par defaut pour les operations deja reglees.'
-                    : 'Non paye: apparaitra dans les factures a traiter.',
+                    ? AppStrings.forms.paidHelper
+                    : AppStrings.forms.notPaidHelper,
                 helperColor: _isPaid
                     ? AppColors.neonEmerald
                     : AppColors.warning,
               ),
               _SwitchRow(
-                label: 'Repeter chaque mois',
+                label: AppStrings.forms.repeatMonthly,
                 value: _recurrence,
                 onChanged: (v) => setState(() {
                   _recurrence = v;
@@ -1200,7 +1201,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 color: AppColors.coolPurple,
               ),
               _SwitchRow(
-                label: 'Plan de remboursement',
+                label: AppStrings.forms.repaymentPlan,
                 value: _repaymentPlan,
                 onChanged: (v) => setState(() {
                   _repaymentPlan = v;
@@ -1208,8 +1209,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 }),
                 color: AppColors.info,
                 helperText: _repaymentPlan
-                    ? 'Crée automatiquement des mensualités jusqu\'au solde.'
-                    : 'Active si tu rembourses un montant total sur plusieurs mois.',
+                    ? AppStrings.forms.repaymentPlanHelper
+                    : AppStrings.forms.repaymentPlanHelperOff,
               ),
               if (_recurrence) ...[
                 const SizedBox(height: 12),
@@ -1217,8 +1218,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                   onTap: _pickRecurrenceEndDate,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Jusqu au',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.forms.until,
                       suffixIcon: Icon(
                         Icons.event_repeat,
                         size: 18,
@@ -1237,8 +1238,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 const SizedBox(height: 8),
                 Text(
                   _occurrences <= 0
-                      ? 'Choisis une date de fin valide'
-                      : '$_occurrences transaction(s) seront creees',
+                      ? AppStrings.forms.chooseValidEndDate
+                      : AppStrings.forms.willCreateTransactions(_occurrences),
                   style: const TextStyle(
                     color: AppColors.coolPurple,
                     fontSize: 13,
@@ -1257,15 +1258,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                   ],
                   style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
-                    labelText:
-                        'Total a rembourser (${AppFormats.currencyCode})',
+                    labelText: AppStrings.forms.repaymentTotalLabel(AppFormats.currencyCode),
                     prefixText: '${AppFormats.currencySymbol} ',
                   ),
                   validator: (v) {
                     if (!_repaymentPlan) return null;
-                    if (v == null || v.trim().isEmpty) return 'Requis';
+                    if (v == null || v.trim().isEmpty) return AppStrings.forms.required;
                     final n = double.tryParse(v.replaceAll(',', '.'));
-                    if (n == null || n <= 0) return 'Montant invalide';
+                    if (n == null || n <= 0) return AppStrings.forms.invalidAmount;
                     return null;
                   },
                 ),
@@ -1275,13 +1275,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     final installments = _repaymentInstallments;
                     final endDate = _repaymentEndDate;
                     if (installments <= 0 || endDate == null) {
-                      return const Text(
-                        'Renseigne mensualite et total pour calculer le plan.',
-                        style: TextStyle(color: AppColors.info, fontSize: 12),
+                      return Text(
+                        AppStrings.forms.repaymentHintEmpty,
+                        style: const TextStyle(color: AppColors.info, fontSize: 12),
                       );
                     }
                     return Text(
-                      '$installments mensualité(s) jusqu\'au ${DateFormat('dd MMM yyyy', 'fr_FR').format(endDate)} (dernière: ${AppFormats.currency.format(_repaymentLastInstallment)})',
+                      AppStrings.forms.repaymentSummary(
+                        installments,
+                        DateFormat('dd MMM yyyy', 'fr_FR').format(endDate),
+                        AppFormats.formatFromChf(_repaymentLastInstallment),
+                      ),
                       style: const TextStyle(
                         color: AppColors.info,
                         fontSize: 12,
@@ -1314,10 +1318,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                         )
                       : Text(
                           _repaymentPlan && _repaymentInstallments > 0
-                              ? 'Créer plan ($_repaymentInstallments mensualités)'
+                              ? AppStrings.forms.createRepaymentPlan(_repaymentInstallments)
                               : _recurrence && _occurrences > 0
-                              ? 'Créer $_occurrences transaction(s)'
-                              : 'Créer la transaction',
+                              ? AppStrings.forms.createTransactions(_occurrences)
+                              : AppStrings.forms.createTransaction,
                         ),
                 ),
               ),
@@ -1489,7 +1493,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         }
       }
     }
-    return 'Erreur lors de la création';
+    return AppStrings.forms.createError;
   }
 
   String _normalize(String value) => value.trim().toLowerCase();
