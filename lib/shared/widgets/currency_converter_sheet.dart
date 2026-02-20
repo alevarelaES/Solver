@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solver/core/constants/currency_catalog.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/providers/exchange_rate_provider.dart';
@@ -27,9 +28,12 @@ class CurrencyConverterSheet extends ConsumerStatefulWidget {
 class _CurrencyConverterSheetState
     extends ConsumerState<CurrencyConverterSheet> {
   static const _quickAmounts = <double>[1, 10, 100, 1000];
+  static const _favoritesStorageKey = 'currency_converter_favorites';
+
   late final TextEditingController _amountController;
   late final TextEditingController _searchController;
   late String _sourceCode;
+  final Set<String> _favoriteCodes = <String>{};
   String _searchQuery = '';
 
   @override
@@ -45,6 +49,7 @@ class _CurrencyConverterSheetState
         });
       });
     _sourceCode = widget.initialSourceCode.trim().toUpperCase();
+    _loadFavorites();
   }
 
   @override
@@ -53,6 +58,34 @@ class _CurrencyConverterSheetState
     _amountController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(_favoritesStorageKey) ?? const [];
+    if (!mounted) return;
+    setState(() {
+      _favoriteCodes
+        ..clear()
+        ..addAll(stored.map((code) => code.trim().toUpperCase()));
+    });
+  }
+
+  Future<void> _toggleFavorite(String code) async {
+    final normalized = code.trim().toUpperCase();
+    setState(() {
+      if (_favoriteCodes.contains(normalized)) {
+        _favoriteCodes.remove(normalized);
+      } else {
+        _favoriteCodes.add(normalized);
+      }
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _favoritesStorageKey,
+      _favoriteCodes.toList(growable: false)..sort(),
+    );
   }
 
   void _onAmountChanged() {
@@ -136,9 +169,14 @@ class _CurrencyConverterSheetState
     final sourceRate = rates[sourceCode] ?? 0;
     final amount = _parseAmount(_amountController.text);
 
+    final favoriteTargets = _sortedCodes(_favoriteCodes)
+        .where((code) => allCodes.contains(code) && code != sourceCode)
+        .toList(growable: false);
+
     final popularCodes = CurrencyCatalog.popularCodes
         .where((code) => allCodes.contains(code) && code != sourceCode)
         .toList(growable: false);
+
     final allTargets = _sortedCodes(
       allCodes,
     ).where((code) => code != sourceCode).toList(growable: false);
@@ -153,10 +191,68 @@ class _CurrencyConverterSheetState
         )
         .toList(growable: false);
 
+    final favoritesTab = _ConverterTab(
+      label: AppStrings.ui.currencyConverterFavoritesLabel,
+      child: _ratesList(
+        codes: favoriteTargets,
+        sourceCode: sourceCode,
+        sourceRate: sourceRate,
+        amount: amount,
+        rates: rates,
+        emptyLabel: AppStrings.ui.currencyConverterFavoritesEmpty,
+      ),
+    );
+
+    final popularTab = _ConverterTab(
+      label: AppStrings.ui.currencyConverterPopularLabel,
+      child: _ratesList(
+        codes: popularCodes,
+        sourceCode: sourceCode,
+        sourceRate: sourceRate,
+        amount: amount,
+        rates: rates,
+        emptyLabel: AppStrings.ui.currencyConverterNoSearchResult,
+      ),
+    );
+
+    final allTab = _ConverterTab(
+      label: AppStrings.ui.currencyConverterAllLabel,
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              labelText: AppStrings.ui.currencyConverterSearchLabel,
+              hintText: AppStrings.ui.currencyConverterSearchHint,
+              prefixIcon: const Icon(Icons.search),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Expanded(
+            child: _ratesList(
+              codes: filteredAllTargets,
+              sourceCode: sourceCode,
+              sourceRate: sourceRate,
+              amount: amount,
+              rates: rates,
+              emptyLabel: AppStrings.ui.currencyConverterNoSearchResult,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final tabs = <_ConverterTab>[
+      if (favoriteTargets.isNotEmpty) favoritesTab,
+      popularTab,
+      allTab,
+      if (favoriteTargets.isEmpty) favoritesTab,
+    ];
+
     final maxHeight = math.min(820.0, MediaQuery.of(context).size.height * 0.9);
 
     return DefaultTabController(
-      length: 2,
+      length: tabs.length,
       child: SizedBox(
         height: maxHeight,
         child: Column(
@@ -180,49 +276,13 @@ class _CurrencyConverterSheetState
                 labelColor: AppColors.textPrimary,
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.primary,
-                tabs: [
-                  Tab(text: AppStrings.ui.currencyConverterPopularLabel),
-                  Tab(text: AppStrings.ui.currencyConverterAllLabel),
-                ],
+                tabs: tabs.map((tab) => Tab(text: tab.label)).toList(),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: TabBarView(
-                children: [
-                  _ratesList(
-                    codes: popularCodes,
-                    sourceCode: sourceCode,
-                    sourceRate: sourceRate,
-                    amount: amount,
-                    rates: rates,
-                    emptyLabel: AppStrings.ui.currencyConverterNoSearchResult,
-                  ),
-                  Column(
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          labelText: AppStrings.ui.currencyConverterSearchLabel,
-                          hintText: AppStrings.ui.currencyConverterSearchHint,
-                          prefixIcon: const Icon(Icons.search),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Expanded(
-                        child: _ratesList(
-                          codes: filteredAllTargets,
-                          sourceCode: sourceCode,
-                          sourceRate: sourceRate,
-                          amount: amount,
-                          rates: rates,
-                          emptyLabel:
-                              AppStrings.ui.currencyConverterNoSearchResult,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                children: tabs.map((tab) => tab.child).toList(growable: false),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -431,6 +491,7 @@ class _CurrencyConverterSheetState
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
+          textAlign: TextAlign.center,
         ),
       );
     }
@@ -444,6 +505,8 @@ class _CurrencyConverterSheetState
         final hasRate = sourceRate > 0 && targetRate > 0;
         final converted = hasRate ? amount * (targetRate / sourceRate) : null;
         final unitRate = hasRate ? (targetRate / sourceRate) : null;
+        final isFavorite = _favoriteCodes.contains(code);
+
         return Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
@@ -480,17 +543,36 @@ class _CurrencyConverterSheetState
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                converted == null
-                    ? AppStrings.ui.currencyConverterNoRate
-                    : _formatAmount(code, converted),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: converted == null
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
+              IconButton(
+                tooltip: isFavorite
+                    ? AppStrings.ui.currencyConverterRemoveFavorite
+                    : AppStrings.ui.currencyConverterAddFavorite,
+                icon: Icon(
+                  isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: isFavorite
+                      ? AppColors.warning
+                      : AppColors.textSecondary,
+                ),
+                onPressed: () => _toggleFavorite(code),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    converted == null
+                        ? AppStrings.ui.currencyConverterNoRate
+                        : _formatAmount(code, converted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: converted == null
+                          ? AppColors.textSecondary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -535,6 +617,13 @@ class _CurrencyConverterSheetState
   static String _codeLabel(String code) {
     return CurrencyCatalog.labelFr(code);
   }
+}
+
+class _ConverterTab {
+  final String label;
+  final Widget child;
+
+  const _ConverterTab({required this.label, required this.child});
 }
 
 Future<void> showCurrencyConverterSheet(

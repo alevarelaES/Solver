@@ -30,6 +30,8 @@ class PositionsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedAssetProvider);
+    final investedHoldings = holdings.where(_isInvested).toList();
+    final investedSummary = _buildSummaryFromInvested(investedHoldings);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -37,8 +39,8 @@ class PositionsTab extends ConsumerWidget {
 
         if (isDesktop) {
           return _DesktopLayout(
-            summary: summary,
-            holdings: holdings,
+            summary: investedSummary,
+            holdings: investedHoldings,
             sparklineBySymbol: sparklineBySymbol,
             selected: selected,
             onAddHolding: onAddHolding,
@@ -46,8 +48,8 @@ class PositionsTab extends ConsumerWidget {
         }
 
         return _MobileLayout(
-          summary: summary,
-          holdings: holdings,
+          summary: investedSummary,
+          holdings: investedHoldings,
           sparklineBySymbol: sparklineBySymbol,
           selected: selected,
           onAddHolding: onAddHolding,
@@ -56,9 +58,37 @@ class PositionsTab extends ConsumerWidget {
       },
     );
   }
+
+  bool _isInvested(Holding holding) =>
+      holding.quantity > 0 &&
+      holding.averageBuyPrice != null &&
+      holding.averageBuyPrice! > 0;
+
+  PortfolioSummary _buildSummaryFromInvested(List<Holding> investedHoldings) {
+    final totalInvested = investedHoldings.fold<double>(
+      0,
+      (sum, h) => sum + (h.averageBuyPrice! * h.quantity),
+    );
+    final totalValue = investedHoldings.fold<double>(
+      0,
+      (sum, h) => sum + (h.totalValue ?? (h.currentPrice ?? 0) * h.quantity),
+    );
+    final totalGainLoss = totalValue - totalInvested;
+    final totalGainLossPercent = totalInvested > 0
+        ? (totalGainLoss / totalInvested) * 100
+        : 0.0;
+
+    return PortfolioSummary(
+      totalValue: totalValue,
+      totalInvested: totalInvested,
+      totalGainLoss: totalGainLoss,
+      totalGainLossPercent: totalGainLossPercent,
+      holdingsCount: investedHoldings.length,
+    );
+  }
 }
 
-class _DesktopLayout extends ConsumerWidget {
+class _DesktopLayout extends ConsumerStatefulWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
   final Map<String, List<double>> sparklineBySymbol;
@@ -74,46 +104,103 @@ class _DesktopLayout extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final effectiveSelected = _resolveSelected(ref);
+  ConsumerState<_DesktopLayout> createState() => _DesktopLayoutState();
+}
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 320,
-          child: AssetSidebar(
-            summary: summary,
-            holdings: holdings,
-            sparklineBySymbol: sparklineBySymbol,
-            onAddHolding: onAddHolding,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: effectiveSelected != null
-              ? AssetDetailInline(
-                  key: ValueKey(effectiveSelected.symbol),
-                  symbol: effectiveSelected.symbol,
-                  holding: effectiveSelected.holding,
-                  watchlistItem: effectiveSelected.watchlistItem,
-                  onClose: () {
-                    ref.read(selectedAssetProvider.notifier).state = null;
-                  },
-                )
-              : PortfolioDashboard(summary: summary, holdings: holdings),
-        ),
-      ],
+class _DesktopLayoutState extends ConsumerState<_DesktopLayout> {
+  bool _detailsDismissed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveSelected = _resolveSelected();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactDesktop = constraints.maxWidth < 1380;
+        final sidebarWidth = compactDesktop ? 292.0 : 320.0;
+        final gap = compactDesktop ? AppSpacing.md : AppSpacing.lg;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: sidebarWidth,
+              child: AssetSidebar(
+                summary: widget.summary,
+                holdings: widget.holdings,
+                sparklineBySymbol: widget.sparklineBySymbol,
+                onAddHolding: widget.onAddHolding,
+              ),
+            ),
+            SizedBox(width: gap),
+            Expanded(
+              child: effectiveSelected != null
+                  ? AssetDetailInline(
+                      key: ValueKey(effectiveSelected.symbol),
+                      symbol: effectiveSelected.symbol,
+                      holding: effectiveSelected.holding,
+                      watchlistItem: effectiveSelected.watchlistItem,
+                      onClose: () {
+                        setState(() => _detailsDismissed = true);
+                        ref.read(selectedAssetProvider.notifier).state = null;
+                      },
+                    )
+                  : PortfolioDashboard(
+                      summary: widget.summary,
+                      holdings: widget.holdings,
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  SelectedAsset? _resolveSelected(WidgetRef ref) {
+  SelectedAsset? _resolveSelected() {
+    final selected = widget.selected;
     if (selected != null) {
+      final holding = _holdingForSymbol(selected.symbol);
+      if (holding != null) {
+        return SelectedAsset(
+          symbol: holding.symbol,
+          holding: holding,
+          watchlistItem: selected.watchlistItem,
+        );
+      }
       return selected;
     }
-    if (holdings.isNotEmpty) {
-      final first = holdings.first;
-      return SelectedAsset(symbol: first.symbol, holding: first);
+
+    if (_detailsDismissed) {
+      return null;
+    }
+
+    final defaultHolding = _defaultHolding();
+    if (defaultHolding == null) return null;
+    return SelectedAsset(
+      symbol: defaultHolding.symbol,
+      holding: defaultHolding,
+    );
+  }
+
+  Holding? _defaultHolding() {
+    if (widget.holdings.isEmpty) return null;
+    final candidates = [...widget.holdings];
+    candidates.sort((a, b) => (b.totalValue ?? 0).compareTo(a.totalValue ?? 0));
+
+    final withPrice = candidates
+        .where((h) => h.currentPrice != null && h.currentPrice! > 0)
+        .toList();
+    if (withPrice.isNotEmpty) {
+      return withPrice.first;
+    }
+    return candidates.first;
+  }
+
+  Holding? _holdingForSymbol(String symbol) {
+    for (final holding in widget.holdings) {
+      if (holding.symbol.toUpperCase() == symbol.toUpperCase()) {
+        return holding;
+      }
     }
     return null;
   }
@@ -138,6 +225,8 @@ class _MobileLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final displayHoldings = holdings;
+
     if (selected != null) {
       return AssetDetailInline(
         key: ValueKey(selected!.symbol),
@@ -186,7 +275,7 @@ class _MobileLayout extends ConsumerWidget {
               ],
             ),
           ),
-          ...holdings.map(
+          ...displayHoldings.map(
             (h) => AssetRow(
               symbol: h.symbol,
               name: h.name,
@@ -256,7 +345,7 @@ class _MobileLayout extends ConsumerWidget {
               );
             },
           ),
-          if (holdings.isEmpty)
+          if (displayHoldings.isEmpty)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Center(

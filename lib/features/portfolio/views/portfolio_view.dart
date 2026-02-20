@@ -9,7 +9,9 @@ import 'package:solver/features/portfolio/models/holding.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/providers/portfolio_provider.dart';
 import 'package:solver/features/portfolio/providers/price_history_provider.dart';
+import 'package:solver/features/portfolio/providers/selected_asset_provider.dart';
 import 'package:solver/features/portfolio/providers/trending_provider.dart';
+import 'package:solver/features/portfolio/views/investments_tab.dart';
 import 'package:solver/features/portfolio/views/market_tab.dart';
 import 'package:solver/features/portfolio/views/positions_tab.dart';
 import 'package:solver/features/portfolio/widgets/add_holding_dialog.dart';
@@ -35,7 +37,13 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) return;
+      if (_tabController.index != 1) {
+        ref.read(selectedAssetProvider.notifier).state = null;
+      }
+    });
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       ref.invalidate(portfolioProvider);
       ref.invalidate(trendingProvider);
@@ -127,66 +135,33 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
         children: [
           const _MarketTickerTape(),
           const SizedBox(height: AppSpacing.md),
-          AppPageHeader(
-            title: 'Portfolio',
-            subtitle: 'Actions, ETFs et crypto en vue unifiee',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Rafraichir',
-                  onPressed: _refreshData,
-                  icon: const Icon(Icons.refresh, size: 20),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                ElevatedButton.icon(
-                  onPressed: _openAddHoldingDialog,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Ajouter'),
-                ),
-              ],
-            ),
-            bottom: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.surfaceDark
-                      : AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.borderDark
-                        : AppColors.borderLight,
+          AppPanel(
+            variant: AppPanelVariant.subtle,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: AppPageHeader(
+              title: 'Portfolio',
+              subtitle: 'Actions, ETFs et crypto en vue unifiee',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Rafraichir',
+                    onPressed: _refreshData,
+                    icon: const Icon(Icons.refresh, size: 20),
                   ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicator: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                  const SizedBox(width: AppSpacing.xs),
+                  ElevatedButton.icon(
+                    onPressed: _openAddHoldingDialog,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Ajouter'),
                   ),
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: textSecondary,
-                  labelStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  dividerHeight: 0,
-                  padding: const EdgeInsets.all(AppSpacing.s2),
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  tabs: const [
-                    Tab(text: 'Mes Positions', height: 32),
-                    Tab(text: 'Marche', height: 32),
-                  ],
-                ),
+                ],
+              ),
+              bottom: _PortfolioHeaderBottom(
+                tabController: _tabController,
+                isDark: isDark,
+                textSecondary: textSecondary,
+                showWarning: anyStale,
               ),
             ),
           ),
@@ -203,11 +178,13 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
                   onRefresh: _refreshData,
                 ),
                 const MarketTab(),
+                InvestmentsTab(
+                  summary: portfolioData.summary,
+                  holdings: holdings,
+                ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _DelayedBadge(showWarning: anyStale),
         ],
       ),
     );
@@ -220,6 +197,88 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+}
+
+class _PortfolioHeaderBottom extends StatelessWidget {
+  final TabController tabController;
+  final bool isDark;
+  final Color textSecondary;
+  final bool showWarning;
+
+  const _PortfolioHeaderBottom({
+    required this.tabController,
+    required this.isDark,
+    required this.textSecondary,
+    required this.showWarning,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 1100;
+
+        final tabBar = Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+          ),
+          child: TabBar(
+            controller: tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+            ),
+            labelColor: AppColors.primary,
+            unselectedLabelColor: textSecondary,
+            labelStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            dividerHeight: 0,
+            padding: const EdgeInsets.all(AppSpacing.s2),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+            tabs: const [
+              Tab(text: 'Mes Positions', height: 32),
+              Tab(text: 'Marche', height: 32),
+              Tab(text: 'Mon investissement', height: 32),
+            ],
+          ),
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(alignment: Alignment.centerLeft, child: tabBar),
+              const SizedBox(height: AppSpacing.sm),
+              _DelayedBadge(showWarning: showWarning),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: Align(alignment: Alignment.centerLeft, child: tabBar),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            _DelayedBadge(showWarning: showWarning),
+          ],
+        );
+      },
     );
   }
 }

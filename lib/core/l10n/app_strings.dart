@@ -943,6 +943,11 @@ class _UI {
   String get currencyConverterAmountLabel => 'Montant';
   String get currencyConverterFromLabel => 'Devise source';
   String get currencyConverterAllLabel => 'Toutes devises';
+  String get currencyConverterFavoritesLabel => 'Favoris';
+  String get currencyConverterFavoritesEmpty =>
+      'Aucun favori pour le moment. Ajoute une devise avec l etoile.';
+  String get currencyConverterAddFavorite => 'Ajouter aux favoris';
+  String get currencyConverterRemoveFavorite => 'Retirer des favoris';
   String get currencyConverterRatesLabel => 'Equivalences';
   String get currencyConverterPopularLabel => 'Devises populaires';
   String get currencyConverterSearchLabel => 'Rechercher une devise';

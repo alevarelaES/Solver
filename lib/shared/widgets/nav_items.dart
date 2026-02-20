@@ -108,25 +108,25 @@ final primaryNavGroups = <NavGroup>[
     label: AppStrings.nav.activity,
     icon: Icons.receipt_long_outlined,
     route: journalNavItem.route,
-    pages: [journalNavItem, scheduleNavItem],
+    pages: [journalNavItem],
   ),
   NavGroup(
-    label: AppStrings.nav.budget,
-    icon: Icons.pie_chart_outline,
-    route: budgetNavItem.route,
-    pages: [budgetNavItem, goalsNavItem],
+    label: AppStrings.nav.schedule,
+    icon: Icons.calendar_today_outlined,
+    route: scheduleNavItem.route,
+    pages: [scheduleNavItem],
   ),
   NavGroup(
-    label: AppStrings.nav.analysis,
-    icon: Icons.analytics_outlined,
-    route: analysisNavItem.route,
-    pages: [analysisNavItem, portfolioNavItem, spreadsheetNavItem],
+    label: AppStrings.nav.goals,
+    icon: Icons.flag_outlined,
+    route: goalsNavItem.route,
+    pages: [goalsNavItem],
   ),
 ];
 
 final overflowNavItems = <NavItem>[
-  scheduleNavItem,
-  goalsNavItem,
+  budgetNavItem,
+  analysisNavItem,
   portfolioNavItem,
   spreadsheetNavItem,
 ];

@@ -42,6 +42,7 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(symbolSearchProvider);
     final query = _controller.text.trim();
+    final activeQuery = ref.watch(symbolSearchQueryProvider).trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,12 +71,12 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
           },
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Symbole requis';
+              return 'Symbole ou nom requis';
             }
             return null;
           },
         ),
-        if (query.length >= 2) ...[
+        if (activeQuery.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           resultsAsync.when(
             loading: () => const Padding(
@@ -95,7 +96,7 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
                 return const Padding(
                   padding: EdgeInsets.all(AppSpacing.sm),
                   child: Text(
-                    'Aucun symbole trouve. Vous pouvez saisir le ticker manuellement.',
+                    'Aucun actif trouve. Essayez un symbole ou un nom.',
                   ),
                 );
               }
@@ -126,6 +127,16 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        trailing:
+                            result.lastPrice != null && result.lastPrice! > 0
+                            ? Text(
+                                result.lastPrice!.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            : null,
                         onTap: () {
                           _controller.text = result.symbol;
                           ref.read(symbolSearchQueryProvider.notifier).state =

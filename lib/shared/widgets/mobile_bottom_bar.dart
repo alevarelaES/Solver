@@ -13,7 +13,15 @@ class MobileBottomBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final location = GoRouterState.of(context).matchedLocation;
-    final currentIndex = activePrimaryNavIndex(location);
+    final groupIndex = primaryNavGroups.indexWhere(
+      (group) => group.matchesLocation(location),
+    );
+    final isOverflowRoute = overflowNavItems.any(
+      (item) => item.matchesLocation(location),
+    );
+    final currentIndex = groupIndex >= 0
+        ? groupIndex
+        : (isOverflowRoute ? primaryNavGroups.length : 0);
 
     return BottomNavigationBar(
       currentIndex: currentIndex,

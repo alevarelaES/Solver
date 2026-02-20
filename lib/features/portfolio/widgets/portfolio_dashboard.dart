@@ -395,17 +395,22 @@ class _PositionsTable extends StatelessWidget {
     final textSecondary = isDark
         ? AppColors.textSecondaryDark
         : AppColors.textSecondaryLight;
+    final visibleHoldings = holdings
+        .where((h) => h.currentPrice != null && h.currentPrice! > 0)
+        .toList();
 
-    if (holdings.isEmpty) {
+    if (visibleHoldings.isEmpty) {
       return AppPanel(
         child: Text(
-          'Aucune position. Utilisez "Ajouter" pour commencer.',
+          holdings.isEmpty
+              ? 'Aucune position. Utilisez "Ajouter" pour commencer.'
+              : 'Positions sans donnees de marche disponibles.',
           style: TextStyle(color: textSecondary),
         ),
       );
     }
 
-    final sorted = [...holdings]
+    final sorted = [...visibleHoldings]
       ..sort((a, b) => (b.totalValue ?? 0).compareTo(a.totalValue ?? 0));
 
     return AppPanel(

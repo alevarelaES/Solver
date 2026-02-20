@@ -99,7 +99,7 @@ class _AddWatchlistDialogState extends ConsumerState<AddWatchlistDialog> {
           ),
           const SizedBox(height: 16),
           SymbolSearchField(
-            label: 'Recherche symbole',
+            label: 'Recherche symbole ou nom',
             onSelected: (symbol) {
               setState(() {
                 _selectedSymbol = symbol;

@@ -16,6 +16,7 @@ class AssetRow extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onTap;
   final String? trailing;
+  final Widget? trailingWidget;
 
   const AssetRow({
     super.key,
@@ -29,6 +30,7 @@ class AssetRow extends StatelessWidget {
     this.isSelected = false,
     this.onTap,
     this.trailing,
+    this.trailingWidget,
   });
 
   @override
@@ -56,11 +58,11 @@ class AssetRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+            vertical: AppSpacing.s6,
           ),
           decoration: BoxDecoration(
             border: isSelected
-                ? Border(left: BorderSide(color: AppColors.primary, width: 3))
+                ? Border(left: BorderSide(color: AppColors.primary, width: 2))
                 : null,
           ),
           child: Row(
@@ -70,7 +72,7 @@ class AssetRow extends StatelessWidget {
                 symbol: symbol,
                 assetType: assetType,
                 logoUrl: logoUrl,
-                size: 32,
+                size: 28,
                 borderRadius: 999,
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -83,7 +85,7 @@ class AssetRow extends StatelessWidget {
                     Text(
                       symbol,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: textPrimary,
                       ),
@@ -93,7 +95,7 @@ class AssetRow extends StatelessWidget {
                         name!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11, color: textSecondary),
+                        style: TextStyle(fontSize: 10, color: textSecondary),
                       ),
                   ],
                 ),
@@ -103,8 +105,8 @@ class AssetRow extends StatelessWidget {
               MiniSparkline(
                 prices: sparklineData,
                 changePercent: changePercent,
-                width: 48,
-                height: 18,
+                width: 44,
+                height: 16,
               ),
               const SizedBox(width: AppSpacing.sm),
 
@@ -115,7 +117,7 @@ class AssetRow extends StatelessWidget {
                   Text(
                     price != null ? price!.toStringAsFixed(2) : '--',
                     style: GoogleFonts.robotoMono(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: textPrimary,
                     ),
@@ -135,7 +137,7 @@ class AssetRow extends StatelessWidget {
                           ? '${isPositive ? '+' : ''}${pct.toStringAsFixed(2)}%'
                           : '--',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w600,
                         color: hasChange ? changeColor : textSecondary,
                       ),
@@ -150,6 +152,10 @@ class AssetRow extends StatelessWidget {
                   trailing!,
                   style: TextStyle(fontSize: 10, color: textSecondary),
                 ),
+              ],
+              if (trailingWidget != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                trailingWidget!,
               ],
             ],
           ),
