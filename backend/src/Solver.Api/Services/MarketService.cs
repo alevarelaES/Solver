@@ -1,14 +1,22 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 namespace Solver.Api.Services;
 
-public sealed class MarketService
+public sealed partial class MarketService
 {
     private static readonly HashSet<string> ValidIntervals = new(StringComparer.OrdinalIgnoreCase)
     {
         "1min", "5min", "15min", "30min", "45min", "1h", "2h", "4h", "1day", "1week", "1month"
     };
+
+    // Allows standard ticker formats: AAPL, BRK.A, BF-B, EUR/USD, AAPL:NASDAQ (max 20 chars)
+    [GeneratedRegex(@"^[A-Z0-9][A-Z0-9.\-:/]{0,19}$", RegexOptions.Compiled)]
+    private static partial Regex SymbolPattern();
+
+    private static bool IsValidSymbol(string normalizedSymbol) =>
+        SymbolPattern().IsMatch(normalizedSymbol);
 
     private readonly TwelveDataService _twelveData;
     private readonly TwelveDataWebSocketService _wsService;
@@ -80,13 +88,16 @@ public sealed class MarketService
         if (string.IsNullOrWhiteSpace(symbol))
             return Results.BadRequest(new { error = "Symbol is required." });
 
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        if (!IsValidSymbol(normalizedSymbol))
+            return Results.BadRequest(new { error = "Invalid symbol format." });
+
         var ivl = interval ?? "1day";
         if (!ValidIntervals.Contains(ivl))
             return Results.BadRequest(new { error = $"Invalid interval. Valid: {string.Join(", ", ValidIntervals)}" });
 
         var size = Math.Clamp(outputsize ?? 30, 1, 500);
 
-        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
         var points = await _twelveData.GetTimeSeriesAsync(normalizedSymbol, ivl, size);
 
         if (points.Count < 2)
@@ -174,14 +185,20 @@ public sealed class MarketService
             return;
         }
 
+        var normalized = symbol.Trim().ToUpperInvariant();
+        if (!IsValidSymbol(normalized))
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { error = "Invalid symbol format." }, context.RequestAborted);
+            return;
+        }
+
         if (!_wsService.IsConfigured)
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             await context.Response.WriteAsJsonAsync(new { error = "Live streaming is not configured." }, context.RequestAborted);
             return;
         }
-
-        var normalized = symbol.Trim().ToUpperInvariant();
         var subscribed = await _wsService.SubscribeToSymbolAsync(normalized, context.RequestAborted);
         if (!subscribed)
         {
@@ -309,9 +326,13 @@ public sealed class MarketService
         if (string.IsNullOrWhiteSpace(symbol))
             return Results.BadRequest(new { error = "Symbol is required." });
 
-        var profile = await _finnhub.GetCompanyProfileAsync(symbol.Trim().ToUpperInvariant());
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        if (!IsValidSymbol(normalizedSymbol))
+            return Results.BadRequest(new { error = "Invalid symbol format." });
+
+        var profile = await _finnhub.GetCompanyProfileAsync(normalizedSymbol);
         if (profile?.Name == null)
-            return Results.NotFound(new { error = $"No profile found for {symbol}" });
+            return Results.NotFound(new { error = $"No profile found for {normalizedSymbol}" });
 
         return Results.Ok(new
         {
@@ -333,8 +354,12 @@ public sealed class MarketService
         if (string.IsNullOrWhiteSpace(symbol))
             return Results.BadRequest(new { error = "Symbol is required." });
 
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        if (!IsValidSymbol(normalizedSymbol))
+            return Results.BadRequest(new { error = "Invalid symbol format." });
+
         var d = Math.Clamp(days ?? 7, 1, 30);
-        var news = await _finnhub.GetCompanyNewsAsync(symbol.Trim().ToUpperInvariant(), d);
+        var news = await _finnhub.GetCompanyNewsAsync(normalizedSymbol, d);
 
         return Results.Ok(new
         {
@@ -355,7 +380,11 @@ public sealed class MarketService
         if (string.IsNullOrWhiteSpace(symbol))
             return Results.BadRequest(new { error = "Symbol is required." });
 
-        var recos = await _finnhub.GetRecommendationsAsync(symbol.Trim().ToUpperInvariant());
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        if (!IsValidSymbol(normalizedSymbol))
+            return Results.BadRequest(new { error = "Invalid symbol format." });
+
+        var recos = await _finnhub.GetRecommendationsAsync(normalizedSymbol);
 
         return Results.Ok(new
         {

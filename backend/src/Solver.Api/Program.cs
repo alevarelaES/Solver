@@ -1,4 +1,6 @@
+using System.Threading.RateLimiting;
 using dotenv.net;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -195,6 +197,25 @@ if (!string.IsNullOrEmpty(finnhubApiKey) && finnhubApiKey != "your_finnhub_api_k
 builder.Services.AddSingleton(new FinnhubConfig(finnhubApiKey, fhCacheMinutes));
 builder.Services.AddScoped<FinnhubService>();
 
+// Rate limiting: 100 req/min per authenticated user (fallback to IP)
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var userId = context.Items.TryGetValue("UserId", out var uid) ? uid?.ToString() : null;
+        var identifier = userId ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            identifier,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 100,
+                QueueLimit = 0,
+            });
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // Response compression (gzip)
 builder.Services.AddResponseCompression(options =>
 {
@@ -321,6 +342,7 @@ app.Use(async (context, next) =>
 app.UseRouting();
 app.UseCors();
 app.UseMiddleware<SupabaseAuthMiddleware>();
+app.UseRateLimiter();
 
 // Endpoints
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
