@@ -114,14 +114,15 @@ class _GoalsSection extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -326,13 +327,6 @@ class _GoalCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        badge(
-                          _typeLabel(goal.goalType),
-                          typeColor,
-                          icon: isDebt
-                              ? Icons.account_balance_wallet_rounded
-                              : Icons.flag_rounded,
-                        ),
                         badge(alert.label, statusColor, icon: alert.icon),
                         badge(
                           _deadlineLabel(goal),
@@ -523,13 +517,12 @@ class _GoalCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton.icon(
+              ElevatedButton.icon(
                 onPressed: onMove,
                 icon: Icon(
                   isDebt ? Icons.credit_score_rounded : Icons.sync_alt_rounded,
                   size: 16,
                 ),
-                style: style,
                 label: Text(
                   isDebt
                       ? AppStrings.goals.payment

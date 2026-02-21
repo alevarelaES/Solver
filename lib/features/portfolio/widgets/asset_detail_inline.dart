@@ -154,12 +154,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                profileAsync.when(
+        profileAsync.when(
                   loading: () => const _LoadingBox(height: 112),
                   error: (_, _) => _HeroCard(
                     symbol: symbol,
@@ -209,10 +204,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                 const SizedBox(height: AppSpacing.md),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final desktopTwoColumns = constraints.maxWidth >= 1420;
-                    final sideWidth = constraints.maxWidth >= 1660
-                        ? 336.0
-                        : 312.0;
+                    final wide = constraints.maxWidth >= 860;
 
                     final chart = _ChartPanel(
                       symbol: symbol,
@@ -222,47 +214,76 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                       },
                     );
 
+                    final analystWidget = recoAsync.when(
+                      loading: () => const _LoadingBox(height: 100),
+                      error: (_, _) => const SizedBox.shrink(),
+                      data: (recommendations) => _AnalystCard(
+                        recommendation: recommendations.isEmpty
+                            ? null
+                            : recommendations.first,
+                      ),
+                    );
+
+                    final metricsWidget = _MetricsCard(
+                      history: yearHistoryAsync.valueOrNull ?? const [],
+                    );
+
+                    final hasPosition = widget.holding != null;
+                    final hasOrderBook = currentPrice != null;
+
+                    // 2×2 grid: [Analyst | Metrics] / [Position | OrderBook]
                     final side = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        recoAsync.when(
-                          loading: () => const _LoadingBox(height: 150),
-                          error: (_, _) => const SizedBox.shrink(),
-                          data: (recommendations) => _AnalystCard(
-                            recommendation: recommendations.isEmpty
-                                ? null
-                                : recommendations.first,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: analystWidget),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(child: metricsWidget),
+                          ],
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        _MetricsCard(
-                          history: yearHistoryAsync.valueOrNull ?? const [],
-                        ),
-                        if (widget.holding != null) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          _PositionCard(holding: widget.holding!),
-                        ],
-                        if (currentPrice != null) ...[
-                          const SizedBox(height: AppSpacing.md),
-                          _OrderBookCard(
-                            symbol: symbol,
-                            currentPrice: currentPrice,
+                        if (hasPosition || hasOrderBook) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (hasPosition) ...[
+                                Expanded(
+                                  child: _PositionCard(
+                                    holding: widget.holding!,
+                                  ),
+                                ),
+                                if (hasOrderBook)
+                                  const SizedBox(width: AppSpacing.sm),
+                              ],
+                              if (hasOrderBook)
+                                Expanded(
+                                  child: _OrderBookCard(
+                                    symbol: symbol,
+                                    currentPrice: currentPrice,
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ],
                     );
 
-                    if (desktopTwoColumns) {
+                    if (wide) {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(flex: 3, child: chart),
                           const SizedBox(width: AppSpacing.md),
-                          SizedBox(width: sideWidth, child: side),
+                          Expanded(flex: 2, child: side),
                         ],
                       );
                     }
 
+                    // Narrow / mobile: stacked
                     return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         chart,
                         const SizedBox(height: AppSpacing.md),
@@ -274,10 +295,6 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                 const SizedBox(height: AppSpacing.md),
                 _NewsPanel(newsAsync: newsAsync),
                 const SizedBox(height: AppSpacing.xl),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -924,18 +941,37 @@ class _AnalystCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            sentiment,
-            style: TextStyle(
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              color: sentimentColor,
-              height: 1.0,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                sentiment,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: sentimentColor,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                total == 0
+                    ? 'Pas assez de votes'
+                    : '${(buyRatio * 100).toStringAsFixed(0)}% positif',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             total == 0
-                ? 'Pas assez de votes'
+                ? ''
                 : '${(buyRatio * 100).toStringAsFixed(0)}% positif',
             style: TextStyle(
               fontSize: 12,
@@ -1008,15 +1044,15 @@ class _MetricsCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           _MetricRow(
             label: 'Prix courant',
-            value: current == null ? '--' : '\$${current.toStringAsFixed(2)}',
+            value: current == null ? '--' : current.toStringAsFixed(2),
           ),
           _MetricRow(
-            label: '52W high',
-            value: high == null ? '--' : '\$${high.toStringAsFixed(2)}',
+            label: 'Plus haut 52 sem.',
+            value: high == null ? '--' : high.toStringAsFixed(2),
           ),
           _MetricRow(
-            label: '52W low',
-            value: low == null ? '--' : '\$${low.toStringAsFixed(2)}',
+            label: 'Plus bas 52 sem.',
+            value: low == null ? '--' : low.toStringAsFixed(2),
           ),
           _MetricRow(
             label: 'Amplitude',
@@ -1134,6 +1170,14 @@ class _OrderBookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bids = _levels(currentPrice * 0.998, 4, false);
     final asks = _levels(currentPrice * 1.002, 4, true);
+    final secondary = Theme.of(context).brightness == Brightness.dark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    const sectionStyle = TextStyle(
+      fontSize: 9,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.0,
+    );
 
     return AppPanel(
       variant: AppPanelVariant.elevated,
@@ -1143,7 +1187,7 @@ class _OrderBookCard extends StatelessWidget {
           Row(
             children: [
               const Text(
-                'ORDER BOOK',
+                'CARNET D\'ORDRES',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -1162,6 +1206,16 @@ class _OrderBookCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Text('Prix', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: secondary)),
+              const Spacer(),
+              Text('Quantité', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: secondary)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text('VENTE', style: sectionStyle.copyWith(color: AppColors.danger)),
+          const SizedBox(height: 2),
           ...asks.map(
             (l) => _OrderRow(
               price: l.price,
@@ -1170,6 +1224,8 @@ class _OrderBookCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
+          Text('ACHAT', style: sectionStyle.copyWith(color: AppColors.success)),
+          const SizedBox(height: 2),
           ...bids.map(
             (l) => _OrderRow(
               price: l.price,

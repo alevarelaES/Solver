@@ -24,79 +24,83 @@ class _PlannerTopBar extends StatelessWidget {
     final monthLabel =
         '${AppStrings.common.monthsFull[selectedMonth.month - 1]} ${selectedMonth.year}';
 
-    final actions = Wrap(
-      spacing: 10,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        if (dirty)
-          Text(
-            AppStrings.budget.unsavedChanges,
-            style: const TextStyle(
-              color: AppColors.warningStrong,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+    final monthNav = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHeader,
+        borderRadius: BorderRadius.circular(AppRadius.r10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: IconButton(
+              onPressed: onPrevMonth,
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.chevron_left_rounded, size: 18),
             ),
           ),
-        OutlinedButton(
-          onPressed: onReset,
-          child: Text(AppStrings.budget.reload),
-        ),
-        ElevatedButton.icon(
-          onPressed: saving ? null : onSave,
-          icon: saving
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.save_outlined, size: 18),
-          label: Text(saving ? AppStrings.budget.saving : AppStrings.budget.save),
-        ),
-      ],
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 980;
-        final monthNav = Row(
-          children: [
-            IconButton(
-              onPressed: onPrevMonth,
-              icon: const Icon(Icons.chevron_left_rounded),
-            ),
-            Expanded(
-              child: Text(
-                monthLabel,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: compact ? 22 : 28,
-                  fontWeight: FontWeight.w900,
-                ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              monthLabel,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textPrimary,
               ),
             ),
-            IconButton(
+          ),
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: IconButton(
               onPressed: onNextMonth,
-              icon: const Icon(Icons.chevron_right_rounded),
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.chevron_right_rounded, size: 18),
             ),
-          ],
-        );
+          ),
+        ],
+      ),
+    );
 
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [monthNav, const SizedBox(height: 8), actions],
-          );
-        }
-
-        return Row(
-          children: [
-            SizedBox(width: 420, child: monthNav),
-            const Spacer(),
-            actions,
-          ],
-        );
-      },
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        alignment: WrapAlignment.end,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          monthNav,
+          if (dirty)
+            Text(
+              AppStrings.budget.unsavedChanges,
+              style: const TextStyle(
+                color: AppColors.warningStrong,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          OutlinedButton(
+            onPressed: onReset,
+            child: Text(AppStrings.budget.reload),
+          ),
+          ElevatedButton.icon(
+            onPressed: saving ? null : onSave,
+            icon: saving
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined, size: 18),
+            label: Text(saving ? AppStrings.budget.saving : AppStrings.budget.save),
+          ),
+        ],
+      ),
     );
   }
 }

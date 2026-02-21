@@ -134,55 +134,63 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _MarketTickerTape(),
-          const SizedBox(height: AppSpacing.md),
-          AppPanel(
-            variant: AppPanelVariant.subtle,
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: AppPageHeader(
-              title: 'Portfolio',
-              subtitle: 'Actions, ETFs et crypto en vue unifiee',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    tooltip: 'Rafraichir',
-                    onPressed: _refreshData,
-                    icon: const Icon(Icons.refresh, size: 20),
+                  const SizedBox(height: AppSpacing.md),
+                  AppPanel(
+                    variant: AppPanelVariant.subtle,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: AppPageHeader(
+                      title: 'Portfolio',
+                      subtitle: 'Actions, ETFs et crypto en vue unifiee',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Rafraichir',
+                            onPressed: _refreshData,
+                            icon: const Icon(Icons.refresh, size: 20),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          ElevatedButton.icon(
+                            onPressed: _openAddHoldingDialog,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Ajouter'),
+                          ),
+                        ],
+                      ),
+                      bottom: _PortfolioHeaderBottom(
+                        tabController: _tabController,
+                        isDark: isDark,
+                        textSecondary: textSecondary,
+                        showWarning: anyStale,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  ElevatedButton.icon(
-                    onPressed: _openAddHoldingDialog,
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Ajouter'),
+                  const SizedBox(height: AppSpacing.md),
+                  ListenableBuilder(
+                    listenable: _tabController,
+                    builder: (context, _) => switch (_tabController.index) {
+                      0 => PositionsTab(
+                          summary: portfolioData.summary,
+                          holdings: holdings,
+                          sparklineBySymbol: sparklineBySymbol,
+                          onAddHolding: _openAddHoldingDialog,
+                          onRefresh: _refreshData,
+                        ),
+                      1 => const MarketTab(),
+                      _ => InvestmentsTab(
+                          summary: portfolioData.summary,
+                          holdings: holdings,
+                        ),
+                    },
                   ),
+                  const SizedBox(height: AppSpacing.xl),
                 ],
               ),
-              bottom: _PortfolioHeaderBottom(
-                tabController: _tabController,
-                isDark: isDark,
-                textSecondary: textSecondary,
-                showWarning: anyStale,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                PositionsTab(
-                  summary: portfolioData.summary,
-                  holdings: holdings,
-                  sparklineBySymbol: sparklineBySymbol,
-                  onAddHolding: _openAddHoldingDialog,
-                  onRefresh: _refreshData,
-                ),
-                const MarketTab(),
-                InvestmentsTab(
-                  summary: portfolioData.summary,
-                  holdings: holdings,
-                ),
-              ],
             ),
           ),
         ],
@@ -252,7 +260,7 @@ class _PortfolioHeaderBottom extends StatelessWidget {
             labelPadding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: const [
               Tab(text: 'Mes Positions', height: 32),
-              Tab(text: 'Marche', height: 32),
+              Tab(text: 'Marché', height: 32),
               Tab(text: 'Mon investissement', height: 32),
             ],
           ),

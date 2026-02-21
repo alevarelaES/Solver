@@ -44,10 +44,9 @@ class InvestmentsTab extends StatelessWidget {
         ? AppColors.textSecondaryDark
         : AppColors.textSecondaryLight;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           AppPanel(
             variant: AppPanelVariant.subtle,
             child: Column(
@@ -63,7 +62,7 @@ class InvestmentsTab extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Total investi reel: ${AppFormats.currency.format(investedTotal)}',
+                  'Total investi réel : ${AppFormats.currency.format(investedTotal)}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -73,7 +72,7 @@ class InvestmentsTab extends StatelessWidget {
                 Text(
                   excluded > 0
                       ? '$excluded position(s) sans investissement defini sont exclues des stats.'
-                      : 'Ces stats reflettent uniquement tes investissements reels.',
+                      : 'Ces stats reflètent uniquement tes investissements réels.',
                   style: TextStyle(fontSize: 12, color: textSecondary),
                 ),
               ],
@@ -135,7 +134,6 @@ class InvestmentsTab extends StatelessWidget {
             ),
           const SizedBox(height: AppSpacing.sm),
         ],
-      ),
     );
   }
 }

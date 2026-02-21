@@ -24,7 +24,7 @@ class PortfolioDashboard extends StatelessWidget {
     final bestPerformer = _bestPerformer();
     final topMovers = _topMovers();
 
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

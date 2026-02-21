@@ -85,15 +85,13 @@ class _MobileLayout extends ConsumerWidget {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SearchPanel(),
-          const SizedBox(height: AppSpacing.lg),
-          const _MarketContent(),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SearchPanel(),
+        const SizedBox(height: AppSpacing.lg),
+        const _MarketContent(),
+      ],
     );
   }
 }
@@ -108,7 +106,7 @@ class _SearchPanel extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'DECOVERTE MARCHE',
+            'DÉCOUVERTE MARCHÉ',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
@@ -159,11 +157,10 @@ class _MarketContent extends ConsumerWidget {
     final trendingAsync = ref.watch(trendingProvider);
     final newsAsync = ref.watch(marketNewsProvider);
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          trendingAsync.when(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        trendingAsync.when(
             loading: () => const SizedBox(
               height: 120,
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
@@ -226,7 +223,6 @@ class _MarketContent extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
-      ),
     );
   }
 }

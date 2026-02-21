@@ -114,9 +114,9 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-          Expanded(
-            child: ListView(
-              children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 if (effectiveSection == _SidebarSection.invested)
                   _buildInvestedList(selected, textSecondary)
                 else
@@ -145,7 +145,7 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
                   ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'TOP MARCHE',
+                  'TOP MARCHÉ',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -219,9 +219,8 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
     );
   }
 
@@ -450,7 +449,7 @@ class _SummaryCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'P/L ${AppFormats.currency.format(summary.totalGainLoss)}',
+                'G/P ${AppFormats.currency.format(summary.totalGainLoss)}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

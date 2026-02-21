@@ -355,17 +355,15 @@ class _Budget {
   String get step2 => 'Étape 2';
   String get step3 => 'Étape 3';
 
-  String get basePlan => 'Base de plan (modifiable)';
-  String get modeNet =>
-      'Mode net recommandé: base déjà nettoyée avant répartition.';
-  String get modeGross =>
-      'Mode brut: on ne retire pas les factures automatiquement.';
-  String get showGross => 'Voir vraie somme brute (sans factures du mois)';
+  String get basePlan => 'Mon budget mensuel';
+  String get modeNet => 'Revenu disponible après dépenses connues';
+  String get modeGross => 'Revenu brut (sans déduction de dépenses)';
+  String get showGross => 'Afficher le revenu brut';
 
-  String get alreadyAllocated => 'de la base déjà répartie';
-  String get autoReserved => 'Prélèvements automatiques (réservés)';
+  String get alreadyAllocated => 'du budget planifié';
+  String get autoReserved => 'Prélèvements automatiques';
   String get autoReservedDesc =>
-      'Ces montants viennent des prélèvements automatiques déjà prévus. Vous n\'avez rien à ressaisir dans les cartes manuelles.';
+      'Déjà comptés automatiquement – rien à saisir manuellement.';
 
   String get savingsMonthly => 'Épargne mensuelle';
   String get savingsMonthlyDesc =>
@@ -379,9 +377,9 @@ class _Budget {
   String get lockedByCommitted =>
       'On a automatiquement mis ce plan au minimum pour ne pas descendre sous le déjà engagé.';
 
-  String copiedFrom(String month, int year) => 'Plan recopié de $month $year';
+  String copiedFrom(String month, int year) => 'Plan copié depuis $month $year';
   String autoReservedAmount(String amount, String pct) =>
-      'Prélèvements auto réservés: $amount ($pct%)';
+      'Réservé automatiquement : $amount ($pct%)';
   String allowedRange(String name, String min, String max) =>
       'Plage autorisée pour $name: $min - $max';
 
@@ -390,21 +388,19 @@ class _Budget {
       'Planifiez vos allocations mensuelles et suivez vos marges.';
   String errorBudget(Object e) => 'Erreur budget: $e';
   String allocationByGroup(int n) => 'ALLOCATION PAR GROUPE ($n)';
-  String get overLimitMsg => 'Allocation manuelle dépasse la capacité restante';
-  String manualPctLabel(String a, String b) => 'Manuel: $a% / $b%';
+  String get overLimitMsg => 'Budget dépassé';
+  String manualPctLabel(String a, String b) => 'Planifié : $a% / $b%';
 
   // budget_view.summary.part.dart
   String step1Desc(String netRec, String gross, String manual, String auto) =>
-      'Étape 1: choisis la base du plan.\n'
-      'Par défaut, on recommande $netRec '
-      '(revenu $gross - factures manuelles $manual - prélèvements auto $auto).';
-  String alreadyDistributed(String amount) => '$amount déjà répartis';
-  String stillFree(String amount) => '$amount encore libres';
+      'Suggestion : $netRec (revenu $gross – dépenses fixes $manual – prélèvements $auto)';
+  String alreadyDistributed(String amount) => '$amount planifiés';
+  String stillFree(String amount) => '$amount disponibles';
   String step2Desc(String capacity, String distributed) =>
-      'Étape 2: capacité de répartition $capacity - déjà réparti $distributed';
-  String get step2Deficit => ' - déficit global';
+      'Planifié : $distributed sur $capacity disponibles';
+  String get step2Deficit => ' – dépassement';
   String step3Desc(String available) =>
-      'Étape 3: disponible réel après toutes les factures du mois (payées + à payer + auto): $available';
+      'Solde estimé fin de mois : $available';
   String moreOthers(int n) => '+$n autres';
 
   // budget_view.groups.part.dart
@@ -413,20 +409,17 @@ class _Budget {
   String categoriesInfo(int n, bool isFixed) =>
       '$n catégories - ${isFixed ? 'Fixe' : 'Variable/Mixte'}';
   String get amountChipLabel => 'Montant';
-  String committedThisMonth(String amount) =>
-      'Montant déjà engagé ce mois: $amount';
-  String committedPct(String pct) => 'Déjà engagé (payé + à payer): $pct%';
-  String get noBudgetPlanned => 'Budget planifié: 0';
-  String freeRemaining(String amount) => 'Reste libre: $amount';
-  String overdraftEngaged(String amount) => 'Dépassement déjà engagé: $amount';
-  String redLabel(String amount) => 'Rouge: déjà payé $amount';
-  String yellowLabel(String amount) => 'Jaune: à payer $amount';
-  String greenLabel(String amount) => 'Vert: libre $amount';
+  String committedThisMonth(String amount) => 'Dépensé ce mois : $amount';
+  String committedPct(String pct) => 'Utilisé : $pct%';
+  String get noBudgetPlanned => 'Non planifié';
+  String freeRemaining(String amount) => 'Restant : $amount';
+  String overdraftEngaged(String amount) => 'Dépassement : $amount';
+  String redLabel(String amount) => 'Payé $amount';
+  String yellowLabel(String amount) => 'À payer $amount';
+  String greenLabel(String amount) => 'Disponible $amount';
   String lockedByCommittedMin(String min) =>
-      'On a automatiquement mis ce plan au minimum de $min '
-      'pour ne pas descendre sous le déjà engagé.';
-  String overflowEngaged(String amount) =>
-      'Attention: $amount déjà engagés au-dessus du plan.';
+      'Budget verrouillé à $min (dépenses déjà engagées ce mois).';
+  String overflowEngaged(String amount) => 'Budget dépassé de $amount';
 
   // budget_view.logic.part.dart
   String get saveError => 'Erreur de sauvegarde du plan.';
@@ -582,20 +575,16 @@ class _Goals {
       'Trié automatiquement par échéance la plus proche';
 
   // Section titles
-  String get sectionUrgent => 'Urgence (rouge)';
-  String get sectionUrgentDesc =>
-      'Échéance très proche ou dépassée avec écart important.';
-  String get sectionAttention => 'Attention (orange)';
-  String get sectionAttentionDesc =>
-      'Échéance qui approche: un ajustement est conseillé.';
+  String get sectionUrgent => 'Urgence';
+  String get sectionUrgentDesc => 'Échéance très proche ou dépassée.';
+  String get sectionAttention => 'Attention';
+  String get sectionAttentionDesc => 'Ajustement conseillé.';
   String get sectionInProgress => 'En cours';
-  String get sectionInProgressDesc =>
-      'Progression normale, triés par date de cible.';
+  String get sectionInProgressDesc => '';
   String get sectionAchieved => 'Atteints';
-  String get sectionAchievedDesc =>
-      'Objectifs finalisés, gardés ici pour suivi et historique.';
-  String get newGoalBtn => 'Nouvel objectif';
-  String get newDebtBtn => 'Nouveau remboursement';
+  String get sectionAchievedDesc => '';
+  String get newGoalBtn => 'Objectifs';
+  String get newDebtBtn => 'Remboursements';
 
   // Dialog: editor
   String get newGoalTitle => 'Nouvel objectif';
