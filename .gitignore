@@ -50,3 +50,4 @@ app.*.map.json
 .env.*
 config.json
 .vscode/mcp.json
+.claude/worktrees/focused-meitner/
