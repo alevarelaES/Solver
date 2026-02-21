@@ -91,7 +91,7 @@ class ExpenseBreakdown extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Details depenses du mois',
+                  AppStrings.dashboard.expenseBreakdownDetail,
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,

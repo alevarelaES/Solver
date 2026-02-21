@@ -73,7 +73,7 @@ class BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Limite mensuelle: ${AppFormats.formatFromChfCompact(spent)} / ${AppFormats.formatFromChfCompact(monthlyLimit)}',
+            '${AppStrings.dashboard.monthlySpendingRatio}: ${AppFormats.formatFromChfCompact(spent)} / ${AppFormats.formatFromChfCompact(monthlyLimit)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,

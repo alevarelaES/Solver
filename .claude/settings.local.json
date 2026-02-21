@@ -51,7 +51,13 @@
       "Bash(dart analyze:*)",
       "Bash(python3:*)",
       "Bash(wc:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)",
+      "Bash(\"C:/Users/41786/flutter/bin/flutter.bat\" analyze --no-pub)"
     ]
   }
 }

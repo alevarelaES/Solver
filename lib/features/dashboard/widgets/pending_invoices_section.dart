@@ -12,6 +12,7 @@ import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
+import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
 class PendingInvoicesSection extends ConsumerStatefulWidget {
@@ -39,12 +40,12 @@ class _PendingInvoicesSectionState
           height: 180,
           child: Center(child: CircularProgressIndicator()),
         ),
-        error: (_, _) => const SizedBox(
+        error: (_, _) => SizedBox(
           height: 120,
           child: Center(
             child: Text(
-              'Impossible de charger les factures',
-              style: TextStyle(color: AppColors.danger),
+              AppStrings.dashboard.invoicesLoadError,
+              style: const TextStyle(color: AppColors.danger),
             ),
           ),
         ),
@@ -80,7 +81,7 @@ class _PendingInvoicesSectionState
                     child: Row(
                       children: [
                         Text(
-                          'Factures a traiter',
+                          AppStrings.dashboard.pendingInvoices,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -120,7 +121,9 @@ class _PendingInvoicesSectionState
                     onPressed: () => setState(() => _showAll = !_showAll),
                     style: AppButtonStyles.inline(),
                     child: Text(
-                      _showAll ? 'Manuelles seulement' : 'Tout afficher',
+                      _showAll
+                          ? AppStrings.dashboard.manualOnly
+                          : AppStrings.dashboard.showAll,
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -133,7 +136,7 @@ class _PendingInvoicesSectionState
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: Text(
-                  'Tout afficher inclut les factures manuelles et automatiques.',
+                  AppStrings.dashboard.pendingInvoicesHint,
                   style: TextStyle(
                     fontSize: 10,
                     color: isDark
@@ -171,8 +174,8 @@ class _PendingInvoicesSectionState
                       Expanded(
                         child: Text(
                           overdueCount > 0
-                              ? 'ALERTE: $overdueCount facture${overdueCount > 1 ? 's' : ''} en retard'
-                              : 'Attention: $dueTodayCount facture${dueTodayCount > 1 ? 's' : ''} echeance aujourd\'hui',
+                              ? AppStrings.dashboard.overdueAlert(overdueCount)
+                              : AppStrings.dashboard.todayAlert(dueTodayCount),
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -185,8 +188,11 @@ class _PendingInvoicesSectionState
                 ),
               Text(
                 invoices.isEmpty
-                    ? 'Aucune facture en attente'
-                    : '$urgentCount prioritaire${urgentCount > 1 ? 's' : ''} sur ${invoices.length} facture${invoices.length > 1 ? 's' : ''}',
+                    ? AppStrings.dashboard.noPending
+                    : AppStrings.dashboard.invoicesPriority(
+                        urgentCount,
+                        invoices.length,
+                      ),
                 style: TextStyle(
                   fontSize: 11,
                   color: isDark
@@ -196,12 +202,12 @@ class _PendingInvoicesSectionState
               ),
               const SizedBox(height: AppSpacing.md),
               if (invoices.isEmpty)
-                const SizedBox(
+                SizedBox(
                   height: 140,
                   child: Center(
                     child: Text(
-                      'Rien a traiter pour le moment',
-                      style: TextStyle(fontSize: 12),
+                      AppStrings.dashboard.nothingToDo,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 )
@@ -389,6 +395,8 @@ class _PendingInvoicesSectionState
 
   Future<void> _markAsPaid(Transaction transaction) async {
     final client = ref.read(apiClientProvider);
+    // status 0 = completed (mapped from Transaction.isCompleted on backend)
+    const completedStatus = 0;
     await client.put(
       '/api/transactions/${transaction.id}',
       data: {
@@ -396,7 +404,7 @@ class _PendingInvoicesSectionState
         'date': DateFormat('yyyy-MM-dd').format(transaction.date),
         'amount': transaction.amount,
         'note': transaction.note,
-        'status': 0,
+        'status': completedStatus,
         'isAuto': transaction.isAuto,
       },
     );
@@ -479,13 +487,13 @@ class _PendingInvoicesSectionState
                           children: [
                             _DetailChip(
                               label: transaction.isAuto
-                                  ? 'Prelevement auto'
-                                  : 'Facture manuelle',
+                                  ? AppStrings.dashboard.autoDebit
+                                  : AppStrings.dashboard.manualInvoice,
                             ),
                             _DetailChip(
                               label: transaction.isPending
-                                  ? 'A payer'
-                                  : 'Payee',
+                                  ? AppStrings.dashboard.statusPending
+                                  : AppStrings.dashboard.statusPaid,
                             ),
                             if ((transaction.categoryGroup ?? '').isNotEmpty)
                               _DetailChip(label: transaction.categoryGroup!),
@@ -535,7 +543,7 @@ class _PendingInvoicesSectionState
                                             setSheetState(() {
                                               loading = false;
                                               actionError =
-                                                  'Impossible de regler la facture.';
+                                                  AppStrings.dashboard.settleError;
                                             });
                                           }
                                         },
@@ -551,7 +559,7 @@ class _PendingInvoicesSectionState
                                           Icons.check_circle_outline,
                                           size: 16,
                                         ),
-                                  label: const Text('Regler'),
+                                  label: Text(AppStrings.dashboard.settleInvoice),
                                 ),
                               ),
                               const SizedBox(width: AppSpacing.sm),
@@ -565,7 +573,7 @@ class _PendingInvoicesSectionState
                                         _openInvoiceInJournal(transaction);
                                       },
                                 icon: const Icon(Icons.open_in_new, size: 16),
-                                label: const Text('Ouvrir transactions'),
+                                label: Text(AppStrings.dashboard.openTransactions),
                               ),
                             ),
                           ],

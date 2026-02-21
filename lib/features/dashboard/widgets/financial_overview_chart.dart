@@ -277,17 +277,17 @@ class _RangeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _RangeToggleItem(
-            label: 'Mois',
+            label: AppStrings.dashboard.rangeMonth,
             selected: value == _OverviewRange.month,
             onTap: () => onChanged(_OverviewRange.month),
           ),
           _RangeToggleItem(
-            label: 'Trimestre',
+            label: AppStrings.dashboard.rangeQuarter,
             selected: value == _OverviewRange.quarter,
             onTap: () => onChanged(_OverviewRange.quarter),
           ),
           _RangeToggleItem(
-            label: 'Annee',
+            label: AppStrings.dashboard.rangeYear,
             selected: value == _OverviewRange.year,
             onTap: () => onChanged(_OverviewRange.year),
           ),

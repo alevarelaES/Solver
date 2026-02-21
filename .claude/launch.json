@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Flutter Web",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "C:\\Users\\41786\\flutter\\bin\\flutter.bat", "run", "-d", "web-server", "--web-port", "8080", "--web-hostname", "127.0.0.1"],
+      "port": 8080,
+      "autoPort": false
+    },
+    {
+      "name": "Backend .NET",
+      "runtimeExecutable": "C:\\Program Files\\dotnet\\dotnet.exe",
+      "runtimeArgs": ["run", "--project", "backend/src/Solver.Api"],
+      "port": 5108,
+      "autoPort": false
+    }
+  ]
+}

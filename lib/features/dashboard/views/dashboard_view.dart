@@ -38,24 +38,19 @@ class DashboardView extends ConsumerWidget {
           style: const TextStyle(color: AppColors.danger),
         ),
       ),
-      data: (data) => _DashboardContent(data: data, year: year, ref: ref),
+      data: (data) => _DashboardContent(data: data, year: year),
     );
   }
 }
 
-class _DashboardContent extends StatelessWidget {
+class _DashboardContent extends ConsumerWidget {
   final DashboardData data;
   final int year;
-  final WidgetRef ref;
 
-  const _DashboardContent({
-    required this.data,
-    required this.year,
-    required this.ref,
-  });
+  const _DashboardContent({required this.data, required this.year});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= AppBreakpoints.desktop;
 
@@ -64,8 +59,8 @@ class _DashboardContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppPageHeader(
-            title: 'Tableau de bord',
-            subtitle: 'Suivi global de vos finances en temps reel.',
+            title: AppStrings.dashboard.dashboardTitle,
+            subtitle: AppStrings.dashboard.dashboardSubtitle,
             trailing: Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,

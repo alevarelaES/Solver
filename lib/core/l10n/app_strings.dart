@@ -91,6 +91,47 @@ class _Dashboard {
   String get newAccount => 'Nouveau compte';
   String get transaction => 'Transaction';
 
+  // Page header
+  String get dashboardTitle => 'Tableau de bord';
+  String get dashboardSubtitle => 'Suivi global de vos finances en temps réel.';
+
+  // Balance card
+  String get monthlySpendingRatio => 'Dépenses du mois';
+
+  // KPI cards
+  String get totalObjectives => 'Total objectifs';
+
+  // Pending invoices
+  String get pendingInvoices => 'Factures à traiter';
+  String get showAll => 'Tout afficher';
+  String get manualOnly => 'Manuelles seulement';
+  String get pendingInvoicesHint =>
+      'Tout afficher inclut les factures manuelles et automatiques.';
+  String overdueAlert(int count) =>
+      'ALERTE: $count facture${count > 1 ? 's' : ''} en retard';
+  String todayAlert(int count) =>
+      'Attention: $count facture${count > 1 ? 's' : ''} échéance aujourd\'hui';
+  String get invoicesLoadError => 'Impossible de charger les factures';
+  String get noPending => 'Aucune facture en attente';
+  String get nothingToDo => 'Rien à traiter pour le moment';
+  String invoicesPriority(int urgent, int total) =>
+      '$urgent prioritaire${urgent > 1 ? 's' : ''} sur $total facture${total > 1 ? 's' : ''}';
+  String get settleInvoice => 'Régler';
+  String get openTransactions => 'Ouvrir transactions';
+  String get settleError => 'Impossible de régler la facture.';
+  String get autoDebit => 'Prélèvement auto';
+  String get manualInvoice => 'Facture manuelle';
+  String get statusPending => 'À payer';
+  String get statusPaid => 'Payée';
+
+  // Financial overview range
+  String get rangeMonth => 'Mois';
+  String get rangeQuarter => 'Trimestre';
+  String get rangeYear => 'Année';
+
+  // Expense breakdown detail
+  String get expenseBreakdownDetail => 'Détails dépenses du mois';
+
   // Loading & errors
   String get loadingError => 'Erreur de chargement';
 }

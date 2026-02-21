@@ -93,6 +93,28 @@ class DashboardData {
             .toList(),
       );
 
+  /// Total income for a given month (1–12).
+  double incomeForMonth(int month) {
+    var total = 0.0;
+    for (final g in groups) {
+      for (final a in g.accounts) {
+        if (a.isIncome) total += a.months[month]?.total ?? 0;
+      }
+    }
+    return total;
+  }
+
+  /// Total expenses for a given month (1–12).
+  double expensesForMonth(int month) {
+    var total = 0.0;
+    for (final g in groups) {
+      for (final a in g.accounts) {
+        if (!a.isIncome) total += a.months[month]?.total ?? 0;
+      }
+    }
+    return total;
+  }
+
   /// Net balance at end of each month (for footer).
   /// Starts from [balanceBeforeYear] and accumulates month by month.
   List<double> computeMonthlyBalances() {

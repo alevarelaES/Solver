@@ -28,20 +28,34 @@ class KpiRow extends ConsumerWidget {
         ) ??
         0.0;
 
+    // Dynamic % change vs previous month
+    final currentMonth = DateTime.now().month;
+    final prevMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+    final prevIncome = data.incomeForMonth(prevMonth);
+    final prevExpenses = data.expensesForMonth(prevMonth);
+
+    double pctChange(double current, double previous) {
+      if (previous == 0) return 0.0;
+      return ((current - previous) / previous.abs()) * 100;
+    }
+
+    final incomePct = pctChange(data.currentMonthIncome, prevIncome);
+    final expensePct = pctChange(data.currentMonthExpenses, prevExpenses);
+
     final cards = [
       _KpiCardData(
         label: AppStrings.dashboard.income,
         amount: data.currentMonthIncome,
         color: AppColors.success,
-        isUp: true,
-        percentChange: 12.2,
+        isUp: incomePct >= 0,
+        percentChange: incomePct.abs(),
       ),
       _KpiCardData(
         label: AppStrings.dashboard.expense,
         amount: data.currentMonthExpenses,
         color: AppColors.danger,
-        isUp: false,
-        percentChange: 16.2,
+        isUp: expensePct >= 0,
+        percentChange: expensePct.abs(),
       ),
       _KpiCardData(
         label: AppStrings.dashboard.savings,
@@ -167,7 +181,7 @@ class _KpiCard extends StatelessWidget {
             ),
           if (data.hidePercent)
             Text(
-              'Total objectifs',
+              AppStrings.dashboard.totalObjectives,
               style: TextStyle(
                 fontSize: 10,
                 color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
