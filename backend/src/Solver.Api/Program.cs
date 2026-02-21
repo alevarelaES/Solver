@@ -154,10 +154,22 @@ builder.Services.AddScoped<PortfolioService>();
 builder.Services.AddScoped<WatchlistService>();
 builder.Services.AddScoped<MarketService>();
 
+// AllowedHosts hardening (fail-fast in production when wildcard is used)
+if (!isDevelopment)
+{
+    var allowedHostsConfig = builder.Configuration["AllowedHosts"];
+    if (string.IsNullOrWhiteSpace(allowedHostsConfig) || allowedHostsConfig == "*")
+    {
+        throw new InvalidOperationException(
+            "AllowedHosts must not be '*' in production. Set AllowedHosts to specific hostnames " +
+            "via appsettings.Production.json or the ASPNETCORE_AllowedHosts environment variable.");
+    }
+}
+
 // Auth hardening (fail-fast in non-dev when auth material is missing)
 var supabaseUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
-var allowLegacyHs256 = AppRuntimeSecurity.GetBoolEnv("AUTH_ALLOW_HS256_FALLBACK", isDevelopment);
+var allowLegacyHs256 = AppRuntimeSecurity.GetBoolEnv("AUTH_ALLOW_HS256_FALLBACK", false);
 if (!isDevelopment &&
     string.IsNullOrWhiteSpace(supabaseUrl) &&
     !(allowLegacyHs256 && !string.IsNullOrWhiteSpace(jwtSecret)))
@@ -211,19 +223,19 @@ builder.Services.AddCors(options =>
     {
         if (allowedOrigins.Length > 0)
         {
-            // Production: restrict to specific origins
+            // Production: restrict to specific origins and methods
             policy
                 .WithOrigins(allowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+                .WithHeaders("Authorization", "Content-Type", "Accept")
+                .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
         }
         else
         {
             // Development: allow localhost
             policy
                 .SetIsOriginAllowed(AppRuntimeSecurity.IsLocalDevelopmentOrigin)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+                .WithHeaders("Authorization", "Content-Type", "Accept")
+                .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
         }
     });
 });
@@ -290,6 +302,22 @@ if (applyMigrationsOnStartup)
 
 // Pipeline order matters
 app.UseResponseCompression();
+
+// Security headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    if (context.Request.IsHttps)
+    {
+        context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    }
+    await next();
+});
+
 app.UseRouting();
 app.UseCors();
 app.UseMiddleware<SupabaseAuthMiddleware>();

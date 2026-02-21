@@ -7,7 +7,7 @@ public record CreateTransactionDto(
     [Required] Guid AccountId,
     [Required] DateOnly Date,
     [Range(0.01, 10_000_000)] decimal Amount,
-    [MaxLength(500)] string? Note,
+    [MaxLength(500)][NoHtmlTags] string? Note,
     [Required] TransactionStatus Status,
     bool IsAuto
 );
@@ -15,7 +15,7 @@ public record CreateTransactionDto(
 public record UpdateTransactionDto(
     [Required] DateOnly Date,
     [Range(0.01, 10_000_000)] decimal Amount,
-    [MaxLength(500)] string? Note,
+    [MaxLength(500)][NoHtmlTags] string? Note,
     [Required] TransactionStatus Status,
     bool IsAuto
 );

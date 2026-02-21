@@ -81,7 +81,7 @@ public class SupabaseAuthMiddleware(RequestDelegate next)
 
             var allowHs256Fallback = AppRuntimeSecurity.GetBoolEnv(
                 "AUTH_ALLOW_HS256_FALLBACK",
-                _isDevelopment);
+                false);
             var secret = Environment.GetEnvironmentVariable("JWT_SECRET");
             if (allowHs256Fallback && !string.IsNullOrWhiteSpace(secret))
             {
