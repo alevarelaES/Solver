@@ -50,3 +50,6 @@ app.*.map.json
 .env.*
 config.json
 .vscode/mcp.json
+
+# Claude Code local settings (may contain tokens/secrets)
+.claude/settings.local.json
