@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_text_styles.dart';
@@ -32,12 +31,12 @@ class KpiCard extends StatelessWidget {
         : '${amount.toStringAsFixed(1)}${suffix ?? ''}';
 
     return GlassContainer(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.r10),
@@ -62,5 +61,3 @@ class KpiCard extends StatelessWidget {
     );
   }
 }
-
-

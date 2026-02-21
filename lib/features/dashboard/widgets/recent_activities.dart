@@ -7,10 +7,12 @@ import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
+import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/providers/recent_transactions_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
+import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
 class RecentActivities extends ConsumerStatefulWidget {
@@ -24,6 +26,67 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
   String _searchQuery = '';
   bool _sortDateAsc = false; // false = most recent first
   String _filterType = 'all'; // 'all', 'income', 'expense'
+  String? _reversingTxId;
+
+  Future<void> _reverseTransaction(Transaction tx) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Annuler et rembourser'),
+        content: TextField(
+          controller: reasonCtrl,
+          maxLength: 250,
+          decoration: const InputDecoration(labelText: 'Raison (optionnel)'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(AppStrings.common.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirmer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _reversingTxId = tx.id);
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post(
+            '/api/transactions/${tx.id}/reverse',
+            data: {
+              if (reasonCtrl.text.trim().isNotEmpty)
+                'reason': reasonCtrl.text.trim(),
+            },
+          );
+      invalidateAfterTransactionMutation(ref);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction annulee avec contre-ecriture.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors de l annulation.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _reversingTxId = null);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +340,7 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
                 if (_filterType == 'expense' && tx.isIncome) return false;
                 // Filter by search
                 if (_searchQuery.isNotEmpty) {
-                  final text = '${tx.note ?? ''} ${tx.accountName ?? ''}'
+                  final text = '${tx.displayNote ?? ''} ${tx.accountName ?? ''}'
                       .toLowerCase();
                   if (!text.contains(_searchQuery)) return false;
                 }
@@ -320,6 +383,10 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
                               tx.id;
                           context.go('/journal');
                         },
+                        onReverse: (tx.isVoided || tx.isReimbursement)
+                            ? null
+                            : () => _reverseTransaction(tx),
+                        isReversing: _reversingTxId == tx.id,
                       ),
                     )
                     .toList(),
@@ -335,8 +402,15 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
 class _TransactionRow extends StatefulWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
+  final VoidCallback? onReverse;
+  final bool isReversing;
 
-  const _TransactionRow({required this.transaction, this.onTap});
+  const _TransactionRow({
+    required this.transaction,
+    this.onTap,
+    this.onReverse,
+    this.isReversing = false,
+  });
 
   @override
   State<_TransactionRow> createState() => _TransactionRowState();
@@ -349,7 +423,12 @@ class _TransactionRowState extends State<_TransactionRow> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tx = widget.transaction;
-    final isExpense = !tx.isIncome;
+    final isVoided = tx.isVoided;
+    final signedAmount = tx.signedAmount;
+    final amountPrefix = signedAmount >= 0 ? '+' : '-';
+    final amountColor = signedAmount >= 0
+        ? AppColors.success
+        : AppColors.danger;
     final dateFormat = DateFormat('dd MMM yyyy', 'fr_CH');
 
     return GestureDetector(
@@ -401,9 +480,7 @@ class _TransactionRowState extends State<_TransactionRow> {
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Text(
-                        tx.note?.isNotEmpty == true
-                            ? tx.note!
-                            : (tx.accountName ?? '—'),
+                        tx.displayNote ?? (tx.accountName ?? '-'),
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
@@ -411,12 +488,34 @@ class _TransactionRowState extends State<_TransactionRow> {
                           color: isDark
                               ? AppColors.textPrimaryDark
                               : AppColors.textPrimaryLight,
+                          decoration: isVoided
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
+              if (widget.onReverse != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: IconButton(
+                    onPressed: widget.isReversing ? null : widget.onReverse,
+                    tooltip: 'Annuler et rembourser',
+                    icon: widget.isReversing
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.undo_rounded, size: 16),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
               // Date
               Expanded(
                 flex: 3,
@@ -427,6 +526,9 @@ class _TransactionRowState extends State<_TransactionRow> {
                     color: isDark
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondaryLight,
+                    decoration: isVoided
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
                   ),
                 ),
               ),
@@ -434,12 +536,15 @@ class _TransactionRowState extends State<_TransactionRow> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  '${isExpense ? '-' : '+'}${AppFormats.formatFromChf(tx.amount)}',
+                  '$amountPrefix${AppFormats.formatFromChf(signedAmount.abs())}',
                   textAlign: TextAlign.right,
                   style: GoogleFonts.robotoMono(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isExpense ? AppColors.danger : AppColors.success,
+                    color: amountColor,
+                    decoration: isVoided
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
                   ),
                 ),
               ),
@@ -452,7 +557,7 @@ class _TransactionRowState extends State<_TransactionRow> {
 
   IconData _getIcon(Transaction tx) {
     final name = (tx.accountName ?? '').toLowerCase();
-    final note = (tx.note ?? '').toLowerCase();
+    final note = (tx.displayNote ?? '').toLowerCase();
     final combined = '$name $note';
 
     if (combined.contains('loyer') ||

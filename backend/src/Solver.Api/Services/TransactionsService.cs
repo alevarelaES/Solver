@@ -7,6 +7,9 @@ namespace Solver.Api.Services;
 
 public sealed class TransactionsService
 {
+    private const string VoidedTag = "[ANNULEE]";
+    private const string ReimbursementTag = "[REMBOURSEMENT]";
+
     private readonly SolverDbContext _db;
     private readonly DbRetryService _dbRetry;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -76,6 +79,7 @@ public sealed class TransactionsService
                 id = t.Id,
                 accountId = t.AccountId,
                 accountName = t.Account!.Name,
+                accountGroup = t.Account!.Group,
                 accountType = t.Account!.Type == AccountType.Income ? "income" : "expense",
                 userId = t.UserId,
                 date = t.Date,
@@ -108,6 +112,7 @@ public sealed class TransactionsService
                 id = t.Id,
                 accountId = t.AccountId,
                 accountName = t.Account!.Name,
+                accountGroup = t.Account!.Group,
                 accountType = t.Account!.Type == AccountType.Income ? "income" : "expense",
                 userId = t.UserId,
                 date = t.Date,
@@ -280,6 +285,53 @@ public sealed class TransactionsService
         return Results.NoContent();
     }
 
+    public async Task<IResult> ReverseTransactionAsync(Guid id, ReverseTransactionDto dto, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var transaction = await _db.Transactions
+            .Include(t => t.Account)
+            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+        if (transaction is null) return Results.NotFound();
+
+        if (HasTag(transaction.Note, VoidedTag))
+        {
+            return Results.BadRequest(new { error = "Transaction already voided." });
+        }
+        if (HasTag(transaction.Note, ReimbursementTag))
+        {
+            return Results.BadRequest(new { error = "Cannot void a reimbursement transaction." });
+        }
+
+        var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
+        var reversalDate = dto.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var sourceLabel = BuildSourceLabel(transaction);
+
+        transaction.Note = BuildVoidedNote(transaction.Note, reason, reversalDate);
+        transaction.Status = TransactionStatus.Completed;
+        transaction.IsAuto = false;
+
+        var reimbursement = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            AccountId = transaction.AccountId,
+            UserId = userId,
+            Date = reversalDate,
+            Amount = -transaction.Amount,
+            Note = BuildReimbursementNote(sourceLabel, reason, transaction.Id),
+            Status = TransactionStatus.Completed,
+            IsAuto = false,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _db.Transactions.Add(reimbursement);
+
+        await _db.SaveChangesAsync();
+        return Results.Ok(new
+        {
+            voidedId = transaction.Id,
+            reimbursementId = reimbursement.Id
+        });
+    }
+
     private async Task<IResult?> PersistSeedsWithRetryAsync(
         IReadOnlyCollection<TransactionSeed> seeds,
         int maxAttempts,
@@ -331,6 +383,72 @@ public sealed class TransactionsService
         };
 
     private static Guid GetUserId(HttpContext ctx) => (Guid)ctx.Items["UserId"]!;
+
+    private static bool HasTag(string? note, string tag)
+    {
+        if (string.IsNullOrWhiteSpace(note)) return false;
+        return note.TrimStart().StartsWith(tag, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildSourceLabel(Transaction tx)
+    {
+        var cleaned = StripSystemTag(tx.Note);
+        if (!string.IsNullOrWhiteSpace(cleaned)) return cleaned;
+        if (tx.Account is not null && !string.IsNullOrWhiteSpace(tx.Account.Name))
+        {
+            return tx.Account.Name.Trim();
+        }
+        return tx.Id.ToString()[..8].ToUpperInvariant();
+    }
+
+    private static string BuildVoidedNote(
+        string? note,
+        string? reason,
+        DateOnly date)
+    {
+        var cleaned = StripSystemTag(note);
+        var baseText = string.IsNullOrWhiteSpace(cleaned)
+            ? $"{VoidedTag} annulation {date:yyyy-MM-dd}"
+            : $"{VoidedTag} {cleaned}";
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return TrimToMaxNote(baseText);
+        }
+
+        return TrimToMaxNote($"{baseText} - {reason}");
+    }
+
+    private static string BuildReimbursementNote(
+        string sourceLabel,
+        string? reason,
+        Guid sourceTransactionId)
+    {
+        var note = $"{ReimbursementTag} correction {sourceLabel} ({sourceTransactionId.ToString()[..8].ToUpperInvariant()})";
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            note = $"{note} - {reason}";
+        }
+        return TrimToMaxNote(note);
+    }
+
+    private static string StripSystemTag(string? note)
+    {
+        if (string.IsNullOrWhiteSpace(note)) return string.Empty;
+        var cleaned = note.Trim();
+        if (HasTag(cleaned, VoidedTag))
+        {
+            cleaned = cleaned[VoidedTag.Length..].TrimStart();
+        }
+        if (HasTag(cleaned, ReimbursementTag))
+        {
+            cleaned = cleaned[ReimbursementTag.Length..].TrimStart();
+        }
+        return cleaned;
+    }
+
+    private static string TrimToMaxNote(string value) =>
+        value.Length <= 500 ? value : value[..500];
 
     private sealed record TransactionSeed(
         Guid Id,

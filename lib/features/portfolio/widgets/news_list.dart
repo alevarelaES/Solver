@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/theme/app_theme.dart';
@@ -35,7 +36,7 @@ class NewsList extends StatelessWidget {
                     onTap: () => _openUrl(item.url),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: item.image == null || item.image!.isEmpty
+                    leading: kIsWeb || item.image == null || item.image!.isEmpty
                         ? const Icon(Icons.article_outlined)
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.r8),

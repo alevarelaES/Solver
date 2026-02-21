@@ -49,7 +49,7 @@ class _Dashboard {
   String get validUntil => 'VALIDE JUSQU\'À';
 
   // Recent activities
-  String get recentActivities => 'Activité Récente';
+  String get recentActivities => 'Transactions recentes';
   String get description => 'Description';
   String get date => 'Date';
   String get amount => 'Montant';
@@ -150,7 +150,7 @@ class _Nav {
   const _Nav();
 
   String get dashboard => 'Dashboard';
-  String get activity => 'Activite';
+  String get activity => 'Transactions';
   String get journal => 'Journal';
   String get schedule => 'Échéancier';
   String get budget => 'Budget';
@@ -908,7 +908,7 @@ class _Forms {
   String get newGroupTitle => 'Nouveau groupe';
   String get renameGroupTitle => 'Renommer groupe';
   String get groupNameLabel => 'Nom du groupe';
-  String get newGroupHint => 'Ex: Activites, Charges fixes';
+  String get newGroupHint => 'Ex: Transactions, Charges fixes';
 
   // Validation
   String get fieldRequired => 'Ce champ est requis.';

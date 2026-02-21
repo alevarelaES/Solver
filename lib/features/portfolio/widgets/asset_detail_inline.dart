@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -1326,7 +1327,7 @@ class _NewsCard extends StatelessWidget {
               child: SizedBox(
                 width: 54,
                 height: 54,
-                child: (news.image ?? '').isEmpty
+                child: kIsWeb || (news.image ?? '').isEmpty
                     ? Container(
                         color: AppColors.primary.withValues(alpha: 0.12),
                         alignment: Alignment.center,

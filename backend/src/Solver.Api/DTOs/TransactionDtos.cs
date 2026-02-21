@@ -20,6 +20,11 @@ public record UpdateTransactionDto(
     bool IsAuto
 );
 
+public record ReverseTransactionDto(
+    [MaxLength(250)] string? Reason,
+    DateOnly? Date = null
+);
+
 public record BatchTransactionDto(
     [Required] CreateTransactionDto Transaction,
     [Required] RecurrenceOptionsDto Recurrence

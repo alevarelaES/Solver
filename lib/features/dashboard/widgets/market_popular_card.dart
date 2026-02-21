@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/features/portfolio/providers/selected_asset_provider.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/models/watchlist_item.dart';
 import 'package:solver/features/portfolio/providers/trending_provider.dart';
@@ -41,13 +42,23 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
         error: (_, _) => SizedBox(
           height: 120,
           child: Center(
-            child: Text(
-              'Actions populaires indisponibles',
-              style: TextStyle(
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Actions populaires indisponibles',
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextButton(
+                  onPressed: () => ref.invalidate(trendingProvider),
+                  child: const Text('Reessayer'),
+                ),
+              ],
             ),
           ),
         ),
@@ -61,20 +72,60 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
           final favoriteDisplay = [...favorites]
             ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
           final marketDisplay = _sortedStocks(market.stocks).take(6).toList();
+          final dataStateLabel = switch (market.origin) {
+            MarketDataOrigin.live => 'Prix en direct',
+            MarketDataOrigin.cache => 'Prix via cache temporaire',
+            MarketDataOrigin.fallbackCatalog =>
+              'Catalogue de secours (prix en attente)',
+          };
+
+          void openAsset({
+            required String symbol,
+            WatchlistItem? watchlistItem,
+          }) {
+            ref.read(selectedAssetProvider.notifier).state = SelectedAsset(
+              symbol: symbol,
+              watchlistItem: watchlistItem,
+            );
+            context.go('/portfolio');
+          }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      effectiveSource == _PopularSource.favorites
+                          ? 'Mes favoris'
+                          : 'Actions populaires',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => ref.invalidate(trendingProvider),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    tooltip: 'Rafraichir',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
               Text(
-                effectiveSource == _PopularSource.favorites
-                    ? 'Mes favoris'
-                    : 'Actions populaires',
+                dataStateLabel,
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
                   color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -126,9 +177,16 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
               ],
               const SizedBox(height: AppSpacing.md),
               if (effectiveSource == _PopularSource.favorites)
-                _FavoritesList(items: favoriteDisplay.take(6).toList())
+                _FavoritesList(
+                  items: favoriteDisplay.take(6).toList(),
+                  onTapItem: (item) =>
+                      openAsset(symbol: item.symbol, watchlistItem: item),
+                )
               else
-                _MarketList(items: marketDisplay),
+                _MarketList(
+                  items: marketDisplay,
+                  onTapItem: (item) => openAsset(symbol: item.symbol),
+                ),
             ],
           );
         },
@@ -163,8 +221,9 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
 
 class _FavoritesList extends StatelessWidget {
   final List<WatchlistItem> items;
+  final ValueChanged<WatchlistItem> onTapItem;
 
-  const _FavoritesList({required this.items});
+  const _FavoritesList({required this.items, required this.onTapItem});
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +246,7 @@ class _FavoritesList extends StatelessWidget {
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: GestureDetector(
-                onTap: () => context.go('/portfolio'),
+                onTap: () => onTapItem(item),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: _FavoriteRow(item: item),
@@ -202,8 +261,9 @@ class _FavoritesList extends StatelessWidget {
 
 class _MarketList extends StatelessWidget {
   final List<TrendingStock> items;
+  final ValueChanged<TrendingStock> onTapItem;
 
-  const _MarketList({required this.items});
+  const _MarketList({required this.items, required this.onTapItem});
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +286,7 @@ class _MarketList extends StatelessWidget {
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: GestureDetector(
-                onTap: () => context.go('/portfolio'),
+                onTap: () => onTapItem(item),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: _MarketRow(item: item),

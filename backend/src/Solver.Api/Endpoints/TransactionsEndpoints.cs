@@ -61,6 +61,12 @@ public static class TransactionsEndpoints
             TransactionsService service,
             HttpContext ctx) => service.UpdateTransactionAsync(id, dto, ctx));
 
+        group.MapPost("/{id:guid}/reverse", (
+            Guid id,
+            ReverseTransactionDto dto,
+            TransactionsService service,
+            HttpContext ctx) => service.ReverseTransactionAsync(id, dto, ctx));
+
         group.MapDelete("/{id:guid}", (
             Guid id,
             TransactionsService service,

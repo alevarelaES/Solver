@@ -1,7 +1,11 @@
 class Transaction {
+  static const String _voidedTag = '[ANNULEE]';
+  static const String _reimbursementTag = '[REMBOURSEMENT]';
+
   final String id;
   final String accountId;
   final String? accountName;
+  final String? accountGroup;
   final String? accountType; // 'income' or 'expense'
   final String? categoryName;
   final String? categoryGroup;
@@ -16,6 +20,7 @@ class Transaction {
     required this.id,
     required this.accountId,
     this.accountName,
+    this.accountGroup,
     this.accountType,
     this.categoryName,
     this.categoryGroup,
@@ -30,11 +35,30 @@ class Transaction {
   bool get isPending => status == 'pending';
   bool get isCompleted => status == 'completed';
   bool get isIncome => accountType == 'income';
+  bool get isVoided => _hasTag(note, _voidedTag);
+  bool get isReimbursement => _hasTag(note, _reimbursementTag);
+  double get signedAmount => isIncome ? amount : -amount;
+
+  String? get displayNote {
+    final raw = (note ?? '').trim();
+    if (raw.isEmpty) return null;
+    var cleaned = raw;
+    if (_hasTag(cleaned, _voidedTag)) {
+      cleaned = cleaned.substring(_voidedTag.length).trimLeft();
+    }
+    if (_hasTag(cleaned, _reimbursementTag)) {
+      cleaned = cleaned.substring(_reimbursementTag.length).trimLeft();
+    }
+    return cleaned.isEmpty ? null : cleaned;
+  }
 
   factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
     id: json['id'] as String,
     accountId: json['accountId'] as String,
     accountName: json['accountName'] as String?,
+    accountGroup:
+        (json['accountGroup'] ?? json['account_group'] ?? json['groupName'])
+            as String?,
     accountType: json['accountType'] as String?,
     categoryName: (json['categoryName'] ?? json['category']) as String?,
     categoryGroup:
@@ -52,6 +76,7 @@ class Transaction {
     id: id,
     accountId: accountId,
     accountName: accountName,
+    accountGroup: accountGroup,
     accountType: accountType,
     categoryName: categoryName,
     categoryGroup: categoryGroup,
@@ -62,4 +87,9 @@ class Transaction {
     status: status ?? this.status,
     isAuto: isAuto,
   );
+
+  static bool _hasTag(String? value, String tag) {
+    if (value == null) return false;
+    return value.trimLeft().toUpperCase().startsWith(tag);
+  }
 }

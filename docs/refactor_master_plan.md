@@ -16,6 +16,8 @@ This document is the reference plan for the full project cleanup.
 - Hardcoded fallback business data in views (example: ticker list).
 - Fragile backend patterns from legacy code (runtime DDL, raw SQL in endpoints, brittle string comparisons).
 - Repeated UI components/rules re-implemented in multiple places.
+- Repeated methods with same logic that can be implement in a specific class where it can be call 
+- Security of project (Best security practice)
 
 ## Target architecture
 
@@ -56,8 +58,8 @@ Measure and map current technical debt.
 - Detect hardcoded business data blocks.
 - Detect dead/obsolete code and files.
 ### Deliverables
-- `docs/archive/2026-02-refactor-baseline/audit_baseline_frontend.md`
-- `docs/archive/2026-02-refactor-baseline/audit_baseline_backend.md`
+- `docs/audit_baseline_frontend.md`
+- `docs/audit_baseline_backend.md`
 
 ## Step 1 - Architecture contract
 ### Objective
@@ -170,92 +172,3 @@ Close refactor with enforceable standards.
 4. Step 5 + Step 6 (backend cleanup and decomposition)
 5. Step 7 + Step 8 + Step 9 (optimization, hardening, closure)
 
-## Current status
-- Step 0 completed:
-  - `docs/archive/2026-02-refactor-baseline/audit_baseline_frontend.md`
-  - `docs/archive/2026-02-refactor-baseline/audit_baseline_backend.md`
-- Step 1 completed:
-  - `docs/architecture_contract.md`
-- Step 2 completed:
-  - Shared page skeleton (`AppPageScaffold` + `AppPageHeader`) applied to main screens:
-    - `dashboard`, `budget`, `goals`, `schedule`, `journal`, `analysis`, `spreadsheet`, `portfolio`
-- Step 3 completed:
-  - Oversized views split into focused parts:
-    - `analysis_view.dart` -> `analysis_view.kpi.part.dart`, `analysis_view.charts.part.dart`, `analysis_view.peer.part.dart`
-    - `spreadsheet_view.dart` -> `spreadsheet_view.widgets.part.dart`
-    - `portfolio_view.dart` -> `portfolio_view.ticker.part.dart`
-    - `budget_view.dart` -> `budget_view.logic.part.dart` + existing section parts
-    - `schedule_view.dart` -> `schedule_view.header.part.dart`, `schedule_view.list.part.dart`, `schedule_view.card.part.dart`, `schedule_view.calendar.part.dart`, `schedule_view.calendar_widgets.part.dart`
-    - `goals_view.dart` -> `goals_view.logic.part.dart`, `goals_view.widgets.part.dart`
-  - Result: all `lib/features/**/views/*_view.dart` are now <= 600 lines.
-- Step 4 in progress:
-  - Dynamic fallback catalogs centralized (single source of truth):
-    - `lib/features/portfolio/data/portfolio_trending_catalog.dart`
-    - `lib/features/portfolio/data/portfolio_symbol_catalog.dart`
-    - `lib/features/analysis/data/analysis_peer_catalog.dart`
-  - Hardcoded business fallback data removed from views/providers:
-    - `portfolio_view.ticker.part.dart` now reads catalog data
-    - `trending_provider.dart` now reads catalog data
-    - `analysis_view.peer.part.dart` now reads catalog data
-    - `market_tab.dart` quick symbols now read catalog data
-    - `positions_tab.dart` known symbols now read catalog data
-    - `asset_logo.dart` known logo domains + crypto aliases now read catalog data
-    - `symbol_search_field.dart` hint examples now read catalog data
-    - `positions_tab.dart` no longer filters holdings by a static known-symbol list
-  - API fallback policy made explicit (cache + TTL + secondary source):
-    - `lib/features/portfolio/data/portfolio_cache_policy.dart`
-    - `lib/features/portfolio/providers/trending_provider.dart`:
-      - fresh cache -> API live -> stale cache -> catalog fallback
-    - `lib/features/portfolio/providers/price_history_provider.dart`:
-      - fresh cache -> API live (exact + secondary response key) -> stale cache -> empty fallback
-- Step 6/7 started (backend):
-  - shared persistence retry service:
-    - `backend/src/Solver.Api/Services/DbRetryService.cs`
-  - `CategoriesEndpoints` / `GoalsEndpoints` / `TransactionsEndpoints` / `BudgetEndpoints` / `PortfolioEndpoints` / `WatchlistEndpoints` / `MarketEndpoints` / `AccountsEndpoints` / `DashboardEndpoints` / `AnalysisEndpoints` decomposed with service separation:
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/CategoriesEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/GoalsEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/TransactionsEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/BudgetEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/PortfolioEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/WatchlistEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/MarketEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/AccountsEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/DashboardEndpoints.cs`
-    - routing-only endpoint: `backend/src/Solver.Api/Endpoints/AnalysisEndpoints.cs`
-    - business logic service: `backend/src/Solver.Api/Services/CategoriesService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/GoalsService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/TransactionsService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/BudgetService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/PortfolioService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/WatchlistService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/MarketService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/AccountsService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/DashboardService.cs`
-    - business logic service: `backend/src/Solver.Api/Services/AnalysisService.cs`
-  - endpoint-level duplicated retry blocks removed for transaction creation/batch/repayment, goal entry creation, and budget upsert.
-  - backend practices audit findings reduced from `4` to `0`.
-- Step 8 completed (backend hardening):
-  - auth middleware hardened in `backend/src/Solver.Api/Middleware/SupabaseAuthMiddleware.cs`:
-    - strict bearer header parsing
-    - synchronized JWKS cache refresh
-    - configurable issuer/audience validation
-    - controlled HS256 fallback policy
-  - runtime security helpers centralized in `backend/src/Solver.Api/Services/AppRuntimeSecurity.cs`
-  - non-development fail-fast checks added in `backend/src/Solver.Api/Program.cs`:
-    - auth material presence
-    - mandatory `ALLOWED_ORIGINS`
-    - invalid `ALLOWED_ORIGINS` entries now fail fast
-  - targeted tests added:
-    - `backend/tests/Solver.Tests/AppRuntimeSecurityTests.cs`
-    - `backend/tests/Solver.Tests/AuthMiddlewareTests.cs`
-- Step 9 completed (finalization + governance):
-  - PR checklist template added:
-    - `.github/pull_request_template.md`
-  - PR governance workflow added:
-    - `.github/workflows/pr-governance.yml`
-  - maintenance/governance guide added:
-    - `docs/maintenance_governance.md`
-  - backend runtime env template added:
-    - `backend/src/Solver.Api/.env.example`
-  - verification gate tightened by default:
-    - `tools/refactor/verify_step.ps1` now enforces `MaxUiFindings=0` and `MaxBackendFindings=0`

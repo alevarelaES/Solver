@@ -58,7 +58,6 @@ class _DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= AppBreakpoints.desktop;
-    final isCompact = width < AppBreakpoints.tablet;
 
     return AppPageScaffold(
       child: Column(
@@ -67,24 +66,17 @@ class _DashboardContent extends StatelessWidget {
           AppPageHeader(
             title: 'Tableau de bord',
             subtitle: 'Suivi global de vos finances en temps reel.',
-            trailing: isCompact
-                ? null
-                : ElevatedButton.icon(
+            trailing: Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const YearNavBar(),
+                ElevatedButton.icon(
                   onPressed: () => showTransactionFormModal(context, ref),
                   icon: const Icon(Icons.add, color: Colors.white, size: 16),
                   label: Text(AppStrings.dashboard.transaction),
                 ),
-            bottom: Row(
-              children: [
-                const Expanded(child: YearNavBar()),
-                if (isCompact) ...[
-                  const SizedBox(width: AppSpacing.md),
-                  ElevatedButton.icon(
-                    onPressed: () => showTransactionFormModal(context, ref),
-                    icon: const Icon(Icons.add, color: Colors.white, size: 16),
-                    label: Text(AppStrings.dashboard.transaction),
-                  ),
-                ],
               ],
             ),
           ),

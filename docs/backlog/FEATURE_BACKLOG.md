@@ -1,4 +1,4 @@
-# Feature Backlog (Global)
+<!-- # Feature Backlog (Global) -->
 
 ## Now
 - Stabiliser page Budget (UX + logique metiers).

@@ -7,11 +7,15 @@ import 'package:solver/features/journal/providers/journal_provider.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 
 void invalidateAfterTransactionMutation(WidgetRef ref) {
-  ref.invalidate(dashboardDataProvider);
-  ref.invalidate(recentTransactionsProvider);
-  ref.invalidate(upcomingTransactionsProvider);
-  ref.invalidate(yearlyExpenseProjectionProvider);
-  ref.invalidate(budgetStatsProvider);
-  ref.invalidate(journalTransactionsProvider);
-  ref.invalidate(analysisDataProvider);
+  try {
+    ref.invalidate(dashboardDataProvider);
+    ref.invalidate(recentTransactionsProvider);
+    ref.invalidate(upcomingTransactionsProvider);
+    ref.invalidate(yearlyExpenseProjectionProvider);
+    ref.invalidate(budgetStatsProvider);
+    ref.invalidate(journalTransactionsProvider);
+    ref.invalidate(analysisDataProvider);
+  } on StateError {
+    // Ignored when an async callback finishes after the owning widget is disposed.
+  }
 }

@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/providers/navigation_providers.dart';
+import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
+import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
 class PendingInvoicesSection extends ConsumerStatefulWidget {
@@ -51,6 +54,7 @@ class _PendingInvoicesSectionState
               : data.manual;
           final invoices = source.where((t) {
             if (t.amount <= 0) return false;
+            if (!t.isPending) return false;
             final days = _daysUntil(t.date);
             // Keep overdue bills, and upcoming bills due in the next 30 days.
             return days <= 30;
@@ -116,7 +120,7 @@ class _PendingInvoicesSectionState
                     onPressed: () => setState(() => _showAll = !_showAll),
                     style: AppButtonStyles.inline(),
                     child: Text(
-                      _showAll ? 'Manuelles' : 'Tout afficher',
+                      _showAll ? 'Manuelles seulement' : 'Tout afficher',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -125,6 +129,18 @@ class _PendingInvoicesSectionState
                     ),
                   ),
                 ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  'Tout afficher inclut les factures manuelles et automatiques.',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark
+                        ? AppColors.textDisabledDark
+                        : AppColors.textDisabledLight,
+                  ),
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               if (overdueCount > 0 || dueTodayCount > 0)
@@ -207,7 +223,7 @@ class _PendingInvoicesSectionState
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                         child: GestureDetector(
-                          onTap: () => context.go('/schedule'),
+                          onTap: () => _openInvoiceDetails(t),
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Container(
@@ -363,5 +379,232 @@ class _PendingInvoicesSectionState
     if (days == 0) return 'Echeance aujourd\'hui';
     if (days == 1) return 'Dans 1 jour';
     return 'Dans $days jours';
+  }
+
+  void _openInvoiceInJournal(Transaction transaction) {
+    ref.read(pendingJournalTxIdProvider.notifier).state = transaction.id;
+    if (!mounted) return;
+    context.go('/journal');
+  }
+
+  Future<void> _markAsPaid(Transaction transaction) async {
+    final client = ref.read(apiClientProvider);
+    await client.put(
+      '/api/transactions/${transaction.id}',
+      data: {
+        'accountId': transaction.accountId,
+        'date': DateFormat('yyyy-MM-dd').format(transaction.date),
+        'amount': transaction.amount,
+        'note': transaction.note,
+        'status': 0,
+        'isAuto': transaction.isAuto,
+      },
+    );
+    invalidateAfterTransactionMutation(ref);
+  }
+
+  Future<void> _openInvoiceDetails(Transaction transaction) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final days = _daysUntil(transaction.date);
+    final isOverdue = days < 0;
+    final canSettle = transaction.isPending && !transaction.isAuto;
+    var loading = false;
+    var actionError = '';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Dialog(
+              backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 560,
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xl,
+                      AppSpacing.xl,
+                      AppSpacing.xl,
+                      AppSpacing.lg,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          transaction.accountName ?? 'Facture',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${DateFormat('dd MMM yyyy', 'fr_CH').format(transaction.date)} - ${_daysLabel(days)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isOverdue
+                                ? AppColors.danger
+                                : (isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          AppFormats.formatFromChf(transaction.amount),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.xs,
+                          children: [
+                            _DetailChip(
+                              label: transaction.isAuto
+                                  ? 'Prelevement auto'
+                                  : 'Facture manuelle',
+                            ),
+                            _DetailChip(
+                              label: transaction.isPending
+                                  ? 'A payer'
+                                  : 'Payee',
+                            ),
+                            if ((transaction.categoryGroup ?? '').isNotEmpty)
+                              _DetailChip(label: transaction.categoryGroup!),
+                          ],
+                        ),
+                        if ((transaction.note ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            transaction.note!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                        if (actionError.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            actionError,
+                            style: const TextStyle(
+                              color: AppColors.danger,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          children: [
+                            if (canSettle) ...[
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: loading
+                                      ? null
+                                      : () async {
+                                          setSheetState(() {
+                                            loading = true;
+                                            actionError = '';
+                                          });
+                                          try {
+                                            await _markAsPaid(transaction);
+                                            if (!dialogContext.mounted) return;
+                                            Navigator.of(dialogContext).pop();
+                                          } catch (_) {
+                                            setSheetState(() {
+                                              loading = false;
+                                              actionError =
+                                                  'Impossible de regler la facture.';
+                                            });
+                                          }
+                                        },
+                                  icon: loading
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.check_circle_outline,
+                                          size: 16,
+                                        ),
+                                  label: const Text('Regler'),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                            ],
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: loading
+                                    ? null
+                                    : () {
+                                        Navigator.of(dialogContext).pop();
+                                        _openInvoiceInJournal(transaction);
+                                      },
+                                icon: const Icon(Icons.open_in_new, size: 16),
+                                label: const Text('Ouvrir transactions'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _DetailChip extends StatelessWidget {
+  final String label;
+
+  const _DetailChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: isDark ? AppColors.textPrimaryDark : AppColors.primary,
+        ),
+      ),
+    );
   }
 }

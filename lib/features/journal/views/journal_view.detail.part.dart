@@ -48,7 +48,43 @@ class _DetailViewState extends ConsumerState<_DetailView> {
     }
   }
 
+  Future<void> _reverseTransaction({String? reason}) async {
+    setState(() => _loading = true);
+    try {
+      final tx = widget.transaction;
+      await ref
+          .read(apiClientProvider)
+          .post(
+            '/api/transactions/${tx.id}/reverse',
+            data: {
+              if (reason != null && reason.trim().isNotEmpty)
+                'reason': reason.trim(),
+            },
+          );
+      _afterMutation();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction annulee avec contre-ecriture.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors de l annulation.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   void _afterMutation() {
+    if (!mounted) return;
     invalidateAfterTransactionMutation(ref);
   }
 
@@ -75,7 +111,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           ],
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
-            labelText: AppStrings.journal.amountLabelCode(AppFormats.currencyCode),
+            labelText: AppStrings.journal.amountLabelCode(
+              AppFormats.currencyCode,
+            ),
             prefixText: '${AppFormats.currencySymbol} ',
           ),
         ),
@@ -94,6 +132,44 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               _validate(overrideAmount: amount);
             },
             child: Text(AppStrings.journal.confirmAction),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReverseDialog() {
+    final reasonCtrl = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: const Text(
+          'Annuler et rembourser',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: TextField(
+          controller: reasonCtrl,
+          maxLength: 250,
+          decoration: const InputDecoration(labelText: 'Raison (optionnel)'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              AppStrings.common.cancel,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _reverseTransaction(reason: reasonCtrl.text);
+            },
+            child: const Text('Confirmer'),
           ),
         ],
       ),
@@ -181,7 +257,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                   ],
                   decoration: InputDecoration(
-                    labelText: AppStrings.journal.amountLabelCode(AppFormats.currencyCode),
+                    labelText: AppStrings.journal.amountLabelCode(
+                      AppFormats.currencyCode,
+                    ),
                     prefixText: '${AppFormats.currencySymbol} ',
                   ),
                 ),
@@ -251,8 +329,11 @@ class _DetailViewState extends ConsumerState<_DetailView> {
   @override
   Widget build(BuildContext context) {
     final tx = widget.transaction;
-    final amountPrefix = tx.isIncome ? '+' : '-';
-    final amountColor = tx.isIncome ? AppColors.primary : AppColors.textPrimary;
+    final signedAmount = tx.signedAmount;
+    final amountPrefix = signedAmount >= 0 ? '+' : '-';
+    final amountColor = signedAmount >= 0
+        ? AppColors.primary
+        : AppColors.textPrimary;
 
     return AppPanel(
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -294,7 +375,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      AppStrings.journal.transactionRef(tx.id.substring(0, 8).toUpperCase()),
+                      AppStrings.journal.transactionRef(
+                        tx.id.substring(0, 8).toUpperCase(),
+                      ),
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -308,7 +391,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '$amountPrefix${AppFormats.formatFromChf(tx.amount)}',
+                    '$amountPrefix${AppFormats.formatFromChf(signedAmount.abs())}',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
@@ -341,14 +424,20 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               ),
               _DetailField(
                 label: AppStrings.journal.detailType,
-                value: tx.isAuto ? AppStrings.journal.typeAuto : AppStrings.journal.typeManual,
+                value: tx.isAuto
+                    ? AppStrings.journal.typeAuto
+                    : AppStrings.journal.typeManual,
                 chipColor: tx.isAuto ? AppColors.primary : AppColors.info,
                 isChip: true,
               ),
               _DetailField(
                 label: AppStrings.journal.detailStatus,
                 value: _statusLabel(tx),
-                chipColor: tx.isCompleted
+                chipColor: tx.isVoided
+                    ? AppColors.textDisabled
+                    : tx.isReimbursement
+                    ? AppColors.info
+                    : tx.isCompleted
                     ? AppColors.primary
                     : AppColors.warning,
                 isChip: true,
@@ -373,6 +462,15 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                   onTap: _showValidateDialog,
                 ),
               ],
+              if (!tx.isVoided && !tx.isReimbursement)
+                _ActionTextButton(
+                  icon: Icons.undo_rounded,
+                  label: 'Annuler',
+                  tooltip: 'Annuler et creer un remboursement',
+                  color: AppColors.warning,
+                  loading: _loading,
+                  onTap: _showReverseDialog,
+                ),
               _ActionTextButton(
                 icon: Icons.edit_outlined,
                 label: AppStrings.journal.actionEdit,
@@ -388,17 +486,20 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 onTap: () {},
               ),
               TextButton.icon(
-                onPressed: _loading ? null : _delete,
+                onPressed: _loading || tx.isVoided ? null : _delete,
                 icon: const Icon(Icons.delete_outline, size: 15),
                 label: Text(
                   AppStrings.journal.actionDelete,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 style: AppButtonStyles.dangerOutline(radius: AppRadius.r9),
               ),
             ],
           ),
-          if ((tx.note ?? '').isNotEmpty) ...[
+          if ((tx.displayNote ?? '').isNotEmpty) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -409,7 +510,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 border: Border.all(color: AppColors.borderSubtle),
               ),
               child: Text(
-                tx.note!,
+                tx.displayNote!,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textPrimary,
@@ -708,7 +809,7 @@ class _TransactionAvatar extends StatelessWidget {
 }
 
 String _displayLabel(Transaction tx) {
-  final note = (tx.note ?? '').trim();
+  final note = (tx.displayNote ?? '').trim();
   if (note.isNotEmpty) return note;
   final category = (tx.categoryName ?? '').trim();
   if (category.isNotEmpty) return category;
@@ -716,24 +817,23 @@ String _displayLabel(Transaction tx) {
 }
 
 String _transactionGroup(Transaction tx) {
-  final group = (tx.categoryGroup ?? '').trim();
+  final group = (tx.accountGroup ?? '').trim();
   if (group.isNotEmpty) return group;
-  final category = (tx.categoryName ?? '').trim();
-  if (category.isNotEmpty) return category;
   final account = (tx.accountName ?? '').trim();
   if (account.isNotEmpty) return account;
   return tx.accountId.trim();
 }
 
 String? _transactionDescription(Transaction tx) {
-  final note = (tx.note ?? '').trim();
+  final note = (tx.displayNote ?? '').trim();
   if (note.isEmpty) return null;
   return note;
 }
 
 String _statusLabel(Transaction tx) {
+  if (tx.isVoided) return 'Annulee';
+  if (tx.isReimbursement) return 'Remboursement';
   if (tx.isCompleted) return AppStrings.journal.statusPaid;
   if (tx.isAuto) return AppStrings.journal.statusAutoUpcoming;
   return AppStrings.journal.statusToPay;
 }
-

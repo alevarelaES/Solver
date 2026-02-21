@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -62,23 +63,27 @@ class AssetLogo extends StatelessWidget {
     final isCrypto = assetType.toLowerCase() == 'crypto' || coin != null;
     if (isCrypto) {
       final token = (coin ?? base).toLowerCase();
-      urls.add('https://assets.coincap.io/assets/icons/$token@2x.png');
       urls.add(
         'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/$token.png',
       );
+      if (!kIsWeb) {
+        urls.add('https://assets.coincap.io/assets/icons/$token@2x.png');
+      }
       return urls;
     }
 
     if (base.isEmpty) return urls;
 
     final domain = knownLogoDomains[base];
-    if (domain != null) {
+    if (!kIsWeb && domain != null) {
       urls.add('https://logo.clearbit.com/$domain');
     }
     urls.add('https://images.financialmodelingprep.com/symbol/$base.png');
-    urls.add(
-      'https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/$base.png',
-    );
+    if (!kIsWeb) {
+      urls.add(
+        'https://static2.finnhub.io/file/publicdatany/finnhubimage/stock_logo/$base.png',
+      );
+    }
 
     return urls;
   }

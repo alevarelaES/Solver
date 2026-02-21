@@ -64,7 +64,12 @@ class _JournalBody extends ConsumerWidget {
           ),
           child: SingleChildScrollView(
             controller: controller,
-            padding: const EdgeInsets.fromLTRB(AppSpacing.s14, AppSpacing.md, AppSpacing.s14, AppSpacing.xxl),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s14,
+              AppSpacing.md,
+              AppSpacing.s14,
+              AppSpacing.xxl,
+            ),
             child: _DetailView(
               transaction: tx,
               onClose: () => Navigator.of(context).pop(),
@@ -139,7 +144,12 @@ class _DesktopDetailOverlay extends StatelessWidget {
               child: Container(
                 width: width,
                 height: double.infinity,
-                padding: const EdgeInsets.fromLTRB(AppSpacing.s14, AppSpacing.s14, AppSpacing.s14, AppSpacing.s14),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s14,
+                  AppSpacing.s14,
+                  AppSpacing.s14,
+                  AppSpacing.s14,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.surfaceElevated,
                   border: Border(
@@ -316,7 +326,9 @@ class _MonthHeaderRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      AppStrings.journal.earned(AppFormats.formatFromChf(totals.income)),
+                      AppStrings.journal.earned(
+                        AppFormats.formatFromChf(totals.income),
+                      ),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -325,7 +337,9 @@ class _MonthHeaderRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 14),
                     Text(
-                      AppStrings.journal.spent(AppFormats.formatFromChf(totals.expense)),
+                      AppStrings.journal.spent(
+                        AppFormats.formatFromChf(totals.expense),
+                      ),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -546,12 +560,14 @@ class _TransactionRowState extends State<_TransactionRow> {
   @override
   Widget build(BuildContext context) {
     final transaction = widget.transaction;
-    final amountPrefix = transaction.isIncome ? '+' : '-';
-    final amountColor = transaction.isIncome
+    final signedAmount = transaction.signedAmount;
+    final amountPrefix = signedAmount >= 0 ? '+' : '-';
+    final amountColor = signedAmount >= 0
         ? AppColors.primary
         : AppColors.danger;
     final groupLabel = _transactionGroup(transaction);
     final description = _transactionDescription(transaction);
+    final isVoided = transaction.isVoided;
     final baseBg = widget.isMobile
         ? Colors.transparent
         : (widget.isEven ? Colors.white : AppColors.surfaceTableRowStripe);
@@ -598,11 +614,16 @@ class _TransactionRowState extends State<_TransactionRow> {
                                   _displayLabel(transaction),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style:
+                                      const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ).copyWith(
+                                        decoration: isVoided
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -610,10 +631,15 @@ class _TransactionRowState extends State<_TransactionRow> {
                                     'dd MMM yyyy',
                                     'fr_FR',
                                   ).format(transaction.date),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  style:
+                                      const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ).copyWith(
+                                        decoration: isVoided
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
                                 ),
                               ],
                             ),
@@ -624,12 +650,15 @@ class _TransactionRowState extends State<_TransactionRow> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '$amountPrefix${AppFormats.formatFromChf(transaction.amount)}',
+                        '$amountPrefix${AppFormats.formatFromChf(signedAmount.abs())}',
                         textAlign: TextAlign.end,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: amountColor,
+                          decoration: isVoided
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                         ),
                       ),
                     ),
@@ -644,11 +673,16 @@ class _TransactionRowState extends State<_TransactionRow> {
                           'dd MMM yyyy',
                           'fr_FR',
                         ).format(transaction.date),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                        style:
+                            const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ).copyWith(
+                              decoration: isVoided
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
                       ),
                     ),
                     Expanded(
@@ -668,13 +702,24 @@ class _TransactionRowState extends State<_TransactionRow> {
                                   _displayLabel(transaction),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style:
+                                      const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ).copyWith(
+                                        decoration: isVoided
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
                                 ),
-                                if (!transaction.isCompleted) ...[
+                                if (isVoided) ...[
+                                  const SizedBox(height: 4),
+                                  const _StatusBadge(
+                                    label: 'Annulee',
+                                    color: AppColors.textDisabled,
+                                  ),
+                                ] else if (!transaction.isCompleted) ...[
                                   const SizedBox(height: 4),
                                   _StatusPill(transaction: transaction),
                                 ],
@@ -709,12 +754,15 @@ class _TransactionRowState extends State<_TransactionRow> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        '$amountPrefix${AppFormats.formatFromChf(transaction.amount)}',
+                        '$amountPrefix${AppFormats.formatFromChf(signedAmount.abs())}',
                         textAlign: TextAlign.end,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: amountColor,
+                          decoration: isVoided
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                         ),
                       ),
                     ),
@@ -726,3 +774,28 @@ class _TransactionRowState extends State<_TransactionRow> {
   }
 }
 
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withAlpha(22),
+        borderRadius: BorderRadius.circular(AppRadius.r7),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
