@@ -110,10 +110,15 @@ class _TopHeader extends StatelessWidget {
                           ),
                         );
                       }),
-                      _MoreNavButton(location: location),
                     ],
                   ),
                 ),
+              ),
+              Container(
+                width: 1,
+                height: 20,
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               ),
               _CurrencyMenuButton(ref: ref),
               const SizedBox(width: AppSpacing.xs),
@@ -470,7 +475,7 @@ class _NavTab extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.r20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
               ? (isDark

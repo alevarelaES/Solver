@@ -130,123 +130,165 @@ class _FinancialOverviewChartState
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Center(
-            child: SizedBox(
-              height: widget.chartHeight ?? AppSizes.chartHeight,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: maxY,
-                  barTouchData: BarTouchData(
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipItem: (group, _, rod, rodIndex) {
-                        final label = rodIndex == 0
-                            ? AppStrings.dashboard.income
-                            : AppStrings.dashboard.expense;
-                        return BarTooltipItem(
-                          '$label\n${AppFormats.currencyCompact.format(rod.toY)}',
-                          const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+          SizedBox(
+            height: widget.chartHeight ?? AppSizes.chartHeight,
+            child: LineChart(
+              LineChartData(
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (spots) => spots.map((spot) {
+                      final isIncome = spot.barIndex == 0;
+                      return LineTooltipItem(
+                        '${isIncome ? AppStrings.dashboard.income : AppStrings.dashboard.expense}\n'
+                        '${AppFormats.currencyCompact.format(spot.y)}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: List.generate(
+                      buckets.length,
+                      (i) => FlSpot(i.toDouble(), buckets[i].income),
+                    ),
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    preventCurveOverShooting: true,
+                    color: AppColors.primary,
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      checkToShowDot: (spot, _) {
+                        final i = spot.x.toInt();
+                        return i < buckets.length && buckets[i].isCurrent;
+                      },
+                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                        radius: 4,
+                        color: AppColors.primary,
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.18),
+                          AppColors.primary.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  LineChartBarData(
+                    spots: List.generate(
+                      buckets.length,
+                      (i) => FlSpot(i.toDouble(), buckets[i].expense),
+                    ),
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    preventCurveOverShooting: true,
+                    color: AppColors.danger,
+                    barWidth: 2.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      checkToShowDot: (spot, _) {
+                        final i = spot.x.toInt();
+                        return i < buckets.length && buckets[i].isCurrent;
+                      },
+                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                        radius: 4,
+                        color: AppColors.danger,
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.danger.withValues(alpha: 0.1),
+                          AppColors.danger.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                minX: 0,
+                maxX: (buckets.length - 1).toDouble(),
+                minY: 0,
+                maxY: maxY,
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= buckets.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
+                          child: Text(
+                            buckets[index].label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
+                                  ? AppColors.textDisabledDark
+                                  : AppColors.textDisabledLight,
+                            ),
                           ),
                         );
                       },
                     ),
                   ),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 28,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= buckets.length) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.sm),
-                            child: Text(
-                              buckets[index].label,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: isDark
-                                    ? AppColors.textDisabledDark
-                                    : AppColors.textDisabledLight,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 42,
-                        getTitlesWidget: (value, meta) => Text(
-                          '${(value / 1000).toStringAsFixed(0)}K',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark
-                                ? AppColors.textDisabledDark
-                                : AppColors.textDisabledLight,
-                          ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 42,
+                      getTitlesWidget: (value, meta) => Text(
+                        '${(value / 1000).toStringAsFixed(0)}K',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark
+                              ? AppColors.textDisabledDark
+                              : AppColors.textDisabledLight,
                         ),
                       ),
                     ),
                   ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: maxY > 0 ? maxY / 4 : 1,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: isDark
-                          ? AppColors.borderDark
-                          : AppColors.borderLight,
-                      strokeWidth: 1,
-                      dashArray: [5, 5],
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: List.generate(buckets.length, (i) {
-                    final bucket = buckets[i];
-                    final grayIncome = isDark
-                        ? AppColors.textMutedStrong
-                        : AppColors.borderLight;
-                    final grayExpense = isDark
-                        ? AppColors.dangerDeep
-                        : AppColors.surfaceDanger;
-
-                    return BarChartGroupData(
-                      x: i,
-                      barRods: [
-                        BarChartRodData(
-                          toY: bucket.income,
-                          color: bucket.isCurrent
-                              ? AppColors.primary
-                              : grayIncome,
-                          width: AppSizes.barWidth,
-                          borderRadius: BorderRadius.circular(AppRadius.r6),
-                        ),
-                        BarChartRodData(
-                          toY: bucket.expense,
-                          color: bucket.isCurrent
-                              ? AppColors.danger
-                              : grayExpense,
-                          width: AppSizes.barWidth,
-                          borderRadius: BorderRadius.circular(AppRadius.r6),
-                        ),
-                      ],
-                    );
-                  }),
                 ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY > 0 ? maxY / 4 : 1,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark
+                        ? AppColors.borderDark
+                        : AppColors.borderLight,
+                    strokeWidth: 1,
+                    dashArray: [5, 5],
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
               ),
             ),
           ),

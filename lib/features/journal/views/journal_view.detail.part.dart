@@ -646,78 +646,67 @@ class _TransactionGroupTag extends StatelessWidget {
 
   const _TransactionGroupTag({required this.label});
 
+  static Color _colorFor(String label) {
+    final lower = label.toLowerCase();
+    if (lower.contains('revenu') || lower.contains('salaire')) {
+      return AppColors.primary;
+    }
+    if (lower.contains('invest') || lower.contains('bourse') ||
+        lower.contains('epargne') || lower.contains('épargne')) {
+      return AppColors.info;
+    }
+    if (lower.contains('abonn') || lower.contains('stream') ||
+        lower.contains('media')) {
+      return const Color(0xFF8B5CF6);
+    }
+    if (lower.contains('logement') || lower.contains('loyer') ||
+        lower.contains('immob')) {
+      return AppColors.warning;
+    }
+    if (lower.contains('transport') || lower.contains('auto') ||
+        lower.contains('voiture')) {
+      return const Color(0xFF06B6D4);
+    }
+    if (lower.contains('aliment') || lower.contains('nourriture') ||
+        lower.contains('courses')) {
+      return const Color(0xFFF97316);
+    }
+    // Hash-based fallback for unknown groups
+    const palette = [
+      Color(0xFF3B82F6),
+      Color(0xFF8B5CF6),
+      Color(0xFFF59E0B),
+      Color(0xFFEC4899),
+      Color(0xFF06B6D4),
+      Color(0xFF10B981),
+    ];
+    return palette[label.hashCode.abs() % palette.length];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final color = _colorFor(label);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(16),
+        color: color.withAlpha(16),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.primary.withAlpha(52)),
+        border: Border.all(color: color.withAlpha(52)),
       ),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
-          color: AppColors.primaryDark,
+          color: color,
         ),
       ),
     );
   }
 }
 
-class _FadedInlineText extends StatelessWidget {
-  final String text;
-  final Color fadeColor;
-
-  const _FadedInlineText({required this.text, required this.fadeColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth <= 0) return const SizedBox.shrink();
-        final fadeWidth = (constraints.maxWidth * 0.38)
-            .clamp(32.0, 86.0)
-            .toDouble();
-        return Stack(
-          children: [
-            Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Container(
-                  width: fadeWidth,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [fadeColor.withAlpha(0), fadeColor],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
 
 class _ActionTextButton extends StatelessWidget {
   final IconData icon;
@@ -824,11 +813,6 @@ String _transactionGroup(Transaction tx) {
   return tx.accountId.trim();
 }
 
-String? _transactionDescription(Transaction tx) {
-  final note = (tx.displayNote ?? '').trim();
-  if (note.isEmpty) return null;
-  return note;
-}
 
 String _statusLabel(Transaction tx) {
   if (tx.isVoided) return 'Annulee';

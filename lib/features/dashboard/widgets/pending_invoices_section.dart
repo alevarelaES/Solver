@@ -155,20 +155,20 @@ class _PendingInvoicesSectionState
                     vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(
-                      alpha: isDark ? 0.2 : 0.1,
+                    color: AppColors.warning.withValues(
+                      alpha: isDark ? 0.12 : 0.08,
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     border: Border.all(
-                      color: AppColors.danger.withValues(alpha: 0.5),
+                      color: AppColors.warning.withValues(alpha: 0.25),
                     ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.warning_amber_rounded,
-                        size: 16,
-                        color: AppColors.danger,
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 14,
+                        color: AppColors.warningStrong,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -176,10 +176,10 @@ class _PendingInvoicesSectionState
                           overdueCount > 0
                               ? AppStrings.dashboard.overdueAlert(overdueCount)
                               : AppStrings.dashboard.todayAlert(dueTodayCount),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warningStrong,
                           ),
                         ),
                       ),
@@ -239,10 +239,10 @@ class _PendingInvoicesSectionState
                                   Radius.circular(AppRadius.sm),
                                 ),
                                 border: Border.all(
-                                  color: rowAccent.withValues(alpha: 0.45),
+                                  color: rowAccent.withValues(alpha: 0.2),
                                 ),
                                 color: rowAccent.withValues(
-                                  alpha: isDark ? 0.2 : 0.08,
+                                  alpha: isDark ? 0.1 : 0.04,
                                 ),
                               ),
                               child: Row(

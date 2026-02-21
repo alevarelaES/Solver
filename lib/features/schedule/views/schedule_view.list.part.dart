@@ -152,6 +152,24 @@ class _SectionColumn extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
+            if (transactions.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  '${transactions.length}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
             const Spacer(),
             if (!showReferenceTotal)
               Text(
@@ -188,11 +206,43 @@ class _SectionColumn extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         if (transactions.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Text(
-              AppStrings.schedule.noDeadlines,
-              style: const TextStyle(color: AppColors.textSecondary),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.xxl,
+              horizontal: AppSpacing.lg,
+            ),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: color.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 36,
+                  color: color.withValues(alpha: 0.35),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.schedule.noDeadlines,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Text(
+                  'Tout est à jour !',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textDisabled,
+                  ),
+                ),
+              ],
             ),
           )
         else

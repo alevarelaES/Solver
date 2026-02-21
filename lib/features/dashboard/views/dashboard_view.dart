@@ -11,6 +11,7 @@ import 'package:solver/features/dashboard/widgets/balance_card.dart';
 import 'package:solver/features/dashboard/widgets/expense_breakdown.dart';
 import 'package:solver/features/dashboard/widgets/financial_overview_chart.dart';
 import 'package:solver/features/dashboard/widgets/goals_priority_summary.dart';
+import 'package:solver/features/dashboard/widgets/insights_banner.dart';
 import 'package:solver/features/dashboard/widgets/kpi_row.dart';
 import 'package:solver/features/dashboard/widgets/market_popular_card.dart';
 import 'package:solver/features/dashboard/widgets/pending_invoices_section.dart';
@@ -113,6 +114,8 @@ class _DashboardContent extends ConsumerWidget {
                   children: [
                     KpiRow(data: data),
                     gap,
+                    InsightsBanner(data: data),
+                    gap,
                     const RecentActivities(),
                     gap,
                     FinancialOverviewChart(
@@ -132,11 +135,11 @@ class _DashboardContent extends ConsumerWidget {
           hGap,
           SizedBox(
                 width: AppSizes.rightSidebarWidth,
-                child: const Column(
+                child: Column(
                   children: [
-                    GoalsPrioritySummaryCard(),
-                    SizedBox(height: AppSpacing.lg),
-                    MarketPopularCard(),
+                    const GoalsPrioritySummaryCard(),
+                    const SizedBox(height: AppSpacing.lg),
+                    const MarketPopularCard(),
                   ],
                 ),
               )
@@ -165,6 +168,11 @@ class _DashboardContent extends ConsumerWidget {
             )
             .animate()
             .fadeIn(duration: AppDurations.normal)
+            .slideY(begin: 0.05, end: 0),
+        gap,
+        InsightsBanner(data: data)
+            .animate()
+            .fadeIn(duration: AppDurations.normal, delay: AppDurations.stagger)
             .slideY(begin: 0.05, end: 0),
         gap,
         Row(

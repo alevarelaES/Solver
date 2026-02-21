@@ -13,6 +13,7 @@ class _HeroHeader extends ConsumerWidget {
     final scope = ref.watch(_invoiceScopeProvider);
     final calendarMonth = ref.watch(_calendarMonthProvider);
     final isDesktop = MediaQuery.sizeOf(context).width >= 980;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = isCalendar ? calendarMonth : DateTime.now();
     final monthLabel = DateFormat(
       'MMMM yyyy',
@@ -28,15 +29,30 @@ class _HeroHeader extends ConsumerWidget {
         scope == _InvoiceScope.all &&
         (data.grandTotal - data.visibleGrandTotal).abs() > 0.009;
 
+    // Compute overdue + upcoming-soon badge counts
+    final today = DateTime(now.year, now.month, now.day);
+    int overdueCount = 0;
+    int upcomingSoonCount = 0;
+    for (final t in data.manualList) {
+      if (!t.isPending) continue;
+      final due = DateTime(t.date.year, t.date.month, t.date.day);
+      final diff = due.difference(today).inDays;
+      if (due.isBefore(today)) {
+        overdueCount++;
+      } else if (diff <= 7) {
+        upcomingSoonCount++;
+      }
+    }
+
     final summary = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${AppStrings.schedule.totalToPay} - $periodLabel',
-          style: const TextStyle(
+          '${AppStrings.schedule.totalToPay} – $periodLabel',
+          style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w800,
-            color: AppColors.textDisabled,
+            color: isDark ? AppColors.textDisabledDark : AppColors.textDisabled,
             letterSpacing: 2,
           ),
         ),
@@ -46,10 +62,10 @@ class _HeroHeader extends ConsumerWidget {
             children: [
               TextSpan(
                 text: AppFormats.formatFromChf(data.visibleGrandTotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   letterSpacing: -1,
                 ),
               ),
@@ -66,7 +82,7 @@ class _HeroHeader extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Text(
           isCalendar
               ? AppStrings.schedule.calendarMonth
@@ -81,6 +97,29 @@ class _HeroHeader extends ConsumerWidget {
             color: AppColors.textSecondary,
           ),
         ),
+        if (overdueCount > 0 || upcomingSoonCount > 0) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              if (overdueCount > 0)
+                _SummaryBadge(
+                  count: overdueCount,
+                  label: 'en retard',
+                  color: AppColors.danger,
+                  icon: Icons.schedule_rounded,
+                ),
+              if (upcomingSoonCount > 0)
+                _SummaryBadge(
+                  count: upcomingSoonCount,
+                  label: 'à payer (7j)',
+                  color: AppColors.warning,
+                  icon: Icons.upcoming_outlined,
+                ),
+            ],
+          ),
+        ],
       ],
     );
 
@@ -133,12 +172,15 @@ class _ControlsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E2A1A) : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.borderStrong),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderStrong,
+        ),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadowOverlaySm,
@@ -246,6 +288,7 @@ class _ToggleChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final foreground = isActive ? AppColors.primary : AppColors.textSecondary;
     return GestureDetector(
       onTap: onTap,
@@ -253,7 +296,9 @@ class _ToggleChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
+          color: isActive
+              ? (isDark ? const Color(0xFF2A3D20) : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: isActive
@@ -278,6 +323,50 @@ class _ToggleChip extends StatelessWidget {
             color: foreground,
           ),
         ),
+      ),
+    );
+  }
+}
+
+// -------------------------------------------------------------------------------
+// SUMMARY BADGE
+// -------------------------------------------------------------------------------
+class _SummaryBadge extends StatelessWidget {
+  final int count;
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _SummaryBadge({
+    required this.count,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.r20),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            '$count $label',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

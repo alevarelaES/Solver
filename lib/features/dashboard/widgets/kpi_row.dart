@@ -49,6 +49,7 @@ class KpiRow extends ConsumerWidget {
         color: AppColors.success,
         isUp: incomePct >= 0,
         percentChange: incomePct.abs(),
+        icon: Icons.trending_up_rounded,
       ),
       _KpiCardData(
         label: AppStrings.dashboard.expense,
@@ -56,6 +57,7 @@ class KpiRow extends ConsumerWidget {
         color: AppColors.danger,
         isUp: expensePct >= 0,
         percentChange: expensePct.abs(),
+        icon: Icons.trending_down_rounded,
       ),
       _KpiCardData(
         label: AppStrings.dashboard.savings,
@@ -64,6 +66,7 @@ class KpiRow extends ConsumerWidget {
         isUp: totalSavings > 0,
         percentChange: 0,
         hidePercent: true,
+        icon: Icons.savings_outlined,
       ),
     ];
 
@@ -96,6 +99,7 @@ class _KpiCardData {
   final bool isUp;
   final double percentChange;
   final bool hidePercent;
+  final IconData icon;
 
   const _KpiCardData({
     required this.label,
@@ -103,6 +107,7 @@ class _KpiCardData {
     required this.color,
     required this.isUp,
     required this.percentChange,
+    required this.icon,
     this.hidePercent = false,
   });
 }
@@ -117,20 +122,37 @@ class _KpiCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GlassContainer(
-      padding: AppSpacing.paddingCardCompact,
+      padding: AppSpacing.paddingCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            data.label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                data.label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.9,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: data.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(data.icon, size: 14, color: data.color),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           Text(
             AppFormats.formatFromChf(data.amount),
             style: GoogleFonts.robotoMono(

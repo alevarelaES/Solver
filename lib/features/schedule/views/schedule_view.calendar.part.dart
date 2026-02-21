@@ -38,7 +38,9 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
       '/api/transactions/${transaction.id}',
       data: {
         'accountId': transaction.accountId,
-        'date': DateFormat('yyyy-MM-dd').format(transaction.date),
+        'date': DateFormat('yyyy-MM-dd').format(
+          transaction.isAuto ? transaction.date : DateTime.now(),
+        ),
         'amount': transaction.amount,
         'note': transaction.note,
         'status': 0,
@@ -90,7 +92,7 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Modifier l\'echeance'),
+              title: const Text('Modifier l\'échéance'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,18 +219,18 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
     ).format(transaction.date);
     String stateLabel;
     if (transaction.isCompleted) {
-      stateLabel = 'Paye';
+      stateLabel = 'Payé';
     } else if (isOverdue) {
       final days = today.difference(txDate).inDays;
       stateLabel = 'En retard de $days jour${days > 1 ? 's' : ''}';
     } else if (isDueToday) {
-      stateLabel = 'Echeance aujourd\'hui';
+      stateLabel = 'Échéance aujourd\'hui';
     } else {
       final days = txDate.difference(today).inDays;
       if (days < 0) {
         stateLabel = transaction.isAuto
-            ? 'Prelevement auto deja passe'
-            : 'Echeance depassee';
+            ? 'Prélèvement auto déjà passé'
+            : 'Échéance dépassée';
       } else {
         stateLabel = 'Dans $days jour${days > 1 ? 's' : ''}';
       }
@@ -237,14 +239,22 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
     var loadingAction = false;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final sheetBg = isDark ? const Color(0xFF1A2616) : Colors.white;
+        final titleColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return SafeArea(
+            return Container(
+              decoration: BoxDecoration(
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              ),
+              child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.xl,
@@ -258,15 +268,15 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
                   children: [
                     Text(
                       transaction.accountName ?? transaction.accountId,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: titleColor,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$dateLabel - $stateLabel',
+                      '$dateLabel · $stateLabel',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -278,10 +288,10 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
                     const SizedBox(height: 8),
                     Text(
                       AppFormats.formatFromChf(transaction.amount),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
+                        color: titleColor,
                       ),
                     ),
                     if ((transaction.note ?? '').trim().isNotEmpty) ...[
@@ -346,6 +356,7 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
                   ],
                 ),
               ),
+            ),
             );
           },
         );
@@ -416,10 +427,12 @@ class _MonthNav extends StatelessWidget {
         ),
         Text(
           label[0].toUpperCase() + label.substring(1),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimaryLight,
           ),
         ),
         IconButton(

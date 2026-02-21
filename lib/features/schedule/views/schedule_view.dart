@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/services/api_client.dart';
-import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
@@ -203,11 +202,12 @@ class ScheduleView extends ConsumerWidget {
               maxWidth: 1440,
               padding: const EdgeInsets.all(AppSpacing.xxxl),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const AppPageHeader(
-                    title: 'Echeancier',
+                    title: 'Échéancier',
                     subtitle:
-                        'Suivez vos factures, prelevements et echeances a payer.',
+                        'Suivez vos factures, prélèvements et échéances à payer.',
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   _HeroHeader(data: headerData),

@@ -776,13 +776,16 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipBg = isDark ? const Color(0xFF1E2A1A) : Colors.white;
+    final labelColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: chipBg,
           border: Border.all(color: AppColors.borderInputStrong),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
@@ -793,10 +796,10 @@ class _FilterChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: labelColor,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -824,15 +827,15 @@ class _FilterIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveBg = isDark ? const Color(0xFF1E2A1A) : Colors.white;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
-          color: activeCount > 0
-              ? AppColors.primary.withAlpha(18)
-              : Colors.white,
+          color: activeCount > 0 ? AppColors.primary.withAlpha(18) : inactiveBg,
           border: Border.all(
             color: activeCount > 0
                 ? AppColors.primary.withAlpha(80)

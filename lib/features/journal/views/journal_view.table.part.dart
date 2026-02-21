@@ -24,6 +24,7 @@ class _JournalBody extends ConsumerWidget {
       color: AppColors.surfaceElevated,
       child: Column(
         children: [
+          if (!isMobile) _JournalKpiStrip(transactions: transactions),
           Expanded(
             child: _TransactionTable(
               transactions: pageItems,
@@ -364,10 +365,12 @@ class _TableHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sort = ref.watch(_journalSortProvider);
-    const style = TextStyle(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headerColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final style = TextStyle(
       fontSize: 11,
       fontWeight: FontWeight.w800,
-      color: AppColors.textPrimary,
+      color: headerColor,
       letterSpacing: 0.9,
     );
     final headerDecoration = BoxDecoration(
@@ -425,7 +428,7 @@ class _TableHeader extends ConsumerWidget {
               ),
             ),
             Expanded(
-              flex: 4,
+              flex: 5,
               child: _SortableHeaderLabel(
                 label: AppStrings.journal.colLabel,
                 style: style,
@@ -438,18 +441,7 @@ class _TableHeader extends ConsumerWidget {
               flex: 2,
               child: Text(
                 AppStrings.journal.colGroup,
-                style: style.copyWith(
-                  color: AppColors.textPrimary.withAlpha(180),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Text(
-                AppStrings.journal.colDescription,
-                style: style.copyWith(
-                  color: AppColors.textPrimary.withAlpha(180),
-                ),
+                style: style.copyWith(color: headerColor.withAlpha(180)),
               ),
             ),
             Expanded(
@@ -508,9 +500,8 @@ class _SortableHeaderLabel extends StatelessWidget {
     final icon = active
         ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
         : Icons.unfold_more;
-    final color = active
-        ? AppColors.textPrimary
-        : AppColors.textPrimary.withAlpha(170);
+    final baseColor = style.color ?? AppColors.textSecondary;
+    final color = active ? baseColor : baseColor.withAlpha(160);
 
     return InkWell(
       onTap: onTap,
@@ -559,25 +550,33 @@ class _TransactionRowState extends State<_TransactionRow> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final transaction = widget.transaction;
     final signedAmount = transaction.signedAmount;
     final amountPrefix = signedAmount >= 0 ? '+' : '-';
-    final amountColor = signedAmount >= 0
-        ? AppColors.primary
-        : AppColors.danger;
+    final amountColor = signedAmount >= 0 ? AppColors.primary : AppColors.danger;
     final groupLabel = _transactionGroup(transaction);
-    final description = _transactionDescription(transaction);
     final isVoided = transaction.isVoided;
     final baseBg = widget.isMobile
         ? Colors.transparent
-        : (widget.isEven ? Colors.white : AppColors.surfaceTableRowStripe);
+        : (widget.isEven
+            ? (isDark ? const Color(0xFF1A2616) : Colors.white)
+            : (isDark ? const Color(0xFF1E2B1A) : AppColors.surfaceTableRowStripe));
     final rowBg = widget.selected
         ? AppColors.primary.withAlpha(_hovered ? 52 : 34)
         : _hovered
-        ? (transaction.isIncome
-              ? AppColors.primary.withAlpha(24)
-              : AppColors.danger.withAlpha(22))
+        ? AppColors.primary.withAlpha(10)
         : baseBg;
+    final leftBorderColor = isVoided
+        ? AppColors.textDisabled.withAlpha(60)
+        : transaction.isIncome
+        ? AppColors.primary.withAlpha(200)
+        : AppColors.danger.withAlpha(200);
+    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final accountSubtitle = (transaction.accountName ?? '').trim();
+    final showAccountSubtitle = accountSubtitle.isNotEmpty &&
+        accountSubtitle != _displayLabel(transaction);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -589,8 +588,11 @@ class _TransactionRowState extends State<_TransactionRow> {
           duration: const Duration(milliseconds: 120),
           decoration: BoxDecoration(
             color: rowBg,
-            border: const Border(
-              bottom: BorderSide(color: AppColors.borderTableRow),
+            border: Border(
+              left: widget.isMobile
+                  ? BorderSide.none
+                  : BorderSide(color: leftBorderColor, width: 3),
+              bottom: const BorderSide(color: AppColors.borderTableRow),
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -614,32 +616,26 @@ class _TransactionRowState extends State<_TransactionRow> {
                                   _displayLabel(transaction),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style:
-                                      const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                      ).copyWith(
-                                        decoration: isVoided
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: textPrimary,
+                                    decoration: isVoided
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  DateFormat(
-                                    'dd MMM yyyy',
-                                    'fr_FR',
-                                  ).format(transaction.date),
-                                  style:
-                                      const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondary,
-                                      ).copyWith(
-                                        decoration: isVoided
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
+                                  DateFormat('dd MMM yyyy', 'fr_FR')
+                                      .format(transaction.date),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: textSecondary,
+                                    decoration: isVoided
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
                                 ),
                               ],
                             ),
@@ -669,24 +665,19 @@ class _TransactionRowState extends State<_TransactionRow> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        DateFormat(
-                          'dd MMM yyyy',
-                          'fr_FR',
-                        ).format(transaction.date),
-                        style:
-                            const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ).copyWith(
-                              decoration: isVoided
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            ),
+                        DateFormat('dd MMM yyyy', 'fr_FR').format(transaction.date),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textSecondary,
+                          decoration: isVoided
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
                       ),
                     ),
                     Expanded(
-                      flex: 4,
+                      flex: 5,
                       child: Row(
                         children: [
                           _TransactionAvatar(
@@ -696,23 +687,38 @@ class _TransactionRowState extends State<_TransactionRow> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _displayLabel(transaction),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style:
-                                      const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                      ).copyWith(
-                                        decoration: isVoided
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: textPrimary,
+                                    decoration: isVoided
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
                                 ),
+                                if (showAccountSubtitle) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    accountSubtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                      decoration: isVoided
+                                          ? TextDecoration.lineThrough
+                                          : TextDecoration.none,
+                                    ),
+                                  ),
+                                ],
                                 if (isVoided) ...[
                                   const SizedBox(height: 4),
                                   const _StatusBadge(
@@ -735,21 +741,6 @@ class _TransactionRowState extends State<_TransactionRow> {
                         alignment: Alignment.centerLeft,
                         child: _TransactionGroupTag(label: groupLabel),
                       ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: description == null
-                          ? Text(
-                              '-',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary.withAlpha(120),
-                              ),
-                            )
-                          : _FadedInlineText(
-                              text: description,
-                              fadeColor: rowBg,
-                            ),
                     ),
                     Expanded(
                       flex: 2,
@@ -795,6 +786,139 @@ class _StatusBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KPI STRIP
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _JournalKpiStrip extends StatelessWidget {
+  final List<Transaction> transactions;
+  const _JournalKpiStrip({required this.transactions});
+
+  @override
+  Widget build(BuildContext context) {
+    double income = 0;
+    double expense = 0;
+    for (final tx in transactions) {
+      if (tx.isVoided) continue;
+      if (tx.isIncome) {
+        income += tx.amount.abs();
+      } else {
+        expense += tx.amount.abs();
+      }
+    }
+    final net = income - expense;
+    final netPositive = net >= 0;
+    final netColor = netPositive ? AppColors.primary : AppColors.danger;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _KpiCell(
+              label: 'Revenus',
+              value: '+${AppFormats.formatFromChf(income)}',
+              color: AppColors.primary,
+              icon: Icons.trending_up_rounded,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _KpiCell(
+              label: 'Dépenses',
+              value: '-${AppFormats.formatFromChf(expense)}',
+              color: AppColors.danger,
+              icon: Icons.trending_down_rounded,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _KpiCell(
+              label: 'Net',
+              value: '${netPositive ? '+' : '-'}${AppFormats.formatFromChf(net.abs())}',
+              color: netColor,
+              icon: netPositive
+                  ? Icons.arrow_upward_rounded
+                  : Icons.arrow_downward_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KpiCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+
+  const _KpiCell({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: color.withValues(alpha: 0.75),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

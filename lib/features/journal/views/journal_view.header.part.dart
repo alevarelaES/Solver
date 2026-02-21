@@ -31,11 +31,15 @@ class _SearchBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       onChanged: (v) {
         ref.read(journalSearchProvider.notifier).state = v;
       },
-      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+      style: TextStyle(
+        fontSize: 14,
+        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+      ),
       decoration: AppInputStyles.search(
         hintText: AppStrings.journal.searchHint,
         suffixIcon: Container(

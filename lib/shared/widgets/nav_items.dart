@@ -122,6 +122,30 @@ final primaryNavGroups = <NavGroup>[
     route: goalsNavItem.route,
     pages: [goalsNavItem],
   ),
+  NavGroup(
+    label: AppStrings.nav.budget,
+    icon: Icons.pie_chart_outline,
+    route: budgetNavItem.route,
+    pages: [budgetNavItem],
+  ),
+  NavGroup(
+    label: AppStrings.nav.analysis,
+    icon: Icons.analytics_outlined,
+    route: analysisNavItem.route,
+    pages: [analysisNavItem],
+  ),
+  NavGroup(
+    label: AppStrings.nav.portfolio,
+    icon: Icons.candlestick_chart_outlined,
+    route: portfolioNavItem.route,
+    pages: [portfolioNavItem],
+  ),
+  NavGroup(
+    label: AppStrings.nav.spreadsheet,
+    icon: Icons.table_view,
+    route: spreadsheetNavItem.route,
+    pages: [spreadsheetNavItem],
+  ),
 ];
 
 final overflowNavItems = <NavItem>[

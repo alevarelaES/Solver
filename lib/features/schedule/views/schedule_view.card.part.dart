@@ -50,17 +50,25 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
     return _dueDateOnly.difference(_today).inDays;
   }
 
+  // Urgency-based color hierarchy: overdue → red, ≤7j → amber, else → section color
+  Color get _urgencyColor {
+    if (_isOverdue) return _overdueColor;
+    final days = _daysUntilDue;
+    if (days >= 0 && days <= 7) return AppColors.warning;
+    return widget.color;
+  }
+
   String get _timingLabel {
-    if (_isPaid) return 'Paye';
+    if (_isPaid) return 'Payé';
     if (_isOverdue) {
       return 'En retard de $_overdueDays jour${_overdueDays > 1 ? 's' : ''}';
     }
-    if (_isDueToday) return 'Echeance aujourd\'hui';
+    if (_isDueToday) return 'Échéance aujourd\'hui';
     final days = _daysUntilDue;
     if (days < 0) {
       return widget.transaction.isAuto
-          ? 'Prelevement auto deja passe'
-          : 'Echeance depassee';
+          ? 'Prélèvement auto déjà passé'
+          : 'Échéance dépassée';
     }
     return 'Dans $days jour${days > 1 ? 's' : ''}';
   }
@@ -74,7 +82,9 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
         '/api/transactions/${t.id}',
         data: {
           'accountId': t.accountId,
-          'date': DateFormat('yyyy-MM-dd').format(t.date),
+          'date': DateFormat('yyyy-MM-dd').format(
+            t.isAuto ? t.date : DateTime.now(),
+          ),
           'amount': t.amount,
           'note': t.note,
           'status': 0,
@@ -90,13 +100,34 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final t = widget.transaction;
     final noteText = (t.note ?? '').trim();
     final hasNote = noteText.isNotEmpty;
-    final cardColor = _isOverdue ? _overdueColor : widget.color;
+    final cardColor = _urgencyColor;
+    final isUrgent = !_isPaid &&
+        (_isOverdue ||
+            _isDueToday ||
+            (_daysUntilDue >= 0 && _daysUntilDue <= 7));
+
+    // Background tint: subtle red on overdue, hover tint otherwise
+    final Color cardBg;
+    if (_isPaid) {
+      cardBg = isDark ? AppColors.surfaceElevated : AppColors.surfaceElevated;
+    } else if (_isHovering) {
+      cardBg = cardColor.withValues(alpha: 0.07);
+    } else if (_isOverdue) {
+      cardBg = _overdueColor.withValues(alpha: 0.03);
+    } else {
+      cardBg = isDark ? const Color(0xFF1A2616) : Colors.white;
+    }
+
+    // Border: colored on urgent, standard otherwise
     final borderColor = _isHovering
-        ? cardColor.withAlpha(120)
-        : (_isOverdue ? _overdueColor.withAlpha(60) : AppColors.borderStrong);
+        ? cardColor.withValues(alpha: 0.45)
+        : isUrgent
+        ? cardColor.withValues(alpha: 0.22)
+        : (isDark ? AppColors.borderDark : AppColors.borderStrong);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
@@ -105,15 +136,12 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
         duration: const Duration(milliseconds: 170),
         curve: Curves.easeOut,
         transform: Matrix4.translationValues(0, _isHovering ? -2.0 : 0, 0),
-        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-          color: _isPaid
-              ? AppColors.surfaceElevated
-              : (_isHovering ? AppColors.surfaceSuccess : Colors.white),
+          color: cardBg,
           borderRadius: BorderRadius.circular(AppRadius.xxl),
           border: Border.all(
             color: borderColor,
-            width: _isHovering ? 1.25 : 1.15,
+            width: _isHovering ? 1.25 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
@@ -123,142 +151,199 @@ class _TransactionCardState extends ConsumerState<_TransactionCard> {
             ),
           ],
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 104),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _isPaid
-                      ? AppColors.surfaceHeader
-                      : cardColor.withAlpha(25),
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                ),
-                child: Icon(
-                  _isOverdue
-                      ? Icons.warning_amber_rounded
-                      : _getAccountIcon(t.accountName ?? ''),
-                  color: _isPaid ? AppColors.textDisabled : cardColor,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.accountName ?? t.accountId,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _isPaid
-                            ? AppColors.textDisabled
-                            : AppColors.textPrimary,
-                        decoration: _isPaid ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} - $_timingLabel',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: _isOverdue
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        color: _isOverdue
-                            ? _overdueColor
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    if (hasNote) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.sticky_note_2_outlined,
-                            size: 12,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xxl - 1),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Left accent bar ──────────────────────────────────────
+                if (!_isPaid)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 170),
+                    width: 4,
+                    color: cardColor,
+                  ),
+                // ── Main content ─────────────────────────────────────────
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Row(
+                      children: [
+                        // Icon badge
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
                             color: _isPaid
-                                ? AppColors.textDisabled
-                                : AppColors.textSecondary,
+                                ? AppColors.surfaceHeader
+                                : cardColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              noteText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          child: Icon(
+                            _isOverdue
+                                ? Icons.schedule_rounded
+                                : _getAccountIcon(t.accountName ?? ''),
+                            color: _isPaid ? AppColors.textDisabled : cardColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Title + timing + note
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t.accountName ?? t.accountId,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: _isPaid
+                                      ? AppColors.textDisabled
+                                      : isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
+                                  decoration: _isPaid
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${DateFormat('dd MMM yyyy', 'fr_FR').format(t.date)} · $_timingLabel',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: isUrgent
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                  color: isUrgent
+                                      ? cardColor
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                              if (hasNote) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.sticky_note_2_outlined,
+                                      size: 12,
+                                      color: _isPaid
+                                          ? AppColors.textDisabled
+                                          : AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        noteText,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: _isPaid
+                                              ? AppColors.textDisabled
+                                              : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        // Amount + action button
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              AppFormats.formatFromChf(t.amount),
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
                                 color: _isPaid
                                     ? AppColors.textDisabled
-                                    : AppColors.textSecondary,
+                                    : _isOverdue
+                                    ? cardColor
+                                    : isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    AppFormats.formatFromChf(t.amount),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: _isPaid
-                          ? AppColors.textDisabled
-                          : _isOverdue
-                          ? _overdueColor
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  if (widget.showValidate && !_isPaid) ...[
-                    const SizedBox(height: 8),
-                    if (_loading)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      SizedBox(
-                        height: 30,
-                        child: ElevatedButton(
-                          onPressed: _validate,
-                          style:
-                              AppButtonStyles.primary(
-                                backgroundColor: _isOverdue
-                                    ? _overdueColor
-                                    : AppColors.primary,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                                radius: AppRadius.r10,
-                              ).copyWith(
-                                textStyle: const WidgetStatePropertyAll(
-                                  TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                            if (widget.showValidate && !_isPaid) ...[
+                              const SizedBox(height: 8),
+                              if (_loading)
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: cardColor,
+                                  ),
+                                )
+                              else
+                                SizedBox(
+                                  height: 30,
+                                  child: FilledButton.tonal(
+                                    onPressed: _validate,
+                                    style: ButtonStyle(
+                                      backgroundColor: WidgetStatePropertyAll(
+                                        cardColor.withValues(alpha: 0.12),
+                                      ),
+                                      foregroundColor:
+                                          WidgetStatePropertyAll(cardColor),
+                                      overlayColor: WidgetStatePropertyAll(
+                                        cardColor.withValues(alpha: 0.08),
+                                      ),
+                                      side: WidgetStatePropertyAll(
+                                        BorderSide(
+                                          color: cardColor.withValues(
+                                            alpha: 0.30,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      padding: const WidgetStatePropertyAll(
+                                        EdgeInsets.symmetric(horizontal: 14),
+                                      ),
+                                      minimumSize: const WidgetStatePropertyAll(
+                                        Size(0, 30),
+                                      ),
+                                      shape: WidgetStatePropertyAll(
+                                        RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.r10,
+                                          ),
+                                        ),
+                                      ),
+                                      textStyle: const WidgetStatePropertyAll(
+                                        TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      elevation: const WidgetStatePropertyAll(0),
+                                    ),
+                                    child: Text(
+                                      _isOverdue
+                                          ? AppStrings.schedule.pay
+                                          : AppStrings.schedule.validate,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          child: Text(_isOverdue ? AppStrings.schedule.pay : AppStrings.schedule.validate),
+                            ],
+                          ],
                         ),
-                      ),
-                  ],
-                ],
-              ),
-            ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

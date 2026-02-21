@@ -19,15 +19,16 @@ class _CalendarLegend extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: const [
           Text(
-            'Legende calendrier:',
+            'Légende :',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.textSecondary,
             ),
           ),
-          _LegendItem(label: 'Prelevement auto', color: _calendarAutoColor),
+          _LegendItem(label: 'Prélèvement auto', color: _calendarAutoColor),
           _LegendItem(label: 'Facture manuelle', color: _calendarManualColor),
+          _LegendItem(label: 'En retard', color: _overdueColor),
         ],
       ),
     );
@@ -96,9 +97,10 @@ class _CalendarGrid extends StatelessWidget {
       'DIMANCHE',
     ];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1A2616) : Colors.white,
         border: Border.all(color: AppColors.borderStrong, width: 1.15),
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         boxShadow: const [
@@ -152,7 +154,8 @@ class _CalendarGrid extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (int col = 0; col < 7; col++)
-                      _buildCell(row, col, startOffset, daysInMonth, today),
+                      _buildCell(row, col, startOffset, daysInMonth, today,
+                          isDark: isDark),
                   ],
                 ),
               ),
@@ -167,8 +170,9 @@ class _CalendarGrid extends StatelessWidget {
     int col,
     int startOffset,
     int daysInMonth,
-    DateTime today,
-  ) {
+    DateTime today, {
+    bool isDark = false,
+  }) {
     final cellIndex = row * 7 + col;
     final dayNum = cellIndex - startOffset + 1;
     final isCurrentMonth = dayNum >= 1 && dayNum <= daysInMonth;
@@ -224,7 +228,11 @@ class _CalendarGrid extends StatelessWidget {
                 fontSize: isToday ? 16 : 13,
                 fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
                 color: isCurrentMonth
-                    ? (isToday ? _calendarAccent : AppColors.textPrimary)
+                    ? (isToday
+                        ? _calendarAccent
+                        : (isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight))
                     : AppColors.textDisabled.withAlpha(100),
               ),
             ),
