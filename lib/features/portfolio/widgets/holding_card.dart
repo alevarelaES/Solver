@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
-class HoldingCard extends StatelessWidget {
+class HoldingCard extends ConsumerWidget {
   final Holding holding;
   final List<double>? sparklinePrices;
   final VoidCallback? onTap;
@@ -23,7 +25,8 @@ class HoldingCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final dayChange = holding.changePercent ?? 0;
     final totalChange = holding.totalGainLoss ?? 0;
     final dayColor = dayChange >= 0 ? AppColors.success : AppColors.danger;
@@ -102,21 +105,19 @@ class HoldingCard extends StatelessWidget {
               ),
               _Metric(
                 label: 'Prix actuel',
-                value: holding.currentPrice == null
-                    ? '--'
-                    : AppFormats.currency.format(holding.currentPrice),
+                value: AppFormats.formatFromCurrency(
+                    holding.currentPrice, holding.currency),
               ),
               _Metric(
                 label: 'Valeur',
-                value: holding.totalValue == null
-                    ? '--'
-                    : AppFormats.currency.format(holding.totalValue),
+                value: AppFormats.formatFromCurrency(
+                    holding.totalValue, holding.currency),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Performance totale: ${holding.totalGainLoss == null ? '--' : AppFormats.currency.format(holding.totalGainLoss)} '
+            'Performance totale: ${AppFormats.formatFromCurrency(holding.totalGainLoss, holding.currency)} '
             '(${_formatPercent(holding.totalGainLossPercent)})',
             style: TextStyle(
               color: totalColor,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
@@ -8,7 +10,7 @@ import 'package:solver/features/portfolio/models/portfolio_summary.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
-class InvestmentsTab extends StatelessWidget {
+class InvestmentsTab extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
 
@@ -19,7 +21,8 @@ class InvestmentsTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final visible = holdings
         .where((h) => h.currentPrice != null && h.currentPrice! > 0)
         .toList();
@@ -27,13 +30,15 @@ class InvestmentsTab extends StatelessWidget {
         .where((h) => h.averageBuyPrice != null && h.averageBuyPrice! > 0)
         .toList();
     final excluded = visible.length - tracked.length;
+    // Totaux convertis vers devise active
     final investedTotal = tracked.fold<double>(
       0,
-      (sum, h) => sum + (h.averageBuyPrice! * h.quantity),
+      (sum, h) => sum + AppFormats.convertFromCurrency(h.averageBuyPrice! * h.quantity, h.currency),
     );
     final valueTotal = tracked.fold<double>(
       0,
-      (sum, h) => sum + (h.totalValue ?? (h.currentPrice ?? 0) * h.quantity),
+      (sum, h) => sum + AppFormats.convertFromCurrency(
+          h.totalValue ?? (h.currentPrice ?? 0) * h.quantity, h.currency),
     );
     final gainTotal = valueTotal - investedTotal;
     final gainPercent = investedTotal > 0
@@ -62,7 +67,7 @@ class InvestmentsTab extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Total investi réel : ${AppFormats.currency.format(investedTotal)}',
+                  'Total investi réel : ${AppFormats.currency.format(investedTotal)} (${AppFormats.currencyCode})',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -96,6 +101,7 @@ class InvestmentsTab extends StatelessWidget {
               _StatCard(
                 label: 'Gain / Perte',
                 value: AppFormats.currency.format(gainTotal),
+                // gainTotal est déjà en devise active
                 color: gainTotal >= 0 ? AppColors.success : AppColors.danger,
               ),
               _StatCard(
@@ -182,23 +188,28 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _InvestmentRow extends StatelessWidget {
+class _InvestmentRow extends ConsumerWidget {
   final Holding holding;
 
   const _InvestmentRow({required this.holding});
 
   @override
-  Widget build(BuildContext context) {
-    final invested = holding.averageBuyPrice == null
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
+    final rawInvested = holding.averageBuyPrice == null
         ? null
         : holding.averageBuyPrice! * holding.quantity;
-    final current =
+    final rawCurrent =
         holding.totalValue ?? (holding.currentPrice ?? 0) * holding.quantity;
-    final gain =
-        holding.totalGainLoss ?? (invested == null ? null : current - invested);
+    final rawGain =
+        holding.totalGainLoss ?? (rawInvested == null ? null : rawCurrent - rawInvested);
+    // Convertir vers devise active
+    final invested = rawInvested == null ? null : AppFormats.convertFromCurrency(rawInvested, holding.currency);
+    final current = AppFormats.convertFromCurrency(rawCurrent, holding.currency);
+    final gain = rawGain == null ? null : AppFormats.convertFromCurrency(rawGain, holding.currency);
     final perf =
         holding.totalGainLossPercent ??
-        (invested != null && invested > 0 ? (gain! / invested) * 100 : null);
+        (rawInvested != null && rawInvested > 0 ? (rawGain! / rawInvested) * 100 : null);
     final up = (gain ?? 0) >= 0;
     final perfColor = up ? AppColors.success : AppColors.danger;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -245,9 +256,7 @@ class _InvestmentRow extends StatelessWidget {
             ),
             _ValueBlock(
               label: 'Investi',
-              value: invested == null
-                  ? '--'
-                  : AppFormats.currency.format(invested),
+              value: invested == null ? '--' : AppFormats.currency.format(invested),
             ),
             const SizedBox(width: AppSpacing.md),
             _ValueBlock(

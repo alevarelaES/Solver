@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
@@ -83,6 +84,9 @@ class _AssetDetailSheetState extends ConsumerState<AssetDetailSheet> {
       });
     });
 
+    ref.watch(appCurrencyProvider);
+    final assetCurrency = widget.holding?.currency ?? widget.watchlistItem?.currency ?? 'USD';
+
     final profileAsync = ref.watch(companyProfileProvider(symbol));
     final newsAsync = ref.watch(companyNewsProvider(symbol));
     final recoAsync = ref.watch(analystRecommendationsProvider(symbol));
@@ -123,9 +127,7 @@ class _AssetDetailSheetState extends ConsumerState<AssetDetailSheet> {
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: Text(
-                            currentPrice == null
-                                ? '--'
-                                : AppFormats.currency.format(currentPrice),
+                            AppFormats.formatFromCurrency(currentPrice, assetCurrency),
                             key: ValueKey(
                               currentPrice?.toStringAsFixed(6) ?? '--',
                             ),
@@ -262,14 +264,15 @@ class _PeriodSelector extends StatelessWidget {
   }
 }
 
-class _PositionPanel extends StatelessWidget {
+class _PositionPanel extends ConsumerWidget {
   final Holding holding;
 
   const _PositionPanel({required this.holding});
 
   @override
-  Widget build(BuildContext context) {
-    final invested = (holding.averageBuyPrice ?? 0) * holding.quantity;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
+    final rawInvested = (holding.averageBuyPrice ?? 0) * holding.quantity;
 
     return AppPanel(
       child: Column(
@@ -281,12 +284,12 @@ class _PositionPanel extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text('${holding.quantity.toStringAsFixed(2)} actions'),
-          Text('Investi: ${AppFormats.currency.format(invested)}'),
+          Text('Investi: ${AppFormats.formatFromCurrency(rawInvested, holding.currency)}'),
           Text(
-            'Valeur: ${holding.totalValue == null ? '--' : AppFormats.currency.format(holding.totalValue)}',
+            'Valeur: ${AppFormats.formatFromCurrency(holding.totalValue, holding.currency)}',
           ),
           Text(
-            'Gain: ${holding.totalGainLoss == null ? '--' : AppFormats.currency.format(holding.totalGainLoss)}',
+            'Gain: ${AppFormats.formatFromCurrency(holding.totalGainLoss, holding.currency)}',
           ),
         ],
       ),

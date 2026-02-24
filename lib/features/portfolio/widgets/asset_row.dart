@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 
-class AssetRow extends StatelessWidget {
+class AssetRow extends ConsumerWidget {
   final String symbol;
   final String? name;
   final String assetType;
   final String? logoUrl;
   final double? price;
+  final String currency;
   final double? changePercent;
   final List<double>? sparklineData;
   final bool isSelected;
@@ -25,6 +29,7 @@ class AssetRow extends StatelessWidget {
     this.assetType = 'stock',
     this.logoUrl,
     this.price,
+    this.currency = 'USD',
     this.changePercent,
     this.sparklineData,
     this.isSelected = false,
@@ -34,7 +39,8 @@ class AssetRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark
         ? AppColors.textPrimaryDark
@@ -115,7 +121,7 @@ class AssetRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    price != null ? price!.toStringAsFixed(2) : '--',
+                    AppFormats.formatFromCurrency(price, currency),
                     style: GoogleFonts.robotoMono(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
@@ -57,7 +58,7 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SummaryCard(summary: widget.summary),
+          _SummaryCard(summary: widget.summary, holdings: widget.holdings),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.xs,
@@ -201,6 +202,7 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
                                 name: stock.name,
                                 assetType: stock.assetType,
                                 price: stock.price,
+                                currency: stock.currency,
                                 changePercent: stock.changePercent,
                                 isSelected: selected?.symbol == stock.symbol,
                                 onTap: () {
@@ -248,6 +250,7 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
                 name: holding.name,
                 assetType: holding.assetType,
                 price: holding.currentPrice,
+                currency: holding.currency,
                 changePercent: holding.changePercent,
                 sparklineData: widget.sparklineBySymbol[holding.symbol],
                 isSelected: selected?.symbol == holding.symbol,
@@ -290,6 +293,7 @@ class _AssetSidebarState extends ConsumerState<AssetSidebar> {
                 name: item.name,
                 assetType: item.assetType,
                 price: item.currentPrice,
+                currency: item.currency,
                 changePercent: item.changePercent,
                 sparklineData: widget.sparklineBySymbol[item.symbol],
                 isSelected: selected?.symbol == item.symbol,
@@ -408,16 +412,37 @@ class _SidebarFilterChip extends StatelessWidget {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
+class _SummaryCard extends ConsumerWidget {
   final PortfolioSummary summary;
+  final List<Holding> holdings;
 
-  const _SummaryCard({required this.summary});
+  const _SummaryCard({required this.summary, required this.holdings});
 
   @override
-  Widget build(BuildContext context) {
-    final up = summary.totalGainLoss >= 0;
-    final color = up ? AppColors.success : AppColors.danger;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final investedHoldings = holdings
+        .where((h) => h.averageBuyPrice != null && h.averageBuyPrice! > 0);
+    final convertedTotal = holdings
+        .where((h) => h.totalValue != null)
+        .fold<double>(
+          0,
+          (s, h) => s + AppFormats.convertFromCurrency(h.totalValue!, h.currency),
+        );
+    final convertedInvested = investedHoldings.fold<double>(
+      0,
+      (s, h) =>
+          s + AppFormats.convertFromCurrency(h.averageBuyPrice! * h.quantity, h.currency),
+    );
+    final convertedGainLoss = convertedTotal - convertedInvested;
+    final convertedGainPct = convertedInvested > 0
+        ? (convertedGainLoss / convertedInvested * 100)
+        : summary.totalGainLossPercent;
+
+    final up = convertedGainLoss >= 0;
+    final color = up ? AppColors.success : AppColors.danger;
 
     return AppPanel(
       variant: AppPanelVariant.elevated,
@@ -438,7 +463,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            AppFormats.currency.format(summary.totalValue),
+            AppFormats.currency.format(convertedTotal),
             style: GoogleFonts.robotoMono(
               fontSize: 28,
               fontWeight: FontWeight.w800,
@@ -449,7 +474,7 @@ class _SummaryCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'G/P ${AppFormats.currency.format(summary.totalGainLoss)}',
+                'G/P ${AppFormats.currency.format(convertedGainLoss)}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -464,7 +489,7 @@ class _SummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
                 child: Text(
-                  '${up ? '+' : ''}${summary.totalGainLossPercent.toStringAsFixed(2)}%',
+                  '${up ? '+' : ''}${convertedGainPct.toStringAsFixed(2)}%',
                   style: TextStyle(
                     color: color,
                     fontSize: 11,

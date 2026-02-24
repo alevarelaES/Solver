@@ -281,6 +281,7 @@ class _MobileLayout extends ConsumerWidget {
               name: h.name,
               assetType: h.assetType,
               price: h.currentPrice,
+              currency: h.currency,
               changePercent: h.changePercent,
               sparklineData: sparklineBySymbol[h.symbol],
               onTap: () {
@@ -334,6 +335,7 @@ class _MobileLayout extends ConsumerWidget {
                         name: stock.name,
                         assetType: stock.assetType,
                         price: stock.price,
+                        currency: stock.currency,
                         changePercent: stock.changePercent,
                         onTap: () {
                           ref.read(selectedAssetProvider.notifier).state =

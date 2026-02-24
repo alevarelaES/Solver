@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
@@ -7,7 +10,7 @@ import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
-class TrendingCard extends StatelessWidget {
+class TrendingCard extends ConsumerWidget {
   final TrendingStock stock;
   final List<double>? sparklineData;
   final VoidCallback? onTap;
@@ -20,7 +23,8 @@ class TrendingCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark
         ? AppColors.textPrimaryDark
@@ -77,9 +81,7 @@ class TrendingCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  stock.price != null
-                      ? '\$${stock.price!.toStringAsFixed(2)}'
-                      : '--',
+                  AppFormats.formatFromCurrency(stock.price, stock.currency),
                   style: GoogleFonts.robotoMono(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

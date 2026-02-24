@@ -123,6 +123,7 @@ builder.Services.AddDbContext<SolverDbContext>(options =>
 
 // Memory cache (for Finnhub service)
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
 
 // Twelve Data (market prices, history, search)
 var twelveDataApiKey = Environment.GetEnvironmentVariable("TWELVE_DATA_API_KEY") ?? "";

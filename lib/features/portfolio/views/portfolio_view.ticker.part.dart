@@ -1,7 +1,5 @@
 part of 'portfolio_view.dart';
 
-final _tickerFallbackAssets = buildTrendingFallbackAssets(limit: 20);
-
 class _MarketTickerTape extends ConsumerStatefulWidget {
   const _MarketTickerTape();
 
@@ -46,18 +44,16 @@ class _MarketTickerTapeState extends ConsumerState<_MarketTickerTape> {
       unique.putIfAbsent(symbol, () => item);
     }
 
-    for (final fallback in _tickerFallbackAssets) {
-      final symbol = fallback.symbol.trim().toUpperCase();
-      unique.putIfAbsent(symbol, () => fallback);
-      if (unique.length >= 20) break;
-    }
+    // Only loop if we have items with real prices — no fallback seeds (they have no prices)
+    final withPrice = unique.values.where((s) => s.price != null).toList();
+    if (withPrice.isEmpty) return const [];
 
-    final items = unique.values.take(20).toList();
-    if (items.length < 20 && items.isNotEmpty) {
-      final seed = List<TrendingStock>.from(items);
+    // Pad to at least 20 for a seamless loop
+    final items = List<TrendingStock>.from(withPrice);
+    if (items.length < 20) {
       var i = 0;
       while (items.length < 20) {
-        items.add(seed[i % seed.length]);
+        items.add(withPrice[i % withPrice.length]);
         i++;
       }
     }
@@ -70,6 +66,7 @@ class _MarketTickerTapeState extends ConsumerState<_MarketTickerTape> {
     final textSecondary = isDark
         ? AppColors.textSecondaryDark
         : AppColors.textSecondaryLight;
+    ref.watch(appCurrencyProvider);
     final trendingAsync = ref.watch(trendingProvider);
 
     return trendingAsync.when(
@@ -129,9 +126,7 @@ class _MarketTickerTapeState extends ConsumerState<_MarketTickerTape> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        item.price == null
-                            ? '--'
-                            : item.price!.toStringAsFixed(2),
+                        AppFormats.formatFromCurrency(item.price, item.currency),
                         style: TextStyle(fontSize: 12, color: textSecondary),
                       ),
                       const SizedBox(width: 8),

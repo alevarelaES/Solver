@@ -62,4 +62,28 @@ class AppFormats {
   /// Converts a CHF amount to the active currency and formats it (compact, 0 decimals).
   static String formatFromChfCompact(double amount) =>
       currencyCompact.format(fromChf(amount));
+
+  /// Returns the exchange rate for a given ISO currency code relative to CHF.
+  /// e.g. if rates = {USD: 1.08}, this means 1 CHF = 1.08 USD.
+  static double _rateForCode(String code) => switch (code.toUpperCase()) {
+        'CHF' => 1.0,
+        'EUR' => _rates[AppCurrency.eur] ?? 1.0,
+        'USD' => _rates[AppCurrency.usd] ?? 1.0,
+        _ => 1.0,
+      };
+
+  /// Converts an amount from [sourceCurrencyCode] to the active currency.
+  /// First converts to CHF (dividing by source rate), then to active currency.
+  static double convertFromCurrency(double amount, String sourceCurrencyCode) {
+    final sourceRate = _rateForCode(sourceCurrencyCode);
+    final amountInChf = amount / sourceRate;
+    return amountInChf * (_rates[_activeCurrency] ?? 1.0);
+  }
+
+  /// Converts and formats an amount from [sourceCurrencyCode] to the active currency.
+  /// Returns '--' if [amount] is null.
+  static String formatFromCurrency(double? amount, String sourceCurrencyCode) {
+    if (amount == null) return '--';
+    return currency.format(convertFromCurrency(amount, sourceCurrencyCode));
+  }
 }

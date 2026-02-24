@@ -84,18 +84,21 @@ extension _BudgetViewLogic on _BudgetViewState {
           final committedAmount = (group.spentActual + group.pendingAmount)
               .clamp(0, double.infinity)
               .toDouble();
+          // Minimum = already-paid only (pending can still be adjusted/cancelled)
+          final paidAmount =
+              group.spentActual.clamp(0, double.infinity).toDouble();
           final plannedAmountRaw = draft.inputMode == 'amount'
               ? draft.amount
               : disposable * draft.percent / 100;
-          final plannedAmount = plannedAmountRaw > committedAmount
+          final plannedAmount = plannedAmountRaw > paidAmount
               ? plannedAmountRaw
-              : committedAmount;
+              : paidAmount;
           final plannedPercent = disposable > 0
               ? (plannedAmount / disposable) * 100
               : (plannedAmount > 0 ? 100.0 : 0.0);
           final minAllowedPercent = disposable > 0
-              ? (committedAmount / disposable) * 100
-              : (committedAmount > 0 ? 100.0 : 0.0);
+              ? (paidAmount / disposable) * 100
+              : (paidAmount > 0 ? 100.0 : 0.0);
 
           return _RenderedGroup(
             group: group,
@@ -103,7 +106,7 @@ extension _BudgetViewLogic on _BudgetViewState {
             plannedPercent: plannedPercent.clamp(0, double.infinity),
             plannedAmount: plannedAmount.clamp(0, double.infinity),
             minAllowedPercent: minAllowedPercent.clamp(0, double.infinity),
-            minAllowedAmount: committedAmount,
+            minAllowedAmount: paidAmount,
             maxAllowedPercent: 100,
             maxAllowedAmount: disposable > committedAmount
                 ? disposable

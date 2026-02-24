@@ -131,7 +131,7 @@ class _GroupCard extends StatelessWidget {
         (row.draft.inputMode == 'amount'
                 ? row.plannedAmount
                 : row.plannedPercent)
-            .clamp(safeSliderMin, safeSliderMax);
+            .clamp(0, safeSliderMax);
 
     return AppPanel(
       padding: EdgeInsets.symmetric(
@@ -249,7 +249,7 @@ class _GroupCard extends StatelessWidget {
           const SizedBox(height: 2),
           Slider(
             value: sliderValue.toDouble(),
-            min: safeSliderMin,
+            min: 0,
             max: safeSliderMax,
             onChanged: (value) {
               onValueChanged(

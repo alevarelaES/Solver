@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
-import 'package:solver/features/portfolio/data/portfolio_trending_catalog.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
 import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/providers/portfolio_provider.dart';

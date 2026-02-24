@@ -57,7 +57,12 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(taskkill:*)",
       "Bash(cmd /c:*)",
-      "Bash(\"C:/Users/41786/flutter/bin/flutter.bat\" analyze --no-pub)"
+      "Bash(\"C:/Users/41786/flutter/bin/flutter.bat\" analyze --no-pub)",
+      "Bash(flutter --version:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(flutter run:*)",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__execute_sql"
     ]
   }
 }

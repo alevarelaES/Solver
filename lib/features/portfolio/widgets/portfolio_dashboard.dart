@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/holding.dart';
@@ -9,7 +11,7 @@ import 'package:solver/features/portfolio/widgets/allocation_chart.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 
-class PortfolioDashboard extends StatelessWidget {
+class PortfolioDashboard extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
 
@@ -20,9 +22,19 @@ class PortfolioDashboard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final bestPerformer = _bestPerformer();
     final topMovers = _topMovers();
+    // Totaux recalculés en devise active depuis chaque holding
+    final convertedTotal = holdings
+        .where((h) => h.totalValue != null)
+        .fold<double>(0, (s, h) => s + AppFormats.convertFromCurrency(h.totalValue!, h.currency));
+    final convertedInvested = holdings
+        .where((h) => h.averageBuyPrice != null)
+        .fold<double>(0, (s, h) => s + AppFormats.convertFromCurrency(h.averageBuyPrice! * h.quantity, h.currency));
+    final convertedGainLoss = convertedTotal - convertedInvested;
+    final convertedGainPct = convertedInvested > 0 ? (convertedGainLoss / convertedInvested * 100) : summary.totalGainLossPercent;
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xs),
@@ -37,19 +49,19 @@ class PortfolioDashboard extends StatelessWidget {
             children: [
               _KpiCard(
                 label: 'VALEUR TOTALE',
-                value: AppFormats.currency.format(summary.totalValue),
+                value: AppFormats.currency.format(convertedTotal),
                 icon: Icons.account_balance_wallet_outlined,
                 color: AppColors.primary,
               ),
               _KpiCard(
                 label: 'GAIN / PERTE',
-                value: AppFormats.currency.format(summary.totalGainLoss),
+                value: AppFormats.currency.format(convertedGainLoss),
                 subtitle:
-                    '${summary.totalGainLossPercent >= 0 ? '+' : ''}${summary.totalGainLossPercent.toStringAsFixed(2)}%',
-                icon: summary.totalGainLoss >= 0
+                    '${convertedGainPct >= 0 ? '+' : ''}${convertedGainPct.toStringAsFixed(2)}%',
+                icon: convertedGainLoss >= 0
                     ? Icons.trending_up
                     : Icons.trending_down,
-                color: summary.totalGainLoss >= 0
+                color: convertedGainLoss >= 0
                     ? AppColors.success
                     : AppColors.danger,
               ),
@@ -152,7 +164,7 @@ class PortfolioDashboard extends StatelessWidget {
                           ),
                           if (h.totalValue != null)
                             Text(
-                              AppFormats.currency.format(h.totalValue),
+                              AppFormats.formatFromCurrency(h.totalValue, h.currency),
                               style: GoogleFonts.robotoMono(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -215,21 +227,32 @@ class PortfolioDashboard extends StatelessWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
+class _HeroCard extends ConsumerWidget {
   final PortfolioSummary summary;
   final List<Holding> holdings;
 
   const _HeroCard({required this.summary, required this.holdings});
 
   @override
-  Widget build(BuildContext context) {
-    final up = summary.totalGainLoss >= 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
+    final convertedTotal = holdings
+        .where((h) => h.totalValue != null)
+        .fold<double>(0, (s, h) => s + AppFormats.convertFromCurrency(h.totalValue!, h.currency));
+    final convertedInvested = holdings
+        .where((h) => h.averageBuyPrice != null)
+        .fold<double>(0, (s, h) => s + AppFormats.convertFromCurrency(h.averageBuyPrice! * h.quantity, h.currency));
+    final convertedGainLoss = convertedTotal - convertedInvested;
+    final convertedGainPct = convertedInvested > 0
+        ? (convertedGainLoss / convertedInvested * 100)
+        : summary.totalGainLossPercent;
+    final up = convertedGainLoss >= 0;
     final perfColor = up ? AppColors.success : AppColors.danger;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final total = holdings.fold<double>(
       0,
-      (sum, h) => sum + (h.totalValue ?? 0),
+      (sum, h) => sum + AppFormats.convertFromCurrency(h.totalValue ?? 0, h.currency),
     );
     final cryptoWeight = _weightFor('crypto', total);
     final stockWeight = _weightFor('stock', total);
@@ -261,7 +284,7 @@ class _HeroCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.r16),
                 ),
                 child: Text(
-                  '${up ? '+' : ''}${summary.totalGainLossPercent.toStringAsFixed(2)}%',
+                  '${up ? '+' : ''}${convertedGainPct.toStringAsFixed(2)}%',
                   style: TextStyle(
                     color: perfColor,
                     fontSize: 11,
@@ -273,7 +296,7 @@ class _HeroCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            AppFormats.currency.format(summary.totalValue),
+            AppFormats.currency.format(convertedTotal),
             style: GoogleFonts.robotoMono(
               fontSize: 34,
               fontWeight: FontWeight.w800,
@@ -282,7 +305,7 @@ class _HeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'P/L total: ${AppFormats.currency.format(summary.totalGainLoss)}',
+            'P/L total: ${AppFormats.currency.format(convertedGainLoss)}',
             style: TextStyle(color: perfColor, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -464,9 +487,7 @@ class _PositionsTable extends StatelessWidget {
                   SizedBox(
                     width: 100,
                     child: Text(
-                      holding.currentPrice != null
-                          ? AppFormats.currency.format(holding.currentPrice)
-                          : '--',
+                      AppFormats.formatFromCurrency(holding.currentPrice, holding.currency),
                       textAlign: TextAlign.end,
                       style: GoogleFonts.robotoMono(
                         fontSize: 12,
@@ -478,9 +499,7 @@ class _PositionsTable extends StatelessWidget {
                   SizedBox(
                     width: 110,
                     child: Text(
-                      holding.totalValue != null
-                          ? AppFormats.currency.format(holding.totalValue)
-                          : '--',
+                      AppFormats.formatFromCurrency(holding.totalValue, holding.currency),
                       textAlign: TextAlign.end,
                       style: GoogleFonts.robotoMono(
                         fontSize: 12,

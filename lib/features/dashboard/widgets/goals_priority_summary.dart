@@ -221,6 +221,17 @@ class _GoalLine extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 6),
+              Text(
+                '${AppFormats.formatFromChfCompact(goal.currentAmount)} / ${AppFormats.formatFromChfCompact(goal.targetAmount)}',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
               const Spacer(),
               Text(
                 '${pct.toStringAsFixed(0)}%',

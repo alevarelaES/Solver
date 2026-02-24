@@ -288,48 +288,65 @@ public sealed class TransactionsService
     public async Task<IResult> ReverseTransactionAsync(Guid id, ReverseTransactionDto dto, HttpContext ctx)
     {
         var userId = GetUserId(ctx);
-        var transaction = await _db.Transactions
-            .Include(t => t.Account)
-            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-        if (transaction is null) return Results.NotFound();
-
-        if (HasTag(transaction.Note, VoidedTag))
-        {
-            return Results.BadRequest(new { error = "Transaction already voided." });
-        }
-        if (HasTag(transaction.Note, ReimbursementTag))
-        {
-            return Results.BadRequest(new { error = "Cannot void a reimbursement transaction." });
-        }
-
         var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
         var reversalDate = dto.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var sourceLabel = BuildSourceLabel(transaction);
 
-        transaction.Note = BuildVoidedNote(transaction.Note, reason, reversalDate);
-        transaction.Status = TransactionStatus.Completed;
-        transaction.IsAuto = false;
+        Guid newReimbursementId = default;
+        var retry = await _dbRetry.ExecuteAsync(
+            _scopeFactory,
+            async db =>
+            {
+                var transaction = await db.Transactions
+                    .Include(t => t.Account)
+                    .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+                if (transaction is null) return (byte)1; // NotFound
 
-        var reimbursement = new Transaction
+                if (HasTag(transaction.Note, VoidedTag))
+                    return (byte)2; // Already voided
+                if (HasTag(transaction.Note, ReimbursementTag))
+                    return (byte)3; // Cannot void reimbursement
+
+                var sourceLabel = BuildSourceLabel(transaction);
+
+                transaction.Note = BuildVoidedNote(transaction.Note, reason, reversalDate);
+                transaction.Status = TransactionStatus.Completed;
+                transaction.IsAuto = false;
+
+                var reimbursement = new Transaction
+                {
+                    Id = Guid.NewGuid(),
+                    AccountId = transaction.AccountId,
+                    UserId = userId,
+                    Date = reversalDate,
+                    Amount = -transaction.Amount,
+                    Note = BuildReimbursementNote(sourceLabel, reason, transaction.Id),
+                    Status = TransactionStatus.Completed,
+                    IsAuto = false,
+                    CreatedAt = DateTime.UtcNow,
+                };
+                db.Transactions.Add(reimbursement);
+
+                await db.SaveChangesAsync();
+                newReimbursementId = reimbursement.Id;
+                return (byte)0; // Success
+            },
+            maxAttempts: 3);
+
+        if (!retry.Succeeded)
         {
-            Id = Guid.NewGuid(),
-            AccountId = transaction.AccountId,
-            UserId = userId,
-            Date = reversalDate,
-            Amount = -transaction.Amount,
-            Note = BuildReimbursementNote(sourceLabel, reason, transaction.Id),
-            Status = TransactionStatus.Completed,
-            IsAuto = false,
-            CreatedAt = DateTime.UtcNow,
+            return Results.Problem(
+                title: "Erreur temporaire base de donnees",
+                detail: "Impossible d'annuler la transaction. Veuillez reessayer.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return retry.Value switch
+        {
+            1 => Results.NotFound(),
+            2 => Results.BadRequest(new { error = "Transaction already voided." }),
+            3 => Results.BadRequest(new { error = "Cannot void a reimbursement transaction." }),
+            _ => Results.Ok(new { voidedId = id, reimbursementId = newReimbursementId }),
         };
-        _db.Transactions.Add(reimbursement);
-
-        await _db.SaveChangesAsync();
-        return Results.Ok(new
-        {
-            voidedId = transaction.Id,
-            reimbursementId = reimbursement.Id
-        });
     }
 
     private async Task<IResult?> PersistSeedsWithRetryAsync(

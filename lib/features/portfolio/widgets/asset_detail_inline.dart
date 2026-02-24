@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
@@ -53,6 +54,9 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
   Color? _flashColor;
   bool _tradeBusy = false;
 
+  String get _assetCurrency =>
+      widget.holding?.currency ?? widget.watchlistItem?.currency ?? 'USD';
+
   @override
   Widget build(BuildContext context) {
     final symbol = widget.symbol.toUpperCase();
@@ -60,6 +64,8 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
     final textPrimary = isDark
         ? AppColors.textPrimaryDark
         : AppColors.textPrimaryLight;
+
+    ref.watch(appCurrencyProvider);
 
     ref.listen<AsyncValue<PriceUpdate>>(priceStreamProvider(symbol), (_, next) {
       final incoming = next.valueOrNull?.price;
@@ -162,6 +168,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                     currentPrice: currentPrice,
                     changePercent: changePercent,
                     flashColor: _flashColor,
+                    currency: _assetCurrency,
                     onBuy: () => _startTrade(
                       action: _TradeAction.buy,
                       symbol: symbol,
@@ -184,6 +191,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                     currentPrice: currentPrice,
                     changePercent: changePercent,
                     flashColor: _flashColor,
+                    currency: _assetCurrency,
                     onBuy: () => _startTrade(
                       action: _TradeAction.buy,
                       symbol: symbol,
@@ -312,6 +320,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
         action: action,
         symbol: symbol,
         currentPrice: currentPrice,
+        assetCurrency: _assetCurrency,
         maxSellValue: action == _TradeAction.sell
             ? (widget.holding?.quantity ?? 0) * (currentPrice ?? 0)
             : null,
@@ -612,6 +621,7 @@ class _HeroCard extends StatelessWidget {
   final VoidCallback? onBuy;
   final VoidCallback? onSell;
   final bool tradeBusy;
+  final String currency;
 
   const _HeroCard({
     required this.symbol,
@@ -622,6 +632,7 @@ class _HeroCard extends StatelessWidget {
     required this.onBuy,
     required this.onSell,
     required this.tradeBusy,
+    this.currency = 'USD',
   });
 
   @override
@@ -705,9 +716,7 @@ class _HeroCard extends StatelessWidget {
                   color: flashColor ?? Theme.of(context).colorScheme.onSurface,
                 ),
                 child: Text(
-                  currentPrice == null
-                      ? '--'
-                      : AppFormats.currency.format(currentPrice),
+                  AppFormats.formatFromCurrency(currentPrice, currency),
                 ),
               ),
               const SizedBox(height: 3),
@@ -1106,14 +1115,15 @@ class _MetricRow extends StatelessWidget {
   }
 }
 
-class _PositionCard extends StatelessWidget {
+class _PositionCard extends ConsumerWidget {
   final Holding holding;
 
   const _PositionCard({required this.holding});
 
   @override
-  Widget build(BuildContext context) {
-    final invested = (holding.averageBuyPrice ?? 0) * holding.quantity;
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
+    final rawInvested = (holding.averageBuyPrice ?? 0) * holding.quantity;
 
     return AppPanel(
       variant: AppPanelVariant.elevated,
@@ -1135,19 +1145,15 @@ class _PositionCard extends StatelessWidget {
           ),
           _MetricRow(
             label: 'Investi',
-            value: AppFormats.currency.format(invested),
+            value: AppFormats.formatFromCurrency(rawInvested, holding.currency),
           ),
           _MetricRow(
             label: 'Valeur',
-            value: holding.totalValue == null
-                ? '--'
-                : AppFormats.currency.format(holding.totalValue),
+            value: AppFormats.formatFromCurrency(holding.totalValue, holding.currency),
           ),
           _MetricRow(
             label: 'Gain / Perte',
-            value: holding.totalGainLoss == null
-                ? '--'
-                : AppFormats.currency.format(holding.totalGainLoss),
+            value: AppFormats.formatFromCurrency(holding.totalGainLoss, holding.currency),
             valueColor: holding.totalGainLoss == null
                 ? null
                 : (holding.totalGainLoss! >= 0
@@ -1460,12 +1466,14 @@ class _TradeDialog extends StatefulWidget {
   final String symbol;
   final double? currentPrice;
   final double? maxSellValue;
+  final String assetCurrency;
 
   const _TradeDialog({
     required this.action,
     required this.symbol,
     required this.currentPrice,
     required this.maxSellValue,
+    this.assetCurrency = 'USD',
   });
 
   @override
@@ -1531,7 +1539,7 @@ class _TradeDialogState extends State<_TradeDialog> {
                         widget.maxSellValue != null &&
                             widget.maxSellValue! > 0 &&
                             !isBuy
-                        ? 'Max env. ${AppFormats.currency.format(widget.maxSellValue)}'
+                        ? 'Max env. ${AppFormats.formatFromCurrency(widget.maxSellValue, widget.assetCurrency)}'
                         : null,
                   ),
                   validator: (value) {
@@ -1558,7 +1566,7 @@ class _TradeDialogState extends State<_TradeDialog> {
                         fontWeight: FontWeight.w700,
                       ),
                       label: Text(
-                        'Utiliser le total: ${AppFormats.currency.format(widget.maxSellValue)}',
+                        'Utiliser le total: ${AppFormats.formatFromCurrency(widget.maxSellValue, widget.assetCurrency)}',
                       ),
                       onPressed: () {
                         _amountCtrl.text = widget.maxSellValue!.toStringAsFixed(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/portfolio/models/watchlist_item.dart';
 import 'package:solver/features/portfolio/widgets/mini_sparkline.dart';
 
-class WatchlistTile extends StatelessWidget {
+class WatchlistTile extends ConsumerWidget {
   final WatchlistItem item;
   final List<double>? sparklinePrices;
   final VoidCallback? onTap;
@@ -20,7 +22,8 @@ class WatchlistTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appCurrencyProvider);
     final change = item.changePercent ?? 0;
     final color = change >= 0 ? AppColors.success : AppColors.danger;
     final sign = change >= 0 ? '+' : '';
@@ -67,9 +70,8 @@ class WatchlistTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  item.currentPrice == null
-                      ? '--'
-                      : AppFormats.currency.format(item.currentPrice),
+                  AppFormats.formatFromCurrency(
+                      item.currentPrice, item.currency),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 Text(
