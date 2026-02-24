@@ -334,7 +334,6 @@ public sealed class TransactionsService
 
         if (!retry.Succeeded)
         {
-<<<<<<< Updated upstream
             return Results.Problem(
                 title: "Erreur temporaire base de donnees",
                 detail: "Impossible d'annuler la transaction. Veuillez reessayer.",
@@ -347,18 +346,8 @@ public sealed class TransactionsService
             2 => Results.BadRequest(new { error = "Transaction already voided." }),
             3 => Results.BadRequest(new { error = "Cannot void a reimbursement transaction." }),
             _ => Results.Ok(new { voidedId = id, reimbursementId = newReimbursementId }),
-=======
-            Id = Guid.NewGuid(),
-            AccountId = transaction.AccountId,
-            UserId = userId,
-            Date = reversalDate,
-            Amount = transaction.Amount,
-            Note = BuildReimbursementNote(sourceLabel, reason, transaction.Id),
-            Status = TransactionStatus.Completed,
-            IsAuto = false,
-            CreatedAt = DateTime.UtcNow,
->>>>>>> Stashed changes
         };
+    }
     }
 
     private async Task<IResult?> PersistSeedsWithRetryAsync(
