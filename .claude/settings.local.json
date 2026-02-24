@@ -58,10 +58,13 @@
       "Bash(taskkill:*)",
       "Bash(cmd /c:*)",
       "Bash(\"C:/Users/41786/flutter/bin/flutter.bat\" analyze --no-pub)",
+<<<<<<< Updated upstream
       "Bash(flutter --version:*)",
       "Bash(flutter doctor:*)",
       "Bash(flutter run:*)",
       "mcp__supabase__get_publishable_keys",
+=======
+>>>>>>> Stashed changes
       "mcp__supabase__execute_sql"
     ]
   }
