@@ -85,9 +85,12 @@ class _JournalBody extends ConsumerWidget {
 Map<int, _MonthTotals> _buildMonthTotals(List<Transaction> transactions) {
   final map = <int, _MonthTotals>{};
   for (final tx in transactions) {
+    if (tx.isVoided) continue;
     final key = _monthKey(tx.date);
     final current = map[key] ?? const _MonthTotals();
-    if (tx.isIncome) {
+    // Reversal of expense = negative amount on expense account = money coming back = income
+    final isEffectivelyIncome = tx.isIncome || (!tx.isIncome && tx.amount < 0);
+    if (isEffectivelyIncome) {
       map[key] = current.copyWith(income: current.income + tx.amount.abs());
     } else {
       map[key] = current.copyWith(expense: current.expense + tx.amount.abs());
@@ -805,7 +808,9 @@ class _JournalKpiStrip extends StatelessWidget {
     double expense = 0;
     for (final tx in transactions) {
       if (tx.isVoided) continue;
-      if (tx.isIncome) {
+      // Negative amount on expense account = reimbursement = effectively income
+      final isEffectivelyIncome = tx.isIncome || tx.amount < 0;
+      if (isEffectivelyIncome) {
         income += tx.amount.abs();
       } else {
         expense += tx.amount.abs();

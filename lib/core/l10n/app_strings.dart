@@ -249,6 +249,8 @@ class _Journal {
   String get allAccounts => 'Tous les comptes';
   String get allStatuses => 'Tous statuts';
   String get resetLabel => 'Réinitialiser';
+  String get hideVoidedLabel => 'Masquer annulées';
+  String get showVoidedLabel => 'Afficher annulées';
   String get accountPickerTitle => 'Compte';
   String get all => 'Tous';
   String get statusPickerTitle => 'Statut';

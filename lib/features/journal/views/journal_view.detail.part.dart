@@ -35,20 +35,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
     }
   }
 
-  Future<void> _delete() async {
-    setState(() => _loading = true);
-    try {
-      await ref
-          .read(apiClientProvider)
-          .delete('/api/transactions/${widget.transaction.id}');
-      ref.read(_selectedTxIdProvider.notifier).state = null;
-      _afterMutation();
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _reverseTransaction({String? reason}) async {
+  Future<void> _reverseTransaction({String? reason, double? amount}) async {
     setState(() => _loading = true);
     try {
       final tx = widget.transaction;
@@ -59,6 +46,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
             data: {
               if (reason != null && reason.trim().isNotEmpty)
                 'reason': reason.trim(),
+              if (amount != null) 'amount': amount,
             },
           );
       _afterMutation();
@@ -139,7 +127,11 @@ class _DetailViewState extends ConsumerState<_DetailView> {
   }
 
   void _showReverseDialog() {
+    final tx = widget.transaction;
     final reasonCtrl = TextEditingController();
+    final amountCtrl = TextEditingController(
+      text: tx.amount.abs().toStringAsFixed(2),
+    );
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -151,10 +143,30 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           'Annuler et rembourser',
           style: TextStyle(color: AppColors.textPrimary),
         ),
-        content: TextField(
-          controller: reasonCtrl,
-          maxLength: 250,
-          decoration: const InputDecoration(labelText: 'Raison (optionnel)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                labelText: 'Montant remboursé (max ${tx.amount.abs().toStringAsFixed(2)})',
+                prefixText: '${AppFormats.currencySymbol} ',
+                helperText: 'Laisser le montant total pour annulation complète',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              maxLength: 250,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: const InputDecoration(labelText: 'Raison (optionnel)'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -167,7 +179,16 @@ class _DetailViewState extends ConsumerState<_DetailView> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _reverseTransaction(reason: reasonCtrl.text);
+              final parsed = double.tryParse(
+                amountCtrl.text.replaceAll(',', '.'),
+              );
+              final capped = parsed != null
+                  ? parsed.clamp(0.01, tx.amount.abs())
+                  : null;
+              _reverseTransaction(
+                reason: reasonCtrl.text,
+                amount: capped,
+              );
             },
             child: const Text('Confirmer'),
           ),
@@ -484,18 +505,6 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 tooltip: AppStrings.journal.actionPrint,
                 color: AppColors.textDisabled,
                 onTap: () {},
-              ),
-              TextButton.icon(
-                onPressed: _loading || tx.isVoided ? null : _delete,
-                icon: const Icon(Icons.delete_outline, size: 15),
-                label: Text(
-                  AppStrings.journal.actionDelete,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: AppButtonStyles.dangerOutline(radius: AppRadius.r9),
               ),
             ],
           ),

@@ -306,11 +306,30 @@ public sealed class TransactionsService
                 if (HasTag(transaction.Note, ReimbursementTag))
                     return (byte)3; // Cannot void reimbursement
 
+                var absOriginal = Math.Abs(transaction.Amount);
+                var sign = transaction.Amount >= 0 ? 1 : -1;
                 var sourceLabel = BuildSourceLabel(transaction);
 
-                transaction.Note = BuildVoidedNote(transaction.Note, reason, reversalDate);
-                transaction.Status = TransactionStatus.Completed;
-                transaction.IsAuto = false;
+                var refundAmount = dto.Amount.HasValue
+                    ? Math.Min(dto.Amount.Value, absOriginal)
+                    : absOriginal;
+
+                bool isPartial = refundAmount < absOriginal;
+
+                if (isPartial)
+                {
+                    // Partial refund: reduce original amount, keep it active (not voided)
+                    transaction.Amount -= refundAmount * sign;
+                }
+                else
+                {
+                    // Full reversal: void the original transaction
+                    transaction.Note = BuildVoidedNote(transaction.Note, reason, reversalDate);
+                    transaction.Status = TransactionStatus.Completed;
+                    transaction.IsAuto = false;
+                }
+
+                var reimbursementAmount = -sign * refundAmount;
 
                 var reimbursement = new Transaction
                 {
@@ -318,8 +337,8 @@ public sealed class TransactionsService
                     AccountId = transaction.AccountId,
                     UserId = userId,
                     Date = reversalDate,
-                    Amount = -transaction.Amount,
-                    Note = BuildReimbursementNote(sourceLabel, reason, transaction.Id),
+                    Amount = reimbursementAmount,
+                    Note = BuildReimbursementNote(sourceLabel, reason),
                     Status = TransactionStatus.Completed,
                     IsAuto = false,
                     CreatedAt = DateTime.UtcNow,
@@ -347,7 +366,6 @@ public sealed class TransactionsService
             3 => Results.BadRequest(new { error = "Cannot void a reimbursement transaction." }),
             _ => Results.Ok(new { voidedId = id, reimbursementId = newReimbursementId }),
         };
-    }
     }
 
     private async Task<IResult?> PersistSeedsWithRetryAsync(
@@ -439,10 +457,9 @@ public sealed class TransactionsService
 
     private static string BuildReimbursementNote(
         string sourceLabel,
-        string? reason,
-        Guid sourceTransactionId)
+        string? reason)
     {
-        var note = $"{ReimbursementTag} correction {sourceLabel} ({sourceTransactionId.ToString()[..8].ToUpperInvariant()})";
+        var note = $"{ReimbursementTag} correction {sourceLabel}";
         if (!string.IsNullOrWhiteSpace(reason))
         {
             note = $"{note} - {reason}";

@@ -22,7 +22,8 @@ public record UpdateTransactionDto(
 
 public record ReverseTransactionDto(
     [MaxLength(250)] string? Reason,
-    DateOnly? Date = null
+    DateOnly? Date = null,
+    [Range(0.01, 10_000_000)] decimal? Amount = null
 );
 
 public record BatchTransactionDto(

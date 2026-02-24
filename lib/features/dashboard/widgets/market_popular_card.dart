@@ -8,6 +8,8 @@ import 'package:solver/features/portfolio/models/trending_stock.dart';
 import 'package:solver/features/portfolio/models/watchlist_item.dart';
 import 'package:solver/features/portfolio/providers/trending_provider.dart';
 import 'package:solver/features/portfolio/providers/watchlist_provider.dart';
+import 'package:solver/core/settings/currency_settings_provider.dart';
+import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
 import 'package:solver/shared/widgets/glass_container.dart';
 
@@ -29,6 +31,7 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    ref.watch(appCurrencyProvider);
     final trendingAsync = ref.watch(trendingProvider);
     final watchlistAsync = ref.watch(watchlistProvider);
 
@@ -390,9 +393,7 @@ class _FavoriteRow extends StatelessWidget {
             ),
           ),
           Text(
-            item.currentPrice == null
-                ? '--'
-                : item.currentPrice!.toStringAsFixed(2),
+            AppFormats.formatFromCurrency(item.currentPrice, item.currency),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -462,7 +463,7 @@ class _MarketRow extends StatelessWidget {
             ),
           ),
           Text(
-            item.price == null ? '--' : item.price!.toStringAsFixed(2),
+            AppFormats.formatFromCurrency(item.price, item.currency),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,

@@ -516,14 +516,13 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
     }
 
     final mutation = ref.read(portfolioMutationsProvider);
-    final epsilon = 1e-8;
-    if (quantityDelta >= (existing.quantity - epsilon)) {
+    final nextQty = existing.quantity - quantityDelta;
+    // Treat as full sell if remaining quantity is negligible (handles CHF/USD rounding)
+    if (nextQty <= 1e-4) {
       await mutation.deleteHolding(existing.id);
       ref.read(selectedAssetProvider.notifier).state = null;
       return;
     }
-
-    final nextQty = existing.quantity - quantityDelta;
     await mutation.updateHolding(
       existing.id,
       UpdateHoldingRequest(

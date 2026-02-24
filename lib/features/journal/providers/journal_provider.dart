@@ -8,6 +8,7 @@ class JournalFilters {
   final int year;
   final int? month; // null = all months
   final bool showFuture;
+  final bool hideVoided;
 
   const JournalFilters({
     this.accountId,
@@ -15,6 +16,7 @@ class JournalFilters {
     required this.year,
     this.month,
     this.showFuture = false,
+    this.hideVoided = false,
   });
 
   JournalFilters copyWith({
@@ -23,12 +25,14 @@ class JournalFilters {
     int? year,
     Object? month = _sentinel,
     bool? showFuture,
+    bool? hideVoided,
   }) => JournalFilters(
     accountId: accountId == _sentinel ? this.accountId : accountId as String?,
     status: status == _sentinel ? this.status : status as String?,
     year: year ?? this.year,
     month: month == _sentinel ? this.month : month as int?,
     showFuture: showFuture ?? this.showFuture,
+    hideVoided: hideVoided ?? this.hideVoided,
   );
 }
 
@@ -139,15 +143,14 @@ final journalVisibleTransactionsProvider =
     Provider<AsyncValue<List<Transaction>>>((ref) {
       final remote = ref.watch(journalTransactionsProvider);
       final columnFilters = ref.watch(journalColumnFiltersProvider);
-
-      if (!columnFilters.hasActiveFilters) {
-        return remote;
-      }
+      final filters = ref.watch(journalFiltersProvider);
 
       return remote.whenData(
-        (items) => items
-            .where((tx) => _matchesColumnFilters(tx, columnFilters))
-            .toList(growable: false),
+        (items) => items.where((tx) {
+          if (filters.hideVoided && tx.isVoided) return false;
+          if (!columnFilters.hasActiveFilters) return true;
+          return _matchesColumnFilters(tx, columnFilters);
+        }).toList(growable: false),
       );
     });
 

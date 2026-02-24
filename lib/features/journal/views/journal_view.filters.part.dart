@@ -111,6 +111,18 @@ class _JournalFilterBar extends ConsumerWidget {
                     onTap: () => _pickStatus(context, ref, filters),
                   ),
                   const SizedBox(width: 8),
+                  _FilterChip(
+                    icon: filters.hideVoided
+                        ? Icons.visibility_off
+                        : Icons.visibility_outlined,
+                    label: filters.hideVoided
+                        ? AppStrings.journal.showVoidedLabel
+                        : AppStrings.journal.hideVoidedLabel,
+                    onTap: () => ref
+                        .read(journalFiltersProvider.notifier)
+                        .state = filters.copyWith(hideVoided: !filters.hideVoided),
+                  ),
+                  const SizedBox(width: 8),
                   _FilterIconButton(
                     activeCount:
                         activeCount + (filters.accountId != null ? 1 : 0),
