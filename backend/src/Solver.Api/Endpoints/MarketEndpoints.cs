@@ -25,7 +25,7 @@ public static class MarketEndpoints
             string? interval,
             int? outputsize,
             MarketService service) => service.GetHistoryBatchAsync(symbols, interval, outputsize));
-        group.MapGet("/stream/{symbol}", (
+        group.MapGet("/stream", (
             string symbol,
             HttpContext context,
             MarketService service) => service.StreamSymbolAsync(symbol, context));

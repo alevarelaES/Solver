@@ -41,11 +41,10 @@ final priceStreamProvider = StreamProvider.autoDispose.family<PriceUpdate, Strin
   symbol,
 ) async* {
   final normalized = symbol.trim().toUpperCase();
-  if (normalized.isEmpty || normalized.contains('/')) return;
+  if (normalized.isEmpty) return;
 
-  final uri = Uri.parse(
-    '${AppConfig.apiBaseUrl}/api/market/stream/${Uri.encodeComponent(normalized)}',
-  );
+  final uri = Uri.parse('${AppConfig.apiBaseUrl}/api/market/stream')
+      .replace(queryParameters: {'symbol': normalized});
   final token = Supabase.instance.client.auth.currentSession?.accessToken;
 
   final client = HttpClient();

@@ -33,7 +33,7 @@ class _SymbolSearchFieldState extends ConsumerState<SymbolSearchField> {
 
   @override
   void dispose() {
-    ref.read(symbolSearchQueryProvider.notifier).state = '';
+    // Do NOT use ref here — Riverpod unbinds it before dispose() runs.
     _controller.dispose();
     super.dispose();
   }

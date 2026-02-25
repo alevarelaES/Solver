@@ -176,7 +176,7 @@ class _TypeButton extends StatelessWidget {
   }
 }
 
-class _GoalCard extends StatelessWidget {
+class _GoalCard extends StatefulWidget {
   final SavingGoal goal;
   final _GoalAlertAssessment alert;
   final double? monthlyMarginAvailable;
@@ -196,7 +196,17 @@ class _GoalCard extends StatelessWidget {
   });
 
   @override
+  State<_GoalCard> createState() => _GoalCardState();
+}
+
+class _GoalCardState extends State<_GoalCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final goal = widget.goal;
+    final alert = widget.alert;
+
     final isDebt = _isDebtType(goal.goalType);
     final isAchieved = _isAchievedStatus(goal.status);
     final daysToTarget = _daysUntil(goal.targetDate);
@@ -231,7 +241,8 @@ class _GoalCard extends StatelessWidget {
         : daysToTarget <= 30
         ? AppColors.warning
         : AppColors.info;
-    final risk = isDebt ? _assessDebtRisk(goal, monthlyMarginAvailable) : null;
+    final risk =
+        isDebt ? _assessDebtRisk(goal, widget.monthlyMarginAvailable) : null;
     final delayText = risk == null
         ? null
         : risk.projectedDelayMonths == null
@@ -248,16 +259,8 @@ class _GoalCard extends StatelessWidget {
         : AppStrings.goals.marginAfterPayment(
             '-${AppFormats.formatFromChfCompact(risk.marginAfterPayment!.abs())}',
           );
-    final style =
-        AppButtonStyles.outline(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        ).copyWith(
-          textStyle: const WidgetStatePropertyAll(
-            TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-          ),
-          visualDensity: VisualDensity.compact,
-        );
 
+    // ── Reusable badge builder ────────────────────────────────────────────────
     Widget badge(String text, Color color, {IconData? icon}) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -286,6 +289,22 @@ class _GoalCard extends StatelessWidget {
       );
     }
 
+    // ── Icon-only button style ────────────────────────────────────────────────
+    final iconBtnStyle = OutlinedButton.styleFrom(
+      padding: const EdgeInsets.all(8),
+      minimumSize: const Size(34, 34),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.r8),
+      ),
+    );
+    final iconBtnDangerStyle = iconBtnStyle.copyWith(
+      foregroundColor: WidgetStatePropertyAll(AppColors.danger),
+      side: WidgetStatePropertyAll(
+        BorderSide(color: AppColors.danger.withAlpha(80)),
+      ),
+    );
+
     return AppPanel(
       backgroundColor: cardBackground,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -294,6 +313,7 @@ class _GoalCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Top row: icon + name + % ────────────────────────────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -318,7 +338,7 @@ class _GoalCard extends StatelessWidget {
                     Text(
                       goal.name,
                       style: const TextStyle(
-                        fontSize: 19,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -347,7 +367,7 @@ class _GoalCard extends StatelessWidget {
                     style: TextStyle(
                       color: progressColor,
                       fontWeight: FontWeight.w900,
-                      fontSize: 22,
+                      fontSize: 20,
                       height: 1.0,
                     ),
                   ),
@@ -364,6 +384,8 @@ class _GoalCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+
+          // ── Amounts row ─────────────────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -408,154 +430,235 @@ class _GoalCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+
+          // ── Progress bar ────────────────────────────────────────────────────
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.r8),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 9,
+              minHeight: 8,
               backgroundColor: AppColors.surfaceInfoSoft,
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
-          if (risk != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: risk.color.withAlpha(18),
-                borderRadius: BorderRadius.circular(AppRadius.r10),
-                border: Border.all(color: risk.color.withAlpha(80)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    risk.label,
-                    style: TextStyle(
-                      color: risk.color,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    delayText!,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    marginText!,
-                    style: TextStyle(
-                      color: risk.marginAfterPayment == null
-                          ? AppColors.textSecondary
-                          : (risk.marginAfterPayment! >= 0
-                                ? AppColors.primary
-                                : AppColors.danger),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 9),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          const SizedBox(height: 10),
+
+          // ── Action row ──────────────────────────────────────────────────────
+          Row(
             children: [
-              badge(
-                '${isDebt ? AppStrings.goals.monthlyRepayment : AppStrings.goals.monthlyCurrent}: ${AppFormats.formatFromChfCompact(goal.monthlyContribution)}',
-                AppColors.textSecondary,
-                icon: Icons.repeat_rounded,
-              ),
-              if (goal.autoContributionEnabled && goal.monthlyContribution > 0)
-                badge(
-                  goal.autoContributionStartDate == null
-                      ? (isDebt
-                            ? AppStrings.goals.autoPaymentActive
-                            : AppStrings.goals.autoDepositActive)
-                      : (isDebt
-                            ? AppStrings.goals.autoPaymentDay(
-                                goal.autoContributionStartDate!.day,
-                              )
-                            : AppStrings.goals.autoDepositDay(
-                                goal.autoContributionStartDate!.day,
-                              )),
-                  AppColors.primary,
-                  icon: Icons.bolt_rounded,
+              // Secondary actions: icon-only with tooltip
+              Tooltip(
+                message: AppStrings.goals.historyAction,
+                child: OutlinedButton(
+                  onPressed: widget.onHistory,
+                  style: iconBtnStyle,
+                  child: const Icon(Icons.history_rounded, size: 16),
                 ),
-              badge(
-                AppStrings.goals.recommended(
-                  AppFormats.formatFromChfCompact(goal.recommendedMonthly),
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message: AppStrings.common.edit,
+                child: OutlinedButton(
+                  onPressed: widget.onEdit,
+                  style: iconBtnStyle,
+                  child: const Icon(Icons.edit_rounded, size: 16),
                 ),
-                AppColors.textPrimary,
-                icon: Icons.calculate_rounded,
               ),
-              badge(
-                AppStrings.goals.monthsRemainingCount(goal.monthsRemaining),
-                AppColors.textSecondary,
-                icon: Icons.date_range_rounded,
+              const SizedBox(width: 6),
+              Tooltip(
+                message: goal.isArchived
+                    ? AppStrings.goals.unarchiveAction
+                    : AppStrings.goals.archiveAction,
+                child: OutlinedButton(
+                  onPressed: widget.onArchive,
+                  style: iconBtnDangerStyle,
+                  child: Icon(
+                    goal.isArchived
+                        ? Icons.unarchive_rounded
+                        : Icons.archive_rounded,
+                    size: 16,
+                  ),
+                ),
               ),
-              badge(
-                projected == null
-                    ? AppStrings.goals.projectionUnknown
-                    : AppStrings.goals.projection(
-                        '${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+              const SizedBox(width: 10),
+              // "Voir détail" toggle
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _expanded ? 'Réduire' : 'Voir détail',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                AppColors.textSecondary,
-                icon: Icons.auto_graph_rounded,
+                      const SizedBox(width: 2),
+                      Icon(
+                        _expanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              // Primary deposit / payment (icon-only, right-aligned)
+              Tooltip(
+                message: isDebt
+                    ? AppStrings.goals.payment
+                    : AppStrings.goals.depositWithdraw,
+                child: ElevatedButton(
+                  onPressed: widget.onMove,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                    ),
+                  ),
+                  child: Icon(
+                    isDebt
+                        ? Icons.credit_score_rounded
+                        : Icons.sync_alt_rounded,
+                    size: 18,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ElevatedButton.icon(
-                onPressed: onMove,
-                icon: Icon(
-                  isDebt ? Icons.credit_score_rounded : Icons.sync_alt_rounded,
-                  size: 16,
-                ),
-                label: Text(
-                  isDebt
-                      ? AppStrings.goals.payment
-                      : AppStrings.goals.depositWithdraw,
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: onHistory,
-                icon: const Icon(Icons.history_rounded, size: 16),
-                style: style,
-                label: Text(AppStrings.goals.historyAction),
-              ),
-              OutlinedButton.icon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_rounded, size: 16),
-                style: style,
-                label: Text(AppStrings.common.edit),
-              ),
-              TextButton.icon(
-                onPressed: onArchive,
-                icon: const Icon(Icons.archive_rounded, size: 16),
-                style: AppButtonStyles.dangerOutline().copyWith(
-                  textStyle: const WidgetStatePropertyAll(
-                    TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                ),
-                label: Text(
-                  goal.isArchived
-                      ? AppStrings.goals.unarchiveAction
-                      : AppStrings.goals.archiveAction,
-                ),
-              ),
-            ],
+
+          // ── Expandable detail section ───────────────────────────────────────
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: _expanded
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          badge(
+                            '${isDebt ? AppStrings.goals.monthlyRepayment : AppStrings.goals.monthlyCurrent}: ${AppFormats.formatFromChfCompact(goal.monthlyContribution)}',
+                            AppColors.textSecondary,
+                            icon: Icons.repeat_rounded,
+                          ),
+                          if (goal.autoContributionEnabled &&
+                              goal.monthlyContribution > 0)
+                            badge(
+                              goal.autoContributionStartDate == null
+                                  ? (isDebt
+                                        ? AppStrings.goals.autoPaymentActive
+                                        : AppStrings.goals.autoDepositActive)
+                                  : (isDebt
+                                        ? AppStrings.goals.autoPaymentDay(
+                                            goal
+                                                .autoContributionStartDate!.day,
+                                          )
+                                        : AppStrings.goals.autoDepositDay(
+                                            goal
+                                                .autoContributionStartDate!.day,
+                                          )),
+                              AppColors.primary,
+                              icon: Icons.bolt_rounded,
+                            ),
+                          badge(
+                            AppStrings.goals.recommended(
+                              AppFormats.formatFromChfCompact(
+                                goal.recommendedMonthly,
+                              ),
+                            ),
+                            AppColors.textPrimary,
+                            icon: Icons.calculate_rounded,
+                          ),
+                          badge(
+                            AppStrings.goals.monthsRemainingCount(
+                              goal.monthsRemaining,
+                            ),
+                            AppColors.textSecondary,
+                            icon: Icons.date_range_rounded,
+                          ),
+                          badge(
+                            projected == null
+                                ? AppStrings.goals.projectionUnknown
+                                : AppStrings.goals.projection(
+                                    '${projected.month.toString().padLeft(2, '0')}.${projected.year}',
+                                  ),
+                            AppColors.textSecondary,
+                            icon: Icons.auto_graph_rounded,
+                          ),
+                        ],
+                      ),
+                      if (risk != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: risk.color.withAlpha(18),
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            border: Border.all(color: risk.color.withAlpha(80)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                risk.label,
+                                style: TextStyle(
+                                  color: risk.color,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                delayText!,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                marginText!,
+                                style: TextStyle(
+                                  color: risk.marginAfterPayment == null
+                                      ? AppColors.textSecondary
+                                      : (risk.marginAfterPayment! >= 0
+                                            ? AppColors.primary
+                                            : AppColors.danger),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),

@@ -1,12 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/features/portfolio/models/portfolio_summary.dart';
+
+const _portfolioRefreshInterval = Duration(minutes: 5);
 
 final portfolioProvider = FutureProvider.autoDispose<PortfolioData>((
   ref,
 ) async {
   final client = ref.watch(apiClientProvider);
   final response = await client.get<Map<String, dynamic>>('/api/portfolio/');
+
+  // Re-fetch automatically while the portfolio page is open.
+  final timer = Timer(_portfolioRefreshInterval, () => ref.invalidateSelf());
+  ref.onDispose(timer.cancel);
+
   return PortfolioData.fromJson(response.data ?? const {});
 });
 

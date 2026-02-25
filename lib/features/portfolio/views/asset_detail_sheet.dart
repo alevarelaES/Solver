@@ -170,7 +170,11 @@ class _AssetDetailSheetState extends ConsumerState<AssetDetailSheet> {
                     onChanged: (period) => setState(() => _period = period),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  PriceChart(symbol: symbol, period: _period),
+                  PriceChart(
+                    symbol: symbol,
+                    period: _period,
+                    currencyCode: assetCurrency,
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   if (widget.holding != null)
                     _PositionPanel(holding: widget.holding!),
@@ -249,18 +253,7 @@ class _PeriodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.sm,
-      children: PriceChartPeriod.values
-          .map(
-            (period) => ChoiceChip(
-              label: Text(period.label),
-              selected: selected == period,
-              onSelected: (_) => onChanged(period),
-            ),
-          )
-          .toList(),
-    );
+    return PriceChartPeriodBar(selected: selected, onChanged: onChanged);
   }
 }
 

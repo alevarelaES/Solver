@@ -15,6 +15,9 @@ final symbolSearchProvider =
       if (query.isEmpty) return const [];
 
       final localFallback = _localFallbackMatches(query);
+      // Keep a set of local symbols so they are never filtered out by price check.
+      final localSymbolKeys =
+          localFallback.map((l) => l.symbol.toUpperCase()).toSet();
       if (query.length < 2) {
         return localFallback;
       }
@@ -78,7 +81,11 @@ final symbolSearchProvider =
 
         final filtered = enriched
             .where(
-              (item) => symbolsWithPrice.contains(item.symbol.toUpperCase()),
+              (item) =>
+                  // Local catalog hits are always shown (even without live price).
+                  localSymbolKeys.contains(item.symbol.toUpperCase()) ||
+                  // API-only results only shown when price is confirmed.
+                  symbolsWithPrice.contains(item.symbol.toUpperCase()),
             )
             .take(30)
             .toList();
@@ -128,12 +135,34 @@ List<SymbolSearchResult> _localFallbackMatches(String query) {
   final normalized = query.trim().toLowerCase();
   if (normalized.isEmpty) return const [];
 
-  final seeds = buildTrendingFallbackAssets(limit: 40);
+  // Strip to alphanumeric only: "sp500" / "msciworld" / "nasdaq100"
+  final stripped = _stripNonAlnum(normalized);
+  // Split into words for multi-word queries: "msci world" → ["msci","world"]
+  final words = normalized
+      .split(RegExp(r'[\s&._\-]+'))
+      .where((w) => w.length >= 2)
+      .toList();
+
+  final seeds = buildTrendingFallbackAssets();
   final matches = seeds
       .where((seed) {
         final symbol = seed.symbol.toLowerCase();
         final name = (seed.name ?? '').toLowerCase();
-        return symbol.contains(normalized) || name.contains(normalized);
+        final strippedName = _stripNonAlnum(name);
+
+        // 1. Symbol prefix or contains
+        if (symbol.contains(normalized)) return true;
+        // 2. Full normalized query in name
+        if (name.contains(normalized)) return true;
+        // 3. Alphanumeric-stripped match ("sp500" → "spdrsp500etf")
+        if (stripped.length >= 3 && strippedName.contains(stripped)) {
+          return true;
+        }
+        // 4. All query words found in name ("msci world" / "s p 500")
+        if (words.length >= 2 && words.every((w) => name.contains(w))) {
+          return true;
+        }
+        return false;
       })
       .map(
         (seed) => SymbolSearchResult(
@@ -153,6 +182,10 @@ List<SymbolSearchResult> _localFallbackMatches(String query) {
   });
   return matches.take(15).toList();
 }
+
+/// Keeps only lowercase alphanumeric characters — used for fuzzy matching.
+String _stripNonAlnum(String text) =>
+    text.replaceAll(RegExp(r'[^a-z0-9]'), '');
 
 List<SymbolSearchResult> _mergeAndDedupe(List<SymbolSearchResult> input) {
   final output = <SymbolSearchResult>[];

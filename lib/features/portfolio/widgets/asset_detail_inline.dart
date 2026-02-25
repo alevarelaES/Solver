@@ -217,6 +217,7 @@ class _AssetDetailInlineState extends ConsumerState<AssetDetailInline> {
                     final chart = _ChartPanel(
                       symbol: symbol,
                       period: _period,
+                      currency: _assetCurrency,
                       onPeriodChanged: (period) {
                         setState(() => _period = period);
                       },
@@ -816,77 +817,47 @@ class _ChartPanel extends StatelessWidget {
   final String symbol;
   final PriceChartPeriod period;
   final ValueChanged<PriceChartPeriod> onPeriodChanged;
+  final String currency;
 
   const _ChartPanel({
     required this.symbol,
     required this.period,
     required this.onPeriodChanged,
+    this.currency = 'USD',
   });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 760;
         final chartHeight = constraints.maxWidth < 980
             ? 320.0
             : constraints.maxWidth < 1320
             ? 360.0
             : 420.0;
-        final chips = SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: PriceChartPeriod.values
-                .map(
-                  (p) => Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: ChoiceChip(
-                      label: Text(p.label),
-                      selected: p == period,
-                      onSelected: (_) => onPeriodChanged(p),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        );
 
         return AppPanel(
           variant: AppPanelVariant.elevated,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (compact)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'INTERACTIVE CHART',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.7,
-                      ),
+              Row(
+                children: [
+                  const Text(
+                    'INTERACTIVE CHART',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.7,
                     ),
-                    const SizedBox(height: AppSpacing.s6),
-                    chips,
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    const Text(
-                      'INTERACTIVE CHART',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                    const Spacer(),
-                    Flexible(child: chips),
-                  ],
-                ),
+                  ),
+                  const Spacer(),
+                  PriceChartPeriodBar(
+                    selected: period,
+                    onChanged: onPeriodChanged,
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 height: chartHeight,
@@ -895,6 +866,7 @@ class _ChartPanel extends StatelessWidget {
                   period: period,
                   height: chartHeight,
                   framed: false,
+                  currencyCode: currency,
                 ),
               ),
             ],

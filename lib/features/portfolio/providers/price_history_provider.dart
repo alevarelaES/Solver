@@ -73,7 +73,7 @@ class SparklineBatchRequest {
 }
 
 final priceHistoryProvider =
-    FutureProvider.family<List<TimeSeriesPoint>, PriceHistoryRequest>((
+    FutureProvider.autoDispose.family<List<TimeSeriesPoint>, PriceHistoryRequest>((
       ref,
       params,
     ) async {

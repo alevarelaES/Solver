@@ -13,6 +13,7 @@ class _TrendingSeed {
 }
 
 const _trendingSeeds = <_TrendingSeed>[
+  // ── Stocks ────────────────────────────────────────────────────────────────
   _TrendingSeed(symbol: 'AAPL', name: 'Apple Inc', assetType: 'stock'),
   _TrendingSeed(symbol: 'MSFT', name: 'Microsoft Corp', assetType: 'stock'),
   _TrendingSeed(symbol: 'NVDA', name: 'NVIDIA Corp', assetType: 'stock'),
@@ -25,6 +26,28 @@ const _trendingSeeds = <_TrendingSeed>[
   _TrendingSeed(symbol: 'INTC', name: 'Intel Corp', assetType: 'stock'),
   _TrendingSeed(symbol: 'JPM', name: 'JPMorgan Chase', assetType: 'stock'),
   _TrendingSeed(symbol: 'V', name: 'Visa Inc', assetType: 'stock'),
+  // ── ETF S&P 500 ───────────────────────────────────────────────────────────
+  _TrendingSeed(symbol: 'SPY', name: 'SPDR S&P 500 ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'VOO', name: 'Vanguard S&P 500 ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'IVV', name: 'iShares Core S&P 500 ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'CSPX', name: 'iShares Core S&P 500 UCITS ETF', assetType: 'etf'),
+  // ── ETF Nasdaq ────────────────────────────────────────────────────────────
+  _TrendingSeed(symbol: 'QQQ', name: 'Invesco QQQ Nasdaq 100 ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'CNDX', name: 'iShares Nasdaq 100 UCITS ETF', assetType: 'etf'),
+  // ── ETF MSCI World / Global ───────────────────────────────────────────────
+  _TrendingSeed(symbol: 'URTH', name: 'iShares MSCI World ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'VT', name: 'Vanguard Total World Stock ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'ACWI', name: 'iShares MSCI ACWI ETF', assetType: 'etf'),
+  // ── ETF Emerging Markets ──────────────────────────────────────────────────
+  _TrendingSeed(symbol: 'EEM', name: 'iShares MSCI Emerging Markets ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'VWO', name: 'Vanguard Emerging Markets ETF', assetType: 'etf'),
+  // ── ETF Autres ────────────────────────────────────────────────────────────
+  _TrendingSeed(symbol: 'IWM', name: 'iShares Russell 2000 Small-Cap ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'GLD', name: 'SPDR Gold Trust ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'IAU', name: 'iShares Gold Trust ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'VNQ', name: 'Vanguard Real Estate ETF', assetType: 'etf'),
+  _TrendingSeed(symbol: 'TLT', name: 'iShares 20+ Year Treasury Bond ETF', assetType: 'etf'),
+  // ── Crypto ────────────────────────────────────────────────────────────────
   _TrendingSeed(symbol: 'BTC/USD', name: 'Bitcoin', assetType: 'crypto'),
   _TrendingSeed(symbol: 'ETH/USD', name: 'Ethereum', assetType: 'crypto'),
   _TrendingSeed(symbol: 'SOL/USD', name: 'Solana', assetType: 'crypto'),

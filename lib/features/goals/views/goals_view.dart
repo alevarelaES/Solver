@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
-import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/features/budget/providers/budget_provider.dart';
@@ -23,15 +22,12 @@ double _parseNumber(String raw) =>
 String _editableInputValue(double value, {int maxDecimals = 0}) {
   if (value.abs() < 0.000001) return '';
   final text = value.toStringAsFixed(maxDecimals);
+  // Only strip trailing zeros after a decimal point — never from integers.
+  if (!text.contains('.')) return text;
   return text.replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
 bool _isDebtType(String value) => value.toLowerCase() == 'debt';
-
-String _typeLabel(String value) =>
-    _isDebtType(value)
-        ? AppStrings.goals.typeLabelDebt
-        : AppStrings.goals.typeLabelGoal;
 
 bool _isAchievedStatus(String status) => status.toLowerCase() == 'achieved';
 

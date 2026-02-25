@@ -744,42 +744,84 @@ extension _GoalsViewLogic on _GoalsViewState {
                   required Color accent,
                   required List<SavingGoal> sectionGoals,
                 }) {
+                  // Helper so each card call is written once
+                  Widget buildCard(int i) => _GoalCard(
+                    goal: sectionGoals[i],
+                    alert:
+                        goalAlerts[sectionGoals[i].id] ??
+                        _assessGoalAlert(sectionGoals[i]),
+                    monthlyMarginAvailable: monthlyMarginAvailable,
+                    onEdit: () =>
+                        _showGoalEditor(goal: sectionGoals[i]),
+                    onMove: () =>
+                        _showGoalEntryEditor(sectionGoals[i]),
+                    onHistory: () =>
+                        _showGoalHistory(sectionGoals[i]),
+                    onArchive: () async {
+                      await ref
+                          .read(goalsApiProvider)
+                          .archiveGoal(
+                            id: sectionGoals[i].id,
+                            isArchived: !sectionGoals[i].isArchived,
+                          );
+                      ref.invalidate(goalsProvider);
+                    },
+                  );
+
                   return _GoalsSection(
                     title: title,
                     subtitle: subtitle,
                     icon: icon,
                     accent: accent,
-                    child: Column(
-                      children: [
-                        for (int i = 0; i < sectionGoals.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i == sectionGoals.length - 1 ? 0 : 10,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // 2-column grid when wide enough and multiple cards
+                        final useGrid =
+                            constraints.maxWidth >= 620 &&
+                            sectionGoals.length > 1;
+
+                        if (!useGrid) {
+                          return Column(
+                            children: [
+                              for (int i = 0; i < sectionGoals.length; i++)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom:
+                                        i == sectionGoals.length - 1 ? 0 : 10,
+                                  ),
+                                  child: buildCard(i),
+                                ),
+                            ],
+                          );
+                        }
+
+                        // Build rows of 2
+                        final rows = <Widget>[];
+                        for (int i = 0;
+                            i < sectionGoals.length;
+                            i += 2) {
+                          final isLastRow = i + 2 >= sectionGoals.length;
+                          rows.add(
+                            Padding(
+                              padding: EdgeInsets.only(
+                                bottom: isLastRow ? 0 : 10,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: buildCard(i)),
+                                  const SizedBox(width: 10),
+                                  if (i + 1 < sectionGoals.length)
+                                    Expanded(child: buildCard(i + 1))
+                                  else
+                                    const Expanded(child: SizedBox()),
+                                ],
+                              ),
                             ),
-                            child: _GoalCard(
-                              goal: sectionGoals[i],
-                              alert:
-                                  goalAlerts[sectionGoals[i].id] ??
-                                  _assessGoalAlert(sectionGoals[i]),
-                              monthlyMarginAvailable: monthlyMarginAvailable,
-                              onEdit: () =>
-                                  _showGoalEditor(goal: sectionGoals[i]),
-                              onMove: () =>
-                                  _showGoalEntryEditor(sectionGoals[i]),
-                              onHistory: () =>
-                                  _showGoalHistory(sectionGoals[i]),
-                              onArchive: () async {
-                                await ref
-                                    .read(goalsApiProvider)
-                                    .archiveGoal(
-                                      id: sectionGoals[i].id,
-                                      isArchived: !sectionGoals[i].isArchived,
-                                    );
-                                ref.invalidate(goalsProvider);
-                              },
-                            ),
-                          ),
-                      ],
+                          );
+                        }
+                        return Column(children: rows);
+                      },
                     ),
                   );
                 }
