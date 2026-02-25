@@ -11,6 +11,8 @@ import 'package:solver/shared/widgets/currency_converter_sheet.dart';
 import 'package:solver/shared/widgets/mobile_bottom_bar.dart';
 import 'package:solver/shared/widgets/nav_items.dart';
 
+import 'package:solver/shared/widgets/desktop_sidebar.dart';
+
 class AppShell extends ConsumerWidget {
   final Widget child;
 
@@ -21,23 +23,40 @@ class AppShell extends ConsumerWidget {
     final width = MediaQuery.of(context).size.width;
     final isTablet = width >= AppBreakpoints.tablet;
 
+    if (isTablet) {
+      return Scaffold(
+        body: Row(
+          children: [
+            DesktopSidebar(ref: ref),
+            Expanded(
+              child: Column(
+                children: [
+                  _TopControls(ref: ref),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
-          if (isTablet) _TopHeader(ref: ref),
-          if (!isTablet) _MobileControls(ref: ref),
+          _MobileControls(ref: ref),
           Expanded(child: child),
         ],
       ),
-      bottomNavigationBar: isTablet ? null : const MobileBottomBar(),
+      bottomNavigationBar: const MobileBottomBar(),
     );
   }
 }
 
-class _TopHeader extends StatelessWidget {
+class _TopControls extends StatelessWidget {
   final WidgetRef ref;
 
-  const _TopHeader({required this.ref});
+  const _TopControls({required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -67,122 +86,34 @@ class _TopHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'S',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              if (hasContextPages)
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: activeGroup.pages
+                          .map((item) {
+                            final isActive = item.matchesLocation(location);
+                            return Padding(
+                              padding: const EdgeInsets.only(right: AppSpacing.xs),
+                              child: _ContextNavChip(
+                                item: item,
+                                isActive: isActive,
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s10),
-              Text(
-                'Solver',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: isDark ? Colors.white : AppColors.primaryDarker,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xxl),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ...primaryNavGroups.map((group) {
-                        final isActive = group.matchesLocation(location);
-                        return Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.xs),
-                          child: _NavTab(
-                            label: group.label,
-                            isActive: isActive,
-                            onTap: () => context.go(group.route),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 20,
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              ),
+                )
+              else
+                 const Spacer(),
               _CurrencyMenuButton(ref: ref),
               const SizedBox(width: AppSpacing.xs),
               _CurrencyConverterButton(ref: ref),
-              const SizedBox(width: AppSpacing.xs),
-              IconButton(
-                icon: Icon(
-                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  size: 20,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-                onPressed: () {
-                  final current = ref.read(themeModeProvider);
-                  ref
-                      .read(themeModeProvider.notifier)
-                      .state = current == ThemeMode.dark
-                      ? ThemeMode.light
-                      : ThemeMode.dark;
-                },
-                tooltip: isDark
-                    ? AppStrings.ui.themeTooltipLight
-                    : AppStrings.ui.themeTooltipDark,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: isDark
-                    ? AppColors.borderDark
-                    : AppColors.borderLight,
-                child: Icon(
-                  Icons.person,
-                  size: 18,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ),
             ],
           ),
-          if (hasContextPages) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: activeGroup.pages
-                      .map((item) {
-                        final isActive = item.matchesLocation(location);
-                        return Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.xs),
-                          child: _ContextNavChip(
-                            item: item,
-                            isActive: isActive,
-                          ),
-                        );
-                      })
-                      .toList(growable: false),
-                ),
-              ),
-            ),
-          ],
+
         ],
       ),
     );
@@ -374,132 +305,6 @@ class _CurrencyConverterButton extends StatelessWidget {
   }
 }
 
-class _MoreNavButton extends StatelessWidget {
-  final String location;
-
-  const _MoreNavButton({required this.location});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isActive = overflowNavItems.any(
-      (item) => item.matchesLocation(location),
-    );
-
-    return PopupMenuButton<NavItem>(
-      tooltip: AppStrings.nav.more,
-      onSelected: (item) => context.go(item.route),
-      itemBuilder: (_) => overflowNavItems
-          .map((item) {
-            final selected = item.matchesLocation(location);
-            return PopupMenuItem<NavItem>(
-              value: item,
-              child: Row(
-                children: [
-                  Icon(
-                    item.icon,
-                    size: 18,
-                    color: selected ? AppColors.primary : null,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: Text(item.label)),
-                  if (selected)
-                    const Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                ],
-              ),
-            );
-          })
-          .toList(growable: false),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive
-              ? (isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : AppColors.primaryDarker)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.r20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppStrings.nav.more,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive
-                    ? Colors.white
-                    : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.expand_more,
-              size: 14,
-              color: isActive
-                  ? Colors.white
-                  : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavTab extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavTab({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.r20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive
-              ? (isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : AppColors.primaryDarker)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.r20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive
-                ? Colors.white
-                : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ContextNavChip extends StatelessWidget {
   final NavItem item;

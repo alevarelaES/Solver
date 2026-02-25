@@ -248,11 +248,12 @@ public sealed class BudgetService
 
         var userId = GetUserId(ctx);
         var monthStart = new DateOnly(year, month, 1);
-        var (averageIncome, fixedExpensesTotal) = await GetIncomeAndFixedExpensesAsync(userId, monthStart);
+        var (averageIncome, fixedExpensesTotal) = await GetIncomeAndFixedExpensesAsync(userId, monthStart, db);
         var (committedManualAmount, committedAutoAmount) = await GetCommittedExpensesAsync(
             userId,
             year,
-            month);
+            month,
+            db);
         var committedTotalAmount = committedManualAmount + committedAutoAmount;
         var defaultDisposableIncome = Math.Max(0m, averageIncome - committedTotalAmount);
 
@@ -478,14 +479,16 @@ public sealed class BudgetService
 
     private async Task<(decimal averageIncome, decimal fixedExpensesTotal)> GetIncomeAndFixedExpensesAsync(
         Guid userId,
-        DateOnly monthStart)
+        DateOnly monthStart,
+        SolverDbContext? dbOverride = null)
     {
+        var db = dbOverride ?? _db;
         var dateFrom = monthStart.AddMonths(-3);
         var dateTo = monthStart;
 
         var recentMonthlyIncome = await (
-            from t in _db.Transactions
-            join a in _db.Accounts on t.AccountId equals a.Id
+            from t in db.Transactions
+            join a in db.Accounts on t.AccountId equals a.Id
             where t.UserId == userId
                 && t.Status == TransactionStatus.Completed
                 && a.Type == AccountType.Income
@@ -499,7 +502,7 @@ public sealed class BudgetService
             ? recentMonthlyIncome.Average()
             : 0m;
 
-        var fixedExpensesTotal = await _db.Accounts
+        var fixedExpensesTotal = await db.Accounts
             .Where(a => a.UserId == userId && a.IsFixed && a.Type == AccountType.Expense)
             .SumAsync(a => a.Budget);
 
@@ -509,15 +512,17 @@ public sealed class BudgetService
     private async Task<(decimal manualAmount, decimal autoAmount)> GetCommittedExpensesAsync(
         Guid userId,
         int year,
-        int month)
+        int month,
+        SolverDbContext? dbOverride = null)
     {
-        var rows = await _db.Transactions
+        var db = dbOverride ?? _db;
+        var rows = await db.Transactions
             .Where(t => t.UserId == userId
                 && t.Date.Year == year
                 && t.Date.Month == month
                 && (t.Status == TransactionStatus.Completed || t.Status == TransactionStatus.Pending))
             .Join(
-                _db.Accounts.Where(a => a.Type == AccountType.Expense),
+                db.Accounts.Where(a => a.Type == AccountType.Expense),
                 t => t.AccountId,
                 a => a.Id,
                 (t, _) => new

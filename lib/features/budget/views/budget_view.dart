@@ -104,18 +104,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                 subtitle: AppStrings.budget.subtitleFull,
               ),
               const SizedBox(height: AppSpacing.md),
-              _PlannerTopBar(
-                selectedMonth: selectedMonth,
-                dirty: _dirty,
-                saving: _savingPlan,
-                onPrevMonth: () => _changeMonth(-1),
-                onNextMonth: () => _changeMonth(1),
-                onSave: totals.overLimit
-                    ? null
-                    : () => _savePlan(stats, totals),
-                onReset: () => setState(() => _syncDraft(stats, force: true)),
-              ),
-              const SizedBox(height: 12),
               _PlannerHero(
                 inputVersion: inputVersion,
                 disposable: disposable.toDouble(),
@@ -144,6 +132,16 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                     ).clamp(0, double.infinity).toDouble();
                   });
                 },
+                // top-bar props
+                selectedMonth: selectedMonth,
+                dirty: _dirty,
+                saving: _savingPlan,
+                onPrevMonth: () => _changeMonth(-1),
+                onNextMonth: () => _changeMonth(1),
+                onSave: totals.overLimit
+                    ? null
+                    : () => _savePlan(stats, totals),
+                onReset: () => setState(() => _syncDraft(stats, force: true)),
               ),
               const SizedBox(height: 10),
               _SavingsQuickCard(

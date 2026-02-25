@@ -222,8 +222,8 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(20).IsRequired();
-            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(20);
+            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(100);
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255);
             entity.Property(e => e.AssetType).HasColumnName("asset_type").HasMaxLength(20).HasDefaultValue("stock");
             entity.Property(e => e.Quantity).HasColumnName("quantity").HasPrecision(18, 8);
@@ -245,8 +245,8 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(20).IsRequired();
-            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(20);
+            entity.Property(e => e.Symbol).HasColumnName("symbol").HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Exchange).HasColumnName("exchange").HasMaxLength(100);
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(255);
             entity.Property(e => e.AssetType).HasColumnName("asset_type").HasMaxLength(20).HasDefaultValue("stock");
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");

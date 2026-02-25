@@ -27,14 +27,14 @@ class _OverviewMetric extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSpacing.s6),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: accent.withAlpha(22),
               borderRadius: BorderRadius.circular(AppRadius.r8),
             ),
-            child: Icon(icon, size: 16, color: accent),
+            child: Icon(icon, size: 22, color: accent),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -43,7 +43,7 @@ class _OverviewMetric extends StatelessWidget {
                 label,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -51,7 +51,7 @@ class _OverviewMetric extends StatelessWidget {
                 value,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
-                  fontSize: 13,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -191,7 +191,7 @@ class _GoalCardState extends State<_GoalCard> {
     // ── Reusable badge builder ────────────────────────────────────────────────
     Widget badge(String text, Color color, {IconData? icon}) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: color.withAlpha(16),
           borderRadius: BorderRadius.circular(AppRadius.r6),
@@ -201,7 +201,7 @@ class _GoalCardState extends State<_GoalCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 11, color: color),
+              Icon(icon, size: 14, color: color),
               const SizedBox(width: 4),
             ],
             Text(
@@ -209,7 +209,7 @@ class _GoalCardState extends State<_GoalCard> {
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w700,
-                fontSize: 10,
+                fontSize: 13,
               ),
             ),
           ],
@@ -219,8 +219,8 @@ class _GoalCardState extends State<_GoalCard> {
 
     // ── Icon-only button style ────────────────────────────────────────────────
     final iconBtnStyle = OutlinedButton.styleFrom(
-      padding: const EdgeInsets.all(6),
-      minimumSize: const Size(28, 28),
+      padding: const EdgeInsets.all(8),
+      minimumSize: const Size(36, 36),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.r6),
@@ -235,7 +235,7 @@ class _GoalCardState extends State<_GoalCard> {
 
     return AppPanel(
       backgroundColor: cardBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       radius: AppRadius.r12,
       borderColor: progressColor.withAlpha(65),
       child: Column(
@@ -246,8 +246,8 @@ class _GoalCardState extends State<_GoalCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: progressColor.withAlpha(18),
                   borderRadius: BorderRadius.circular(AppRadius.r8),
@@ -255,10 +255,10 @@ class _GoalCardState extends State<_GoalCard> {
                 child: Icon(
                   isDebt ? Icons.payments_rounded : Icons.savings_rounded,
                   color: progressColor,
-                  size: 16,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -267,16 +267,16 @@ class _GoalCardState extends State<_GoalCard> {
                       child: Text(
                         goal.name,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     badge(alert.label, statusColor, icon: alert.icon),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     badge(
                       _deadlineLabel(goal),
                       deadlineColor,
@@ -285,7 +285,7 @@ class _GoalCardState extends State<_GoalCard> {
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -294,7 +294,7 @@ class _GoalCardState extends State<_GoalCard> {
                     style: TextStyle(
                       color: progressColor,
                       fontWeight: FontWeight.w900,
-                      fontSize: 16,
+                      fontSize: 20,
                       height: 1.0,
                     ),
                   ),
@@ -303,7 +303,7 @@ class _GoalCardState extends State<_GoalCard> {
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 10,
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -315,7 +315,7 @@ class _GoalCardState extends State<_GoalCard> {
           // ── Amounts row ─────────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white.withAlpha(140),
               borderRadius: BorderRadius.circular(AppRadius.r8),
@@ -324,7 +324,7 @@ class _GoalCardState extends State<_GoalCard> {
             child: Wrap(
               alignment: WrapAlignment.spaceBetween,
               spacing: 8,
-              runSpacing: 2,
+              runSpacing: 4,
               children: [
                 Text(
                   AppStrings.goals.currentVsTarget(
@@ -333,7 +333,7 @@ class _GoalCardState extends State<_GoalCard> {
                   ),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
+                    fontSize: 14,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -347,7 +347,7 @@ class _GoalCardState extends State<_GoalCard> {
                         ),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                    fontSize: 14,
                     color: isAchieved
                         ? AppColors.primary
                         : isDebt
@@ -381,19 +381,19 @@ class _GoalCardState extends State<_GoalCard> {
                 child: OutlinedButton(
                   onPressed: widget.onHistory,
                   style: iconBtnStyle,
-                  child: const Icon(Icons.history_rounded, size: 13),
+                  child: const Icon(Icons.history_rounded, size: 18),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Tooltip(
                 message: AppStrings.common.edit,
                 child: OutlinedButton(
                   onPressed: widget.onEdit,
                   style: iconBtnStyle,
-                  child: const Icon(Icons.edit_rounded, size: 13),
+                  child: const Icon(Icons.edit_rounded, size: 18),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Tooltip(
                 message: goal.isArchived
                     ? AppStrings.goals.unarchiveAction
@@ -405,19 +405,19 @@ class _GoalCardState extends State<_GoalCard> {
                     goal.isArchived
                         ? Icons.unarchive_rounded
                         : Icons.archive_rounded,
-                    size: 13,
+                    size: 18,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               // "Voir détail" toggle
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 3,
-                    vertical: 4,
+                    horizontal: 4,
+                    vertical: 6,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -425,17 +425,17 @@ class _GoalCardState extends State<_GoalCard> {
                       Text(
                         _expanded ? 'Réduire' : 'Voir détail',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 13,
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 2),
+                      const SizedBox(width: 4),
                       Icon(
                         _expanded
                             ? Icons.expand_less_rounded
                             : Icons.expand_more_rounded,
-                        size: 12,
+                        size: 16,
                         color: AppColors.textSecondary,
                       ),
                     ],
@@ -452,8 +452,8 @@ class _GoalCardState extends State<_GoalCard> {
                   onPressed: widget.onMove,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
+                      horizontal: 14,
+                      vertical: 10,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.r8),
@@ -463,7 +463,7 @@ class _GoalCardState extends State<_GoalCard> {
                     isDebt
                         ? Icons.credit_score_rounded
                         : Icons.sync_alt_rounded,
-                    size: 15,
+                    size: 20,
                   ),
                 ),
               ),

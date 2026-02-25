@@ -41,7 +41,11 @@ extension _BudgetViewLogic on _BudgetViewState {
 
     _draftToken = token;
     _useGrossIncomeBase = stats.budgetPlan.useGrossIncomeBase;
-    _draftDisposableIncome = stats.budgetPlan.forecastDisposableIncome;
+    final stored = stats.budgetPlan.forecastDisposableIncome;
+    // If no income has been set yet, compute a sensible default
+    _draftDisposableIncome = stored > 0
+        ? stored
+        : _recommendedDisposableInput(stats, gross: _useGrossIncomeBase);
     _draftError = null;
     _dirty = false;
     _drafts
@@ -302,6 +306,8 @@ extension _BudgetViewLogic on _BudgetViewState {
         _dirty = false;
       });
       if (mounted) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppStrings.budget.planSaved)),
         );
