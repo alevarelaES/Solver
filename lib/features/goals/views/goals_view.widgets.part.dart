@@ -63,78 +63,6 @@ class _OverviewMetric extends StatelessWidget {
   }
 }
 
-class _GoalsSection extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
-  final Widget child;
-
-  const _GoalsSection({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AppPanel(
-      radius: AppRadius.r16,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.s10,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      borderColor: accent.withAlpha(70),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.s6),
-                decoration: BoxDecoration(
-                  color: accent.withAlpha(20),
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                child: Icon(icon, size: 16, color: accent),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty)
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-}
 
 class _TypeButton extends StatelessWidget {
   final String label;
@@ -263,25 +191,25 @@ class _GoalCardState extends State<_GoalCard> {
     // ── Reusable badge builder ────────────────────────────────────────────────
     Widget badge(String text, Color color, {IconData? icon}) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(AppRadius.r8),
-          border: Border.all(color: color.withAlpha(80)),
+          color: color.withAlpha(16),
+          borderRadius: BorderRadius.circular(AppRadius.r6),
+          border: Border.all(color: color.withAlpha(55)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 13, color: color),
-              const SizedBox(width: 5),
+              Icon(icon, size: 11, color: color),
+              const SizedBox(width: 4),
             ],
             Text(
               text,
               style: TextStyle(
                 color: color,
-                fontWeight: FontWeight.w800,
-                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
               ),
             ),
           ],
@@ -291,11 +219,11 @@ class _GoalCardState extends State<_GoalCard> {
 
     // ── Icon-only button style ────────────────────────────────────────────────
     final iconBtnStyle = OutlinedButton.styleFrom(
-      padding: const EdgeInsets.all(8),
-      minimumSize: const Size(34, 34),
+      padding: const EdgeInsets.all(6),
+      minimumSize: const Size(28, 28),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.r8),
+        borderRadius: BorderRadius.circular(AppRadius.r6),
       ),
     );
     final iconBtnDangerStyle = iconBtnStyle.copyWith(
@@ -307,9 +235,9 @@ class _GoalCardState extends State<_GoalCard> {
 
     return AppPanel(
       backgroundColor: cardBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      radius: AppRadius.r16,
-      borderColor: progressColor.withAlpha(110),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      radius: AppRadius.r12,
+      borderColor: progressColor.withAlpha(65),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -318,47 +246,46 @@ class _GoalCardState extends State<_GoalCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
-                  color: progressColor.withAlpha(22),
-                  borderRadius: BorderRadius.circular(AppRadius.r10),
+                  color: progressColor.withAlpha(18),
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
                 ),
                 child: Icon(
                   isDebt ? Icons.payments_rounded : Icons.savings_rounded,
                   color: progressColor,
-                  size: 20,
+                  size: 16,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      goal.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
+                    Flexible(
+                      child: Text(
+                        goal.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        badge(alert.label, statusColor, icon: alert.icon),
-                        badge(
-                          _deadlineLabel(goal),
-                          deadlineColor,
-                          icon: Icons.event_rounded,
-                        ),
-                      ],
+                    const SizedBox(width: 6),
+                    badge(alert.label, statusColor, icon: alert.icon),
+                    const SizedBox(width: 4),
+                    badge(
+                      _deadlineLabel(goal),
+                      deadlineColor,
+                      icon: Icons.event_rounded,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -367,7 +294,7 @@ class _GoalCardState extends State<_GoalCard> {
                     style: TextStyle(
                       color: progressColor,
                       fontWeight: FontWeight.w900,
-                      fontSize: 20,
+                      fontSize: 16,
                       height: 1.0,
                     ),
                   ),
@@ -375,29 +302,29 @@ class _GoalCardState extends State<_GoalCard> {
                     AppStrings.goals.completedLabel,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // ── Amounts row ─────────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(170),
-              borderRadius: BorderRadius.circular(AppRadius.r10),
+              color: Colors.white.withAlpha(140),
+              borderRadius: BorderRadius.circular(AppRadius.r8),
               border: Border.all(color: AppColors.borderSubtle),
             ),
             child: Wrap(
               alignment: WrapAlignment.spaceBetween,
-              spacing: 12,
-              runSpacing: 4,
+              spacing: 8,
+              runSpacing: 2,
               children: [
                 Text(
                   AppStrings.goals.currentVsTarget(
@@ -405,7 +332,8 @@ class _GoalCardState extends State<_GoalCard> {
                     AppFormats.formatFromChfCompact(goal.targetAmount),
                   ),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -418,7 +346,8 @@ class _GoalCardState extends State<_GoalCard> {
                           AppFormats.formatFromChfCompact(goal.remainingAmount),
                         ),
                   style: TextStyle(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
                     color: isAchieved
                         ? AppColors.primary
                         : isDebt
@@ -429,19 +358,19 @@ class _GoalCardState extends State<_GoalCard> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
 
           // ── Progress bar ────────────────────────────────────────────────────
           ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.r8),
+            borderRadius: BorderRadius.circular(AppRadius.r6),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 8,
+              minHeight: 5,
               backgroundColor: AppColors.surfaceInfoSoft,
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // ── Action row ──────────────────────────────────────────────────────
           Row(
@@ -452,19 +381,19 @@ class _GoalCardState extends State<_GoalCard> {
                 child: OutlinedButton(
                   onPressed: widget.onHistory,
                   style: iconBtnStyle,
-                  child: const Icon(Icons.history_rounded, size: 16),
+                  child: const Icon(Icons.history_rounded, size: 13),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Tooltip(
                 message: AppStrings.common.edit,
                 child: OutlinedButton(
                   onPressed: widget.onEdit,
                   style: iconBtnStyle,
-                  child: const Icon(Icons.edit_rounded, size: 16),
+                  child: const Icon(Icons.edit_rounded, size: 13),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Tooltip(
                 message: goal.isArchived
                     ? AppStrings.goals.unarchiveAction
@@ -476,19 +405,19 @@ class _GoalCardState extends State<_GoalCard> {
                     goal.isArchived
                         ? Icons.unarchive_rounded
                         : Icons.archive_rounded,
-                    size: 16,
+                    size: 13,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               // "Voir détail" toggle
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
+                    horizontal: 3,
+                    vertical: 4,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -496,7 +425,7 @@ class _GoalCardState extends State<_GoalCard> {
                       Text(
                         _expanded ? 'Réduire' : 'Voir détail',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
@@ -506,7 +435,7 @@ class _GoalCardState extends State<_GoalCard> {
                         _expanded
                             ? Icons.expand_less_rounded
                             : Icons.expand_more_rounded,
-                        size: 14,
+                        size: 12,
                         color: AppColors.textSecondary,
                       ),
                     ],
@@ -523,18 +452,18 @@ class _GoalCardState extends State<_GoalCard> {
                   onPressed: widget.onMove,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
+                      horizontal: 10,
+                      vertical: 8,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.r10),
+                      borderRadius: BorderRadius.circular(AppRadius.r8),
                     ),
                   ),
                   child: Icon(
                     isDebt
                         ? Icons.credit_score_rounded
                         : Icons.sync_alt_rounded,
-                    size: 18,
+                    size: 15,
                   ),
                 ),
               ),

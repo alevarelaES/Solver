@@ -26,67 +26,6 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
   String _searchQuery = '';
   bool _sortDateAsc = false; // false = most recent first
   String _filterType = 'all'; // 'all', 'income', 'expense'
-  String? _reversingTxId;
-
-  Future<void> _reverseTransaction(Transaction tx) async {
-    final reasonCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Annuler et rembourser'),
-        content: TextField(
-          controller: reasonCtrl,
-          maxLength: 250,
-          decoration: const InputDecoration(labelText: 'Raison (optionnel)'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(AppStrings.common.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Confirmer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _reversingTxId = tx.id);
-    try {
-      await ref
-          .read(apiClientProvider)
-          .post(
-            '/api/transactions/${tx.id}/reverse',
-            data: {
-              if (reasonCtrl.text.trim().isNotEmpty)
-                'reason': reasonCtrl.text.trim(),
-            },
-          );
-      invalidateAfterTransactionMutation(ref);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Transaction annulee avec contre-ecriture.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors de l annulation.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.danger,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _reversingTxId = null);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -383,10 +322,6 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
                               tx.id;
                           context.go('/journal');
                         },
-                        onReverse: (tx.isVoided || tx.isReimbursement)
-                            ? null
-                            : () => _reverseTransaction(tx),
-                        isReversing: _reversingTxId == tx.id,
                       ),
                     )
                     .toList(),
@@ -402,14 +337,10 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
 class _TransactionRow extends StatefulWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
-  final VoidCallback? onReverse;
-  final bool isReversing;
 
   const _TransactionRow({
     required this.transaction,
     this.onTap,
-    this.onReverse,
-    this.isReversing = false,
   });
 
   @override
@@ -497,25 +428,6 @@ class _TransactionRowState extends State<_TransactionRow> {
                   ],
                 ),
               ),
-              if (widget.onReverse != null) ...[
-                const SizedBox(width: AppSpacing.xs),
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: IconButton(
-                    onPressed: widget.isReversing ? null : widget.onReverse,
-                    tooltip: 'Annuler et rembourser',
-                    icon: widget.isReversing
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.undo_rounded, size: 16),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ],
               // Date
               Expanded(
                 flex: 3,

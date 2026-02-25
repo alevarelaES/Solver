@@ -130,7 +130,6 @@ class _PortfolioViewState extends ConsumerState<PortfolioView>
 
     return AppPageScaffold(
       scrollable: false,
-      maxWidth: 1480,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

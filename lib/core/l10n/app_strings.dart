@@ -508,23 +508,23 @@ class _Goals {
   String get typeLabelDebt => 'Remboursement';
 
   // Alert labels
-  String get alertUrgentSoon => 'Urgence: échéance proche';
-  String get alertAttentionSoon => 'Attention: bientôt';
-  String get alertUrgentAdjustment => 'Urgence: ajustement fort';
-  String get alertAttentionAdjust => 'Attention: à ajuster';
-  String get alertAttentionApproach => 'Attention: approche';
-  String get alertAttentionLowRhythm => 'Attention: rythme faible';
+  String get alertUrgentSoon => 'Urgent';
+  String get alertAttentionSoon => 'Bientôt';
+  String get alertUrgentAdjustment => 'Urgent';
+  String get alertAttentionAdjust => 'À ajuster';
+  String get alertAttentionApproach => 'Approche';
+  String get alertAttentionLowRhythm => 'Rythme faible';
   String get alertToPlan => 'À planifier';
   String get alertToAdjust => 'À ajuster';
-  String get alertOnTrack => 'Sur trajectoire';
-  String get alertOverdueDeadline => 'Échéance dépassée';
+  String get alertOnTrack => 'En cours';
+  String get alertOverdueDeadline => 'Dépassé';
 
   // Deadline labels
-  String achievedDeadline(String date) => 'Atteint - cible $date';
-  String overdueByDays(int days) => 'Retard de $days jours';
-  String get deadlineToday => 'Échéance aujourd\'hui';
-  String get deadlineTomorrow => 'Échéance demain';
-  String deadlineInDays(int days) => 'Échéance dans $days jours';
+  String achievedDeadline(String date) => 'Cible $date';
+  String overdueByDays(int days) => '$days j de retard';
+  String get deadlineToday => 'Aujourd\'hui';
+  String get deadlineTomorrow => 'Demain';
+  String deadlineInDays(int days) => 'Dans $days j';
 
   // Goal card
   String get completedLabel => 'complété';

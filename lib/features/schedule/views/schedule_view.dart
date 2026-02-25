@@ -199,7 +199,6 @@ class ScheduleView extends ConsumerWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             return AppPageScaffold(
-              maxWidth: 1440,
               padding: const EdgeInsets.all(AppSpacing.xxxl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

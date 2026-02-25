@@ -10,7 +10,7 @@ class AppPageScaffold extends StatelessWidget {
   const AppPageScaffold({
     super.key,
     required this.child,
-    this.maxWidth = 1380,
+    this.maxWidth = double.infinity,
     this.padding,
     this.scrollable = true,
   });

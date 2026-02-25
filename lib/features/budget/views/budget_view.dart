@@ -90,7 +90,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
             .toDouble();
 
         return AppPageScaffold(
-          maxWidth: 1380,
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.xl,
             AppSpacing.s18,

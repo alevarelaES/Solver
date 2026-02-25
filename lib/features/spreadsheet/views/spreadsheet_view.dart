@@ -180,7 +180,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
 
     return AppPageScaffold(
       scrollable: false,
-      maxWidth: 1480,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

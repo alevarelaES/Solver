@@ -44,7 +44,6 @@ class AnalysisView extends ConsumerWidget {
 
     return AppPageScaffold(
       scrollable: false,
-      maxWidth: 1200,
       child: Column(
         children: [
           AppPageHeader(
