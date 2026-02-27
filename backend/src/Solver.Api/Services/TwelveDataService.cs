@@ -245,7 +245,7 @@ public class TwelveDataService
                 .ToList();
 
             result[symbol] = points;
-            _memoryCache.Set(cacheKey, points, TimeSpan.FromHours(1));
+            _memoryCache.Set(cacheKey, points, TimeSpan.FromMinutes(10));
         }
 
         var missingOrSparse = normalizedSymbols
@@ -528,7 +528,7 @@ public class TwelveDataService
     private void SetQuoteInMemory(string symbol, QuoteData quote)
     {
         var cacheKey = $"td:quote:last:{symbol}";
-        _memoryCache.Set(cacheKey, quote with { IsStale = false }, TimeSpan.FromHours(12));
+        _memoryCache.Set(cacheKey, quote with { IsStale = false }, TimeSpan.FromMinutes(_config.CacheMinutes));
     }
 
     private async Task UpsertPriceCacheAsync(string symbol, QuoteData quote)

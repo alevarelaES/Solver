@@ -91,6 +91,8 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final hasEnvelope = row.plannedAmount > 0.0001;
     final paidAmount = row.group.spentActual;
     final pendingAmount = row.group.pendingAmount;
@@ -197,20 +199,40 @@ class _GroupCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              ChoiceChip(
-                label: const Text('%'),
-                selected: row.draft.inputMode == 'percent',
-                onSelected: (_) => onModeChanged(row, 'percent'),
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
+                  border: Border.all(color: AppColors.borderSubtle),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _SegmentOption(
+                      label: '%',
+                      isSelected: row.draft.inputMode == 'percent',
+                      onTap: () => onModeChanged(row, 'percent'),
+                      isDark: isDark,
+                    ),
+                    _SegmentOption(
+                      label: AppStrings.budget.amountChipLabel,
+                      isSelected: row.draft.inputMode == 'amount',
+                      onTap: () => onModeChanged(row, 'amount'),
+                      isDark: isDark,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              ChoiceChip(
-                label: Text(AppStrings.budget.amountChipLabel),
-                selected: row.draft.inputMode == 'amount',
-                onSelected: (_) => onModeChanged(row, 'amount'),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
+              const SizedBox(width: 16),
+              Container(
                 width: 140,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
+                  border: Border.all(color: AppColors.borderSubtle),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                 child: _SyncedNumericField(
                   key: ValueKey(
                     '$inputVersion-${row.group.groupId}-${row.draft.inputMode}',
@@ -226,6 +248,9 @@ class _GroupCard extends StatelessWidget {
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
                   ],
                   decoration: InputDecoration(
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
                     isDense: true,
                     hintText: '0',
                     suffixText: row.draft.inputMode == 'amount'
@@ -362,40 +387,28 @@ class _GroupCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Wrap(
-              spacing: 10,
-              runSpacing: 6,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  AppStrings.budget.redLabel(
+                _StatusBadge(
+                  label: AppStrings.budget.redLabel(
                     AppFormats.formatFromChfCompact(paidAmount),
                   ),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.danger,
-                  ),
+                  color: AppColors.danger,
                 ),
-                Text(
-                  AppStrings.budget.yellowLabel(
+                _StatusBadge(
+                  label: AppStrings.budget.yellowLabel(
                     AppFormats.formatFromChfCompact(pendingAmount),
                   ),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.warning,
-                  ),
+                  color: AppColors.warning,
                 ),
-                Text(
-                  AppStrings.budget.greenLabel(
+                _StatusBadge(
+                  label: AppStrings.budget.greenLabel(
                     AppFormats.formatFromChfCompact(
                       spentDelta > 0 ? spentDelta : 0,
                     ),
                   ),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+                  color: AppColors.primary,
                 ),
               ],
             ),
@@ -534,3 +547,79 @@ class _ToggleButton extends StatelessWidget {
   }
 }
 
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _StatusBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.r8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: isDark ? color : color,
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentOption extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _SegmentOption({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? AppColors.surfaceDark : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.r6),
+          boxShadow: isSelected && !isDark
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected
+                ? AppColors.textPrimary
+                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+          ),
+        ),
+      ),
+    );
+  }
+}
