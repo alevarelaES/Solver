@@ -46,7 +46,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
             data: {
               if (reason != null && reason.trim().isNotEmpty)
                 'reason': reason.trim(),
-              if (amount != null) 'amount': amount,
+              'amount': ?amount,
             },
           );
       _afterMutation();
@@ -182,9 +182,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               final parsed = double.tryParse(
                 amountCtrl.text.replaceAll(',', '.'),
               );
-              final capped = parsed != null
-                  ? parsed.clamp(0.01, tx.amount.abs())
-                  : null;
+              final capped = parsed?.clamp(0.01, tx.amount.abs());
               _reverseTransaction(
                 reason: reasonCtrl.text,
                 amount: capped,

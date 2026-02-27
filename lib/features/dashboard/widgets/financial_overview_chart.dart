@@ -168,7 +168,7 @@ class _FinancialOverviewChartState
                         final i = spot.x.toInt();
                         return i < buckets.length && buckets[i].isCurrent;
                       },
-                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                      getDotPainter: (_, _, _, _) => FlDotCirclePainter(
                         radius: 4,
                         color: AppColors.primary,
                         strokeWidth: 2,
@@ -204,7 +204,7 @@ class _FinancialOverviewChartState
                         final i = spot.x.toInt();
                         return i < buckets.length && buckets[i].isCurrent;
                       },
-                      getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                      getDotPainter: (_, _, _, _) => FlDotCirclePainter(
                         radius: 4,
                         color: AppColors.danger,
                         strokeWidth: 2,
@@ -240,7 +240,6 @@ class _FinancialOverviewChartState
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 28,
-                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= buckets.length) {
