@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/services/api_client.dart';
-import 'package:solver/core/theme/app_component_styles.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
@@ -13,7 +12,7 @@ import 'package:solver/features/schedule/providers/schedule_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/core/l10n/app_strings.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 class PendingInvoicesSection extends ConsumerStatefulWidget {
   const PendingInvoicesSection({super.key});
@@ -25,15 +24,14 @@ class PendingInvoicesSection extends ConsumerStatefulWidget {
 
 class _PendingInvoicesSectionState
     extends ConsumerState<PendingInvoicesSection> {
-  bool _showAll = false;
-
   @override
   Widget build(BuildContext context) {
     ref.watch(appCurrencyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final upcomingAsync = ref.watch(upcomingTransactionsProvider);
 
-    return GlassContainer(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: AppSpacing.paddingCardCompact,
       child: upcomingAsync.when(
         loading: () => const SizedBox(
@@ -50,15 +48,11 @@ class _PendingInvoicesSectionState
           ),
         ),
         data: (data) {
-          final source = _showAll
-              ? [...data.manual, ...data.auto]
-              : data.manual;
-          final invoices = source.where((t) {
+          final invoices = data.manual.where((t) {
             if (t.amount <= 0) return false;
             if (!t.isPending) return false;
-            final days = _daysUntil(t.date);
-            // Keep overdue bills, and upcoming bills due in the next 30 days.
-            return days <= 30;
+            // Only show overdue bills.
+            return _daysUntil(t.date) < 0;
           }).toList()..sort(_compareByPriority);
 
           final overdueCount = invoices
@@ -80,14 +74,17 @@ class _PendingInvoicesSectionState
                   Expanded(
                     child: Row(
                       children: [
-                        Text(
-                          AppStrings.dashboard.pendingInvoices,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimaryLight,
+                        Flexible(
+                          child: Text(
+                            AppStrings.dashboard.pendingInvoices,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
+                            ),
                           ),
                         ),
                         if (overdueCount > 0) ...[
@@ -117,33 +114,7 @@ class _PendingInvoicesSectionState
                       ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: () => setState(() => _showAll = !_showAll),
-                    style: AppButtonStyles.inline(),
-                    child: Text(
-                      _showAll
-                          ? AppStrings.dashboard.manualOnly
-                          : AppStrings.dashboard.showAll,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
                 ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Text(
-                  AppStrings.dashboard.pendingInvoicesHint,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark
-                        ? AppColors.textDisabledDark
-                        : AppColors.textDisabledLight,
-                  ),
-                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               if (overdueCount > 0 || dueTodayCount > 0)

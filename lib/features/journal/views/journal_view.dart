@@ -11,6 +11,7 @@ import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
 import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_component_styles.dart';
+import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/accounts/providers/accounts_provider.dart';
@@ -18,8 +19,11 @@ import 'package:solver/features/journal/providers/journal_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/features/transactions/widgets/transaction_form_modal.dart';
+import 'package:solver/features/journal/widgets/journal_kpi_banner.dart';
+import 'package:solver/features/journal/widgets/journal_right_sidebar.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 import 'package:solver/shared/widgets/page_header.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 part 'journal_view.header.part.dart';
 part 'journal_view.filters.part.dart';
@@ -133,6 +137,8 @@ class JournalView extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 900;
+        final showSidebar = constraints.maxWidth >= 1280;
+
         return Stack(
           children: [
             Padding(
@@ -144,11 +150,30 @@ class JournalView extends ConsumerWidget {
                   _JournalHeader(isMobile: isMobile),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: _JournalBody(
-                      transactions: transactions,
-                      selected: selected,
-                      isMobile: isMobile,
-                    ),
+                    child: showSidebar
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: _JournalBody(
+                                  transactions: transactions,
+                                  selected: selected,
+                                  isMobile: false,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              const SizedBox(
+                                width: 280,
+                                child: JournalRightSidebar(),
+                              ),
+                            ],
+                          )
+                        : _JournalBody(
+                            transactions: transactions,
+                            selected: selected,
+                            isMobile: isMobile,
+                          ),
                   ),
                 ],
               ),

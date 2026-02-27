@@ -58,6 +58,7 @@ dependencies:
   flutter_animate: ^4.5.2
   shared_preferences: ^2.3.2
   cached_network_image: ^3.4.1
+  flutter_glass_morphism: ^1.0.2
 
 dev_dependencies:
   flutter_test:

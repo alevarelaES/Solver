@@ -20,12 +20,14 @@ class _JournalBody extends ConsumerWidget {
         ? _buildMonthTotals(pageItems)
         : const <int, _MonthTotals>{};
 
-    return Container(
-      color: AppColors.surfaceElevated,
-      child: Column(
-        children: [
-          if (!isMobile) _JournalKpiStrip(transactions: transactions),
-          Expanded(
+    return Column(
+      children: [
+        if (!isMobile) JournalKpiBanner(transactions: transactions),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.sm,
+            ),
             child: _TransactionTable(
               transactions: pageItems,
               monthTotals: monthTotals,
@@ -35,8 +37,8 @@ class _JournalBody extends ConsumerWidget {
               selectedId: selected?.id,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -195,54 +197,55 @@ class _TransactionTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = _buildRows(transactions, showMonthHeaders);
-    return AppPanel(
-      padding: EdgeInsets.zero,
-      radius: AppRadius.md,
-      variant: AppPanelVariant.surface,
-      backgroundColor: AppColors.surfaceCard,
-      borderColor: AppColors.borderTable,
-      boxShadow: AppShadows.cardHover,
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        children: [
-          _JournalFilterBar(isMobile: isMobile),
-          _TableHeader(isMobile: isMobile),
-          const Divider(height: 1, color: AppColors.borderTable),
-          Expanded(
-            child: rows.isEmpty
-                ? Center(
-                    child: Text(
-                      AppStrings.journal.noTransactionsFilter,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
+    // PremiumCardBase gives the glassmorphic surface — ClipRRect ensures
+    // child content is clipped to the rounded corners.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: PremiumCardBase(
+        variant: PremiumCardVariant.standard,
+        padding: EdgeInsets.zero,
+        borderRadius: AppRadius.md,
+        child: Column(
+          children: [
+            _JournalFilterBar(isMobile: isMobile),
+            _TableHeader(isMobile: isMobile),
+            const Divider(height: 1, color: AppColors.borderTable),
+            Expanded(
+              child: rows.isEmpty
+                  ? Center(
+                      child: Text(
+                        AppStrings.journal.noTransactionsFilter,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: rows.length,
-                    itemBuilder: (context, index) {
-                      final entry = rows[index];
-                      if (entry.monthHeader != null) {
-                        final key = _monthKey(entry.monthHeader!);
-                        return _MonthHeaderRow(
-                          monthDate: entry.monthHeader!,
-                          totals: monthTotals[key] ?? const _MonthTotals(),
+                    )
+                  : ListView.builder(
+                      itemCount: rows.length,
+                      itemBuilder: (context, index) {
+                        final entry = rows[index];
+                        if (entry.monthHeader != null) {
+                          final key = _monthKey(entry.monthHeader!);
+                          return _MonthHeaderRow(
+                            monthDate: entry.monthHeader!,
+                            totals: monthTotals[key] ?? const _MonthTotals(),
+                            isMobile: isMobile,
+                          );
+                        }
+                        final tx = entry.transaction!;
+                        return _TransactionRow(
+                          transaction: tx,
                           isMobile: isMobile,
+                          selected: tx.id == selectedId,
+                          isEven: index % 2 == 0,
+                          onTap: () => onSelect(tx),
                         );
-                      }
-                      final tx = entry.transaction!;
-                      return _TransactionRow(
-                        transaction: tx,
-                        isMobile: isMobile,
-                        selected: tx.id == selectedId,
-                        isEven: index % 2 == 0,
-                        onTap: () => onSelect(tx),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -553,22 +556,23 @@ class _TransactionRowState extends State<_TransactionRow> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final p = theme.extension<PremiumThemeExtension>()!;
     final transaction = widget.transaction;
     final signedAmount = transaction.signedAmount;
     final amountPrefix = signedAmount >= 0 ? '+' : '-';
     final amountColor = signedAmount >= 0 ? AppColors.primary : AppColors.danger;
     final groupLabel = _transactionGroup(transaction);
     final isVoided = transaction.isVoided;
+    // Transparent overlays — preserves glassmorphism from PremiumCardBase.
     final baseBg = widget.isMobile
         ? Colors.transparent
-        : (widget.isEven
-            ? (isDark ? const Color(0xFF1A2616) : Colors.white)
-            : (isDark ? const Color(0xFF1E2B1A) : AppColors.surfaceTableRowStripe));
+        : (widget.isEven ? p.glassOverlay : Colors.transparent);
     final rowBg = widget.selected
         ? AppColors.primary.withAlpha(_hovered ? 52 : 34)
         : _hovered
-        ? AppColors.primary.withAlpha(10)
+        ? AppColors.primary.withAlpha(14)
         : baseBg;
     final leftBorderColor = isVoided
         ? AppColors.textDisabled.withAlpha(60)
@@ -724,8 +728,8 @@ class _TransactionRowState extends State<_TransactionRow> {
                                 ],
                                 if (isVoided) ...[
                                   const SizedBox(height: 4),
-                                  const _StatusBadge(
-                                    label: 'Annulee',
+                                  _StatusBadge(
+                                    label: AppStrings.journal.statusVoided,
                                     color: AppColors.textDisabled,
                                   ),
                                 ] else if (!transaction.isCompleted) ...[
@@ -794,137 +798,4 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// KPI STRIP
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _JournalKpiStrip extends StatelessWidget {
-  final List<Transaction> transactions;
-  const _JournalKpiStrip({required this.transactions});
-
-  @override
-  Widget build(BuildContext context) {
-    double income = 0;
-    double expense = 0;
-    for (final tx in transactions) {
-      if (tx.isVoided) continue;
-      // Negative amount on expense account = reimbursement = effectively income
-      final isEffectivelyIncome = tx.isIncome || tx.amount < 0;
-      if (isEffectivelyIncome) {
-        income += tx.amount.abs();
-      } else {
-        expense += tx.amount.abs();
-      }
-    }
-    final net = income - expense;
-    final netPositive = net >= 0;
-    final netColor = netPositive ? AppColors.primary : AppColors.danger;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.md,
-        AppSpacing.md,
-        0,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _KpiCell(
-              label: 'Revenus',
-              value: '+${AppFormats.formatFromChf(income)}',
-              color: AppColors.primary,
-              icon: Icons.trending_up_rounded,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _KpiCell(
-              label: 'Dépenses',
-              value: '-${AppFormats.formatFromChf(expense)}',
-              color: AppColors.danger,
-              icon: Icons.trending_down_rounded,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _KpiCell(
-              label: 'Net',
-              value: '${netPositive ? '+' : '-'}${AppFormats.formatFromChf(net.abs())}',
-              color: netColor,
-              icon: netPositive
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _KpiCell extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final IconData icon;
-
-  const _KpiCell({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 14, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: color.withValues(alpha: 0.75),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// _JournalKpiStrip and _KpiCell removed — replaced by JournalKpiBanner widget.

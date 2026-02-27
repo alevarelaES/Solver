@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:solver/core/theme/app_premium_theme.dart';
 
 class AppColors {
   const AppColors._();
@@ -179,6 +180,9 @@ class AppTheme {
       textTheme: textTheme,
       cardColor: surface,
       dividerColor: border,
+      extensions: [
+        isDark ? PremiumThemeExtension.dark() : PremiumThemeExtension.light(),
+      ],
       cardTheme: CardThemeData(
         color: surface,
         margin: EdgeInsets.zero,

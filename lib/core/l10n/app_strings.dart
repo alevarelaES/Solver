@@ -305,9 +305,13 @@ class _Journal {
   String get filterSearch => 'Rechercher...';
   String get resetFilters => 'Réinitialiser';
 
+  // KPI banner labels
+  String get kpiNet => 'Net';
+
   // Status labels
   String get statusPaid => 'Payé';
   String get statusPending => 'En attente';
+  String get statusVoided => 'Annulée';
   String get statusAuto => 'Auto';
   String get statusToPay => 'À payer';
   String get statusAutoUpcoming => 'Auto à venir';
@@ -682,6 +686,19 @@ class _Schedule {
   String daysUntil(int days) => 'Dans $days jour${days > 1 ? 's' : ''}';
   String hiddenCount(int count) =>
       '+$count échéance${count > 1 ? 's' : ''} suivante${count > 1 ? 's' : ''} plus tard';
+  String error(Object e) => 'Erreur : $e';
+
+  // Tabs
+  String get tabStat => 'Stat';
+  String get tabCalendar => 'Calendrier';
+  String get tabMobile => 'Mob';
+  String get tabSpreadsheet => 'Tableur';
+
+  // Left panel
+  String get upcomingInvoices => 'Upcoming invoices';
+
+  // Empty state
+  String get allGood => 'Tout est à jour !';
 }
 
 // ---------------------------------------------------------------------------

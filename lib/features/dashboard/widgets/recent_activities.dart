@@ -7,13 +7,11 @@ import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/providers/navigation_providers.dart';
-import 'package:solver/core/services/api_client.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/providers/recent_transactions_provider.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
-import 'package:solver/features/transactions/providers/transaction_refresh.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 class RecentActivities extends ConsumerStatefulWidget {
   const RecentActivities({super.key});
@@ -33,7 +31,8 @@ class _RecentActivitiesState extends ConsumerState<RecentActivities> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final recentAsync = ref.watch(recentTransactionsProvider);
 
-    return GlassContainer(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: AppSpacing.paddingCardCompact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,8 +377,8 @@ class _TransactionRowState extends State<_TransactionRow> {
           decoration: BoxDecoration(
             color: _isHovered
                 ? (isDark
-                      ? AppColors.surfaceDark.withValues(alpha: 0.5)
-                      : AppColors.surfaceElevated)
+                      ? Colors.white.withValues(alpha: 0.05) // frosted white hover for dark
+                      : Colors.white.withValues(alpha: 0.60)) // frosted white hover for light
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),

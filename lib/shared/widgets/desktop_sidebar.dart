@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
+import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/main.dart';
 import 'package:solver/shared/widgets/nav_items.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 class DesktopSidebar extends ConsumerStatefulWidget {
   final WidgetRef ref;
@@ -23,6 +25,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final p = theme.extension<PremiumThemeExtension>()!;
     final location = GoRouterState.of(context).matchedLocation;
 
     return MouseRegion(
@@ -34,10 +37,10 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
         width: _isHovered ? 260.0 : 81.0,
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
-          color: theme.cardColor,
+          color: isDark ? p.canvasMid : theme.cardColor,
           border: Border(
             right: BorderSide(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              color: isDark ? p.glassBorder : AppColors.borderLight,
             ),
           ),
           boxShadow: _isHovered && !isDark
@@ -167,25 +170,24 @@ class _SidebarNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Tooltip(
       message: isHovered ? '' : label,
       preferBelow: false,
-      child: InkWell(
+      child: PremiumCardBase(
+        variant: PremiumCardVariant.sidebar,
+        selected: isActive,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.only(left: 13.0, right: 16.0),
-          decoration: BoxDecoration(
-            color: isActive
-                ? (isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : AppColors.primary.withValues(alpha: 0.1))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
+        enableBlur: false,
+        overrideSurface: isActive
+            ? (isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.1))
+            : Colors.transparent,
+        child: SizedBox(
+          height: 24, // +24px padding = 48px total height
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
@@ -241,43 +243,6 @@ class _SidebarFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
-      firstChild: _buildCollapsed(),
-      secondChild: _buildExpanded(),
-      crossFadeState: isHovered ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-      duration: const Duration(milliseconds: 200),
-      alignment: Alignment.centerLeft,
-    );
-  }
-
-  Widget _buildCollapsed() {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: 22.0,
-        top: AppSpacing.md,
-        bottom: AppSpacing.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: isDark ? AppColors.borderDark : AppColors.borderLight,
-            child: Icon(
-              Icons.person,
-              size: 20,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _ThemeToggleButton(ref: ref, isDark: isDark),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpanded() {
     return Padding(
       padding: const EdgeInsets.only(
         left: 22.0,
@@ -299,36 +264,43 @@ class _SidebarFooter extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Utilisateur',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: isHovered ? 1.0 : 0.0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Utilisateur',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
                   ),
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.fade,
-                ),
-                Text(
-                  'Mon Profil',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  Text(
+                    'Mon Profil',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade,
                   ),
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.fade,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          _ThemeToggleButton(ref: ref, isDark: isDark),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 150),
+            opacity: isHovered ? 1.0 : 0.0,
+            child: _ThemeToggleButton(ref: ref, isDark: isDark),
+          ),
         ],
       ),
     );

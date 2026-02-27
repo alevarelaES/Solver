@@ -7,7 +7,8 @@ import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/dashboard/providers/dashboard_provider.dart';
-import 'package:solver/features/dashboard/widgets/balance_card.dart';
+import 'package:solver/features/dashboard/widgets/balance_hero_card.dart';
+import 'package:solver/features/dashboard/widgets/dashboard_right_sidebar.dart';
 import 'package:solver/features/dashboard/widgets/expense_breakdown.dart';
 import 'package:solver/features/dashboard/widgets/financial_overview_chart.dart';
 import 'package:solver/features/dashboard/widgets/goals_priority_summary.dart';
@@ -97,11 +98,11 @@ class _DashboardContent extends ConsumerWidget {
                 width: AppSizes.leftColumnWidth,
                 child: Column(
                   children: [
-                    BalanceCard(data: data),
-                    gap,
-                    const PendingInvoicesSection(),
+                    BalanceHeroCard(data: data),
                     gap,
                     ExpenseBreakdown(data: data),
+                    gap,
+                    const GoalsPrioritySummaryCard(),
                   ],
                 ),
               )
@@ -116,13 +117,13 @@ class _DashboardContent extends ConsumerWidget {
                     gap,
                     InsightsBanner(data: data),
                     gap,
-                    const RecentActivities(),
-                    gap,
                     FinancialOverviewChart(
                       data: data,
                       year: year,
                       chartHeight: AppSizes.chartHeight - 28,
                     ),
+                    gap,
+                    const RecentActivities(),
                   ],
                 ),
               )
@@ -135,13 +136,7 @@ class _DashboardContent extends ConsumerWidget {
           hGap,
           SizedBox(
                 width: AppSizes.rightSidebarWidth,
-                child: Column(
-                  children: [
-                    const GoalsPrioritySummaryCard(),
-                    const SizedBox(height: AppSpacing.lg),
-                    const MarketPopularCard(),
-                  ],
-                ),
+                child: const DashboardRightSidebar(),
               )
               .animate()
               .fadeIn(
@@ -160,7 +155,7 @@ class _DashboardContent extends ConsumerWidget {
               children: [
                 SizedBox(
                   width: AppSizes.leftColumnWidth,
-                  child: BalanceCard(data: data),
+                  child: BalanceHeroCard(data: data),
                 ),
                 hGap,
                 Expanded(child: KpiRow(data: data)),
@@ -247,7 +242,7 @@ class _DashboardContent extends ConsumerWidget {
 
     return Column(
       children: [
-        animated(BalanceCard(data: data)),
+        animated(BalanceHeroCard(data: data)),
         gap,
         animated(KpiRow(data: data)),
         gap,

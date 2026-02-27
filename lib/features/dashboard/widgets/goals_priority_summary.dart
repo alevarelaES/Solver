@@ -6,7 +6,7 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/features/budget/providers/goals_provider.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 class GoalsPrioritySummaryCard extends ConsumerWidget {
   const GoalsPrioritySummaryCard({super.key});
@@ -17,7 +17,8 @@ class GoalsPrioritySummaryCard extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final goalsAsync = ref.watch(goalsProvider);
 
-    return GlassContainer(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: AppSpacing.paddingCardCompact,
       child: goalsAsync.when(
         loading: () => const SizedBox(
@@ -143,17 +144,24 @@ class GoalsPrioritySummaryCard extends ConsumerWidget {
   }
 }
 
-class _GoalLine extends StatelessWidget {
+class _GoalLine extends StatefulWidget {
   final SavingGoal goal;
 
   const _GoalLine({required this.goal});
 
   @override
+  State<_GoalLine> createState() => _GoalLineState();
+}
+
+class _GoalLineState extends State<_GoalLine> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pct = goal.progressPercent.clamp(0, 100).toDouble();
+    final pct = widget.goal.progressPercent.clamp(0, 100).toDouble();
     final progress = (pct / 100).clamp(0.0, 1.0);
-    final days = _daysUntil(goal.targetDate);
+    final days = _daysUntil(widget.goal.targetDate);
 
     final accent = days <= 7
         ? AppColors.danger
@@ -167,21 +175,26 @@ class _GoalLine extends StatelessWidget {
         ? 'Echeance aujourd\'hui'
         : 'J-$days';
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-        color: accent.withValues(alpha: isDark ? 0.12 : 0.07),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: accent.withValues(alpha: 0.35)),
+          color: _isHovered 
+              ? accent.withValues(alpha: isDark ? 0.20 : 0.15)
+              : accent.withValues(alpha: isDark ? 0.12 : 0.07),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Expanded(
                 child: Text(
-                  goal.name,
+                  widget.goal.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -194,7 +207,7 @@ class _GoalLine extends StatelessWidget {
                 ),
               ),
               Text(
-                AppFormats.formatFromChfCompact(goal.remainingAmount),
+                AppFormats.formatFromChfCompact(widget.goal.remainingAmount),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -223,7 +236,7 @@ class _GoalLine extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                '${AppFormats.formatFromChfCompact(goal.currentAmount)} / ${AppFormats.formatFromChfCompact(goal.targetAmount)}',
+                '${AppFormats.formatFromChfCompact(widget.goal.currentAmount)} / ${AppFormats.formatFromChfCompact(widget.goal.targetAmount)}',
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w600,
@@ -247,17 +260,18 @@ class _GoalLine extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.xs),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 6,
+              minHeight: 4,
               backgroundColor: isDark
-                  ? AppColors.borderDark
-                  : AppColors.borderLight,
+                  ? AppColors.surfaceDark.withValues(alpha: 0.5)
+                  : AppColors.surfaceElevated,
               valueColor: AlwaysStoppedAnimation<Color>(accent),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

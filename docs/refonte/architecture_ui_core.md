@@ -6,7 +6,9 @@
 
 ---
 
-## 1. Principe Absolu : Source Unique de Vérité
+## 1. Principes Absolus : Deux Règles d'Or
+
+### Règle 1 — Zéro Hardcode Visuel
 
 ```
 PremiumThemeExtension   ← SEULE source pour opacités, glow, blur, palettes dark
@@ -21,6 +23,34 @@ Tous les widgets de carte (BalanceCard, KpiCard, GoalCard, etc.)
 - Aucun `BackdropFilter` en dur hors de `PremiumCardBase`.
 - Aucun rayon, padding ou taille de fonte hardcodé dans les vues.
 - Si demain l'opacité du glow change de 0.12 à 0.08 → modification dans `PremiumThemeExtension.dark()` uniquement.
+
+### Règle 2 — Zéro Texte en Dur (i18n obligatoire)
+
+**Système l10n existant :** `lib/core/l10n/` — fichiers `.arb`, classe `AppLocalizations`.
+
+**Interdiction stricte :**
+- Aucun `Text("label en dur")` dans aucun widget, vue ou composant.
+- Aucun `tooltip:`, `hintText:`, `labelText:`, `semanticsLabel:` avec une chaîne littérale.
+- Aucun message d'erreur, placeholder, titre de section ou libellé de bouton en dur.
+
+**Obligation :**
+- Toute chaîne visible par l'utilisateur passe par une clé `AppLocalizations` :
+  ```
+  // Interdit :
+  Text("Tableau de bord")
+  Text("Aucune donnée disponible")
+
+  // Obligatoire :
+  Text(l10n.dashboardTitle)
+  Text(l10n.emptyStateNoData)
+  ```
+- Toute nouvelle clé est déclarée dans `app_fr.arb` (et les autres locales si existantes) **avant** d'être utilisée dans le widget.
+- Les noms de clés suivent le format `camelCase` + préfixe de feature :
+  `dashboardTitle`, `portfolioTabPositions`, `budgetGaugeUsedPercent`, etc.
+
+**Périmètre :**
+- S'applique à tous les widgets créés ou modifiés dans le cadre de la refonte.
+- Les widgets existants non modifiés dans un batch donné ne sont pas à migrer (éviter le scope creep) — sauf s'ils sont refondus.
 
 ---
 
@@ -423,3 +453,4 @@ color: isDark ? p.canvasDeep : theme.colorScheme.background
 - `blurEnabled = false` supprime tous les `BackdropFilter` de l'application sans aucune modification supplémentaire.
 - Un montant quelconque peut être rendu avec `PremiumAmountText` avec les chiffres tabulaires alignés.
 - La page Dashboard existante s'affiche sans régression (layout conservé, fond mis à jour).
+- **Aucune chaîne de caractères visible utilisateur dans les nouveaux fichiers** — grep sur les fichiers créés doit retourner zéro `Text("` avec contenu littéral.

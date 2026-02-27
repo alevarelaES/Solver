@@ -5,6 +5,7 @@ import 'package:solver/core/constants/app_currency.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/theme/app_theme.dart';
+import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/main.dart';
 import 'package:solver/shared/widgets/currency_converter_sheet.dart';
@@ -62,13 +63,14 @@ class _TopControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final p = theme.extension<PremiumThemeExtension>()!;
     final location = GoRouterState.of(context).matchedLocation;
     final activeGroup = activePrimaryNavGroup(location);
     final hasContextPages = activeGroup.pages.length > 1;
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: isDark ? p.canvasMid : theme.cardColor,
         border: Border(
           bottom: BorderSide(
             color: isDark ? AppColors.borderDark : AppColors.borderLight,

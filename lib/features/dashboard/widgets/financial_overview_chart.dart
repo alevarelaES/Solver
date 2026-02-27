@@ -9,7 +9,9 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
 import 'package:solver/features/schedule/providers/schedule_provider.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/core/theme/app_premium_theme.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
+import 'package:solver/shared/widgets/chart_tab_switcher.dart';
 
 enum _OverviewRange { month, quarter, year }
 
@@ -36,7 +38,9 @@ class _FinancialOverviewChartState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final p = theme.extension<PremiumThemeExtension>()!;
+    final isDark = theme.brightness == Brightness.dark;
     final currentMonth = DateTime.now().month;
     final currentYear = DateTime.now().year;
     final projectionAsync = ref.watch(
@@ -90,8 +94,8 @@ class _FinancialOverviewChartState
 
     final maxY = _computeMaxY(buckets);
 
-    return GlassContainer(
-      padding: AppSpacing.paddingCardCompact,
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -109,9 +113,14 @@ class _FinancialOverviewChartState
                   ),
                 ),
               ),
-              _RangeToggle(
-                value: _range,
-                onChanged: (value) => setState(() => _range = value),
+              ChartTabSwitcher(
+                tabs: [
+                  AppStrings.dashboard.rangeMonth,
+                  AppStrings.dashboard.rangeQuarter,
+                  AppStrings.dashboard.rangeYear,
+                ],
+                selectedIndex: _range.index,
+                onChanged: (index) => setState(() => _range = _OverviewRange.values[index]),
               ),
               const SizedBox(width: AppSpacing.md),
               Row(
@@ -159,7 +168,7 @@ class _FinancialOverviewChartState
                     isCurved: true,
                     curveSmoothness: 0.3,
                     preventCurveOverShooting: true,
-                    color: AppColors.primary,
+                    gradient: p.accentLineGradient, // Use premium gradient
                     barWidth: 2.5,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -170,7 +179,7 @@ class _FinancialOverviewChartState
                       },
                       getDotPainter: (_, _, _, _) => FlDotCirclePainter(
                         radius: 4,
-                        color: AppColors.primary,
+                        color: theme.colorScheme.primary,
                         strokeWidth: 2,
                         strokeColor: Colors.white,
                       ),
@@ -181,8 +190,8 @@ class _FinancialOverviewChartState
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.primary.withValues(alpha: 0.18),
-                          AppColors.primary.withValues(alpha: 0.0),
+                          theme.colorScheme.primary.withValues(alpha: 0.18),
+                          theme.colorScheme.primary.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -217,8 +226,8 @@ class _FinancialOverviewChartState
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.danger.withValues(alpha: 0.1),
-                          AppColors.danger.withValues(alpha: 0.0),
+                          theme.colorScheme.error.withValues(alpha: 0.1),
+                          theme.colorScheme.error.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -240,6 +249,7 @@ class _FinancialOverviewChartState
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 28,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= buckets.length) {
@@ -293,81 +303,6 @@ class _FinancialOverviewChartState
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RangeToggle extends StatelessWidget {
-  final _OverviewRange value;
-  final ValueChanged<_OverviewRange> onChanged;
-
-  const _RangeToggle({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.borderDark
-              : AppColors.borderLight,
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _RangeToggleItem(
-            label: AppStrings.dashboard.rangeMonth,
-            selected: value == _OverviewRange.month,
-            onTap: () => onChanged(_OverviewRange.month),
-          ),
-          _RangeToggleItem(
-            label: AppStrings.dashboard.rangeQuarter,
-            selected: value == _OverviewRange.quarter,
-            onTap: () => onChanged(_OverviewRange.quarter),
-          ),
-          _RangeToggleItem(
-            label: AppStrings.dashboard.rangeYear,
-            selected: value == _OverviewRange.year,
-            onTap: () => onChanged(_OverviewRange.year),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RangeToggleItem extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _RangeToggleItem({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.15) : null,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: selected ? AppColors.primary : AppColors.textSecondary,
-          ),
-        ),
       ),
     );
   }

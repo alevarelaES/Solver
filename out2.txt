@@ -1,0 +1,20 @@
+﻿Analyzing solver...                                             
+
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:45:35 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:45:65 - undefined_identifier
+  error - Undefined name 'AppRadius' - lib\features\dashboard\widgets\balance_hero_card.dart:52:55 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:59:37 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:59:67 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:81:35 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:81:65 - undefined_identifier
+  error - Undefined name 'AppRadius' - lib\features\dashboard\widgets\balance_hero_card.dart:90:55 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:99:37 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:99:65 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:114:35 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:114:63 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:122:35 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:122:65 - undefined_identifier
+  error - Undefined name 'AppRadius' - lib\features\dashboard\widgets\balance_hero_card.dart:129:49 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\dashboard\widgets\balance_hero_card.dart:133:57 - undefined_identifier
+warning - Unused import: 'package:solver/core/theme/app_premium_theme.dart' - lib\features\dashboard\widgets\dashboard_kpi_item.dart:3:8 - unused_import
+

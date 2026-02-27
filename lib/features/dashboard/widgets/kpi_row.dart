@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/features/dashboard/widgets/dashboard_kpi_item.dart';
 
 class KpiRow extends ConsumerWidget {
   final DashboardData data;
@@ -42,30 +40,50 @@ class KpiRow extends ConsumerWidget {
     final incomePct = pctChange(data.currentMonthIncome, prevIncome);
     final expensePct = pctChange(data.currentMonthExpenses, prevExpenses);
 
+    // Sparkline data (last 6 months up to current month)
+    List<double> getSparklineData(bool isIncome) {
+      final List<double> result = [];
+      for (int i = 5; i >= 0; i--) {
+        int m = currentMonth - i;
+        if (m <= 0) m += 12; // wrap around for previous year if needed, though data only has 1-12. If data is current year only, previous year is just 0 unless populated.
+        result.add(isIncome ? data.incomeForMonth(m) : data.expensesForMonth(m));
+      }
+      return result;
+    }
+
+    // Savings sparkline stub: incremental
+    final savingsSparkline = [
+      totalSavings * 0.5,
+      totalSavings * 0.6,
+      totalSavings * 0.7,
+      totalSavings * 0.85,
+      totalSavings * 0.95,
+      totalSavings,
+    ];
+
     final cards = [
-      _KpiCardData(
+      DashboardKpiItem(
         label: AppStrings.dashboard.income,
         amount: data.currentMonthIncome,
         color: AppColors.success,
-        isUp: incomePct >= 0,
-        percentChange: incomePct.abs(),
+        percentChange: incomePct,
+        sparklineData: getSparklineData(true),
         icon: Icons.trending_up_rounded,
       ),
-      _KpiCardData(
+      DashboardKpiItem(
         label: AppStrings.dashboard.expense,
         amount: data.currentMonthExpenses,
         color: AppColors.danger,
-        isUp: expensePct >= 0,
-        percentChange: expensePct.abs(),
+        percentChange: expensePct,
+        sparklineData: getSparklineData(false),
         icon: Icons.trending_down_rounded,
       ),
-      _KpiCardData(
+      DashboardKpiItem(
         label: AppStrings.dashboard.savings,
         amount: totalSavings,
         color: AppColors.primary,
-        isUp: totalSavings > 0,
-        percentChange: 0,
-        hidePercent: true,
+        percentChange: null, // No percent change for savings in legacy
+        sparklineData: savingsSparkline, // Static stub data mimicking progression
         icon: Icons.savings_outlined,
       ),
     ];
@@ -74,7 +92,7 @@ class KpiRow extends ConsumerWidget {
       return Column(
         children: cards.map((c) => Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: _KpiCard(data: c),
+          child: c,
         )).toList(),
       );
     }
@@ -85,132 +103,9 @@ class KpiRow extends ConsumerWidget {
           padding: EdgeInsets.only(
             right: entry.key < cards.length - 1 ? AppSpacing.lg : 0,
           ),
-          child: _KpiCard(data: entry.value),
+          child: entry.value,
         ),
       )).toList(),
-    );
-  }
-}
-
-class _KpiCardData {
-  final String label;
-  final double amount;
-  final Color color;
-  final bool isUp;
-  final double percentChange;
-  final bool hidePercent;
-  final IconData icon;
-
-  const _KpiCardData({
-    required this.label,
-    required this.amount,
-    required this.color,
-    required this.isUp,
-    required this.percentChange,
-    required this.icon,
-    this.hidePercent = false,
-  });
-}
-
-class _KpiCard extends StatelessWidget {
-  final _KpiCardData data;
-
-  const _KpiCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GlassContainer(
-      padding: AppSpacing.paddingCard,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                data.label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.9,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: data.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Icon(data.icon, size: 14, color: data.color),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            AppFormats.formatFromChf(data.amount),
-            style: GoogleFonts.robotoMono(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (!data.hidePercent)
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: data.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.xs),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        data.isUp ? Icons.north : Icons.south,
-                        size: 10,
-                        color: data.color,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${data.percentChange.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: data.color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  AppStrings.dashboard.thisMonth,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
-                  ),
-                ),
-              ],
-            ),
-          if (data.hidePercent)
-            Text(
-              AppStrings.dashboard.totalObjectives,
-              style: TextStyle(
-                fontSize: 10,
-                color: isDark ? AppColors.textDisabledDark : AppColors.textDisabledLight,
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

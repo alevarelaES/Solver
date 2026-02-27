@@ -1,0 +1,16 @@
+Analyzing solver...                                             
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\app_premium_theme.dart:135:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\app_premium_theme.dart:136:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\app_premium_theme.dart:137:34 - deprecated_member_use
+warning - Unused import: 'package:solver/core/services/api_client.dart' - lib\features\dashboard\widgets\recent_activities.dart:10:8 - unused_import
+warning - Unused import: 'package:solver/features/transactions/providers/transaction_refresh.dart' - lib\features\dashboard\widgets\recent_activities.dart:15:8 - unused_import
+  error - The name 'MobileBottomBar' isn't a class - lib\shared\widgets\app_shell.dart:49:34 - creation_with_non_type
+  error - Undefined name 'themeModeProvider' - lib\shared\widgets\app_shell.dart:152:40 - undefined_identifier
+  error - Undefined name 'themeModeProvider' - lib\shared\widgets\app_shell.dart:153:24 - undefined_identifier
+  error - The method 'showCurrencyConverterSheet' isn't defined for the type '_CurrencyConverterButton' - lib\shared\widgets\app_shell.dart:261:9 - undefined_method
+warning - The value of the local variable 'p' isn't used - lib\shared\widgets\desktop_sidebar.dart:175:11 - unused_local_variable
+  error - The class 'PremiumSkeleton' doesn't have a constant constructor '_KpiCard' - lib\shared\widgets\premium_skeleton.dart:19:34 - const_with_undefined_constructor
+  error - The class 'PremiumSkeleton' doesn't have a constant constructor '_ListItem' - lib\shared\widgets\premium_skeleton.dart:23:34 - const_with_undefined_constructor
+  error - The class 'PremiumSkeleton' doesn't have a constant constructor '_HeroCard' - lib\shared\widgets\premium_skeleton.dart:35:34 - const_with_undefined_constructor
+

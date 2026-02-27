@@ -11,7 +11,7 @@ import 'package:solver/features/portfolio/providers/watchlist_provider.dart';
 import 'package:solver/core/settings/currency_settings_provider.dart';
 import 'package:solver/core/constants/app_formats.dart';
 import 'package:solver/features/portfolio/widgets/asset_logo.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 enum _PopularSortMode { movers, gainers, losers }
 
@@ -35,7 +35,8 @@ class _MarketPopularCardState extends ConsumerState<MarketPopularCard> {
     final trendingAsync = ref.watch(trendingProvider);
     final watchlistAsync = ref.watch(watchlistProvider);
 
-    return GlassContainer(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: AppSpacing.paddingCardCompact,
       child: trendingAsync.when(
         loading: () => const SizedBox(
