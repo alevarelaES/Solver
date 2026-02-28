@@ -121,6 +121,21 @@ public sealed class GoalsService
         return Results.Ok(ToGoalPayload(goal, today, entriesSum));
     }
 
+    public async Task<IResult> DeleteGoalAsync(Guid id, HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var goal = await _db.SavingGoals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+        if (goal is null) return Results.NotFound();
+
+        // Remove entries first (in case cascade delete isn't configured)
+        var entries = await _db.SavingGoalEntries.Where(e => e.GoalId == id && e.UserId == userId).ToListAsync();
+        _db.SavingGoalEntries.RemoveRange(entries);
+
+        _db.SavingGoals.Remove(goal);
+        await _db.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
     public async Task<IResult> ArchiveGoalAsync(Guid id, GoalsEndpoints.ArchiveGoalDto dto, HttpContext ctx)
     {
         var userId = GetUserId(ctx);

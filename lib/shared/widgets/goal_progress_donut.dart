@@ -21,7 +21,8 @@ class GoalProgressDonut extends StatefulWidget {
   State<GoalProgressDonut> createState() => _GoalProgressDonutState();
 }
 
-class _GoalProgressDonutState extends State<GoalProgressDonut> with SingleTickerProviderStateMixin {
+class _GoalProgressDonutState extends State<GoalProgressDonut>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -42,9 +43,10 @@ class _GoalProgressDonutState extends State<GoalProgressDonut> with SingleTicker
   void didUpdateWidget(covariant GoalProgressDonut oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.percent != widget.percent) {
-      _animation = Tween<double>(begin: _animation.value, end: widget.percent).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-      );
+      _animation = Tween<double>(
+        begin: _animation.value,
+        end: widget.percent,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
       _controller.forward(from: 0);
     }
   }
@@ -59,6 +61,7 @@ class _GoalProgressDonutState extends State<GoalProgressDonut> with SingleTicker
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final p = theme.extension<PremiumThemeExtension>()!;
+    final isDark = theme.brightness == Brightness.dark;
     final color = widget.color ?? theme.colorScheme.primary;
 
     return SizedBox(
@@ -77,6 +80,7 @@ class _GoalProgressDonutState extends State<GoalProgressDonut> with SingleTicker
                   color: color,
                   backgroundColor: p.glassBorder,
                   strokeWidth: widget.strokeWidth,
+                  isDark: isDark,
                 ),
               );
             },
@@ -85,8 +89,10 @@ class _GoalProgressDonutState extends State<GoalProgressDonut> with SingleTicker
             Text(
               widget.centerLabel!,
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.brightness == Brightness.dark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w800,
+                fontSize: 34,
+                color: widget.color ??
+                    (isDark ? Colors.white : Colors.black87),
               ),
             ),
         ],
@@ -100,53 +106,63 @@ class _DonutPainter extends CustomPainter {
   final Color color;
   final Color backgroundColor;
   final double strokeWidth;
+  final bool isDark;
 
   _DonutPainter({
     required this.percent,
     required this.color,
     required this.backgroundColor,
     required this.strokeWidth,
+    required this.isDark,
   });
+
+  static const double _pi = 3.141592653589793;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Draw background track
+    // Background track
     final bgPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, 0, 2 * _pi, false, bgPaint);
 
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    // Draw full circle for the background track
-    canvas.drawArc(rect, 0, 2 * 3.141592653589793, false, bgPaint);
+    final startAngle = -_pi / 2;
+    final sweepAngle = 2 * _pi * (percent / 100).clamp(0.0, 1.0);
 
-    // Draw progress arc
+    if (sweepAngle <= 0) return;
+
+    // Glow pass (dark mode only)
+    if (isDark) {
+      final glowPaint = Paint()
+        ..color = color.withAlpha(70)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth * 2.2
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+      canvas.drawArc(rect, startAngle, sweepAngle, false, glowPaint);
+    }
+
+    // Main arc
     final fgPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
-
-    // Start at top (-pi/2)
-    final startAngle = -3.141592653589793 / 2;
-    // Sweep depends on percent
-    final sweepAngle = 2 * 3.141592653589793 * (percent / 100).clamp(0.0, 1.0);
-
-    // Only draw sweep if progress > 0 to avoid artifacts
-    if (sweepAngle > 0) {
-      canvas.drawArc(rect, startAngle, sweepAngle, false, fgPaint);
-    }
+    canvas.drawArc(rect, startAngle, sweepAngle, false, fgPaint);
   }
 
   @override
   bool shouldRepaint(covariant _DonutPainter oldDelegate) {
     return oldDelegate.percent != percent ||
-           oldDelegate.color != color ||
-           oldDelegate.backgroundColor != backgroundColor ||
-           oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.isDark != isDark;
   }
 }

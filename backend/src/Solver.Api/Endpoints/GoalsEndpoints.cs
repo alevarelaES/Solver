@@ -35,6 +35,10 @@ public static class GoalsEndpoints
             CreateGoalEntryDto dto,
             GoalsService service,
             HttpContext ctx) => service.AddGoalEntryAsync(id, dto, ctx));
+        group.MapDelete("/{id:guid}", (
+            Guid id,
+            GoalsService service,
+            HttpContext ctx) => service.DeleteGoalAsync(id, ctx));
     }
 
     public sealed record CreateGoalDto(

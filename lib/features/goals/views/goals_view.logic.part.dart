@@ -503,9 +503,16 @@ extension _GoalsViewLogic on _GoalsViewState {
       ref.invalidate(goalsProvider);
       ref.invalidate(goalEntriesProvider(goal.id));
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppStrings.goals.movementSaved)));
+        final newCurrent = goal.currentAmount + signed;
+        if (newCurrent >= goal.targetAmount && goal.currentAmount < goal.targetAmount) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+             content: Text('🎉 Félicitations ! Objectif atteint. Il se trouve désormais dans l\'onglet Terminés.'),
+             behavior: SnackBarBehavior.floating,
+             backgroundColor: AppColors.successStrong,
+           ));
+        } else {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppStrings.goals.movementSaved)));
+        }
       }
     } catch (e) {
       String message = AppStrings.goals.movementError;
@@ -663,11 +670,19 @@ extension _GoalsViewLogic on _GoalsViewState {
               style: const TextStyle(color: AppColors.danger),
             ),
             data: (goals) {
-              final filtered =
-                  goals
-                      .where((g) => g.goalType.toLowerCase() == _activeType)
-                      .toList()
-                    ..sort((a, b) {
+              final filtered = goals.where((g) {
+                final isAchieved = _isAchievedStatus(g.status);
+                final isArchived = g.isArchived;
+
+                if (_activeType == 'archived') {
+                  return isArchived;
+                } else if (_activeType == 'completed') {
+                  return isAchieved && !isArchived;
+                } else {
+                  return g.goalType.toLowerCase() == _activeType && !isAchieved && !isArchived;
+                }
+              }).toList()
+                ..sort((a, b) {
                       final aAchieved = _isAchievedStatus(a.status);
                       final bAchieved = _isAchievedStatus(b.status);
                       if (aAchieved != bAchieved) {
@@ -739,6 +754,16 @@ extension _GoalsViewLogic on _GoalsViewState {
                         );
                     ref.invalidate(goalsProvider);
                   },
+                  onDelete: () async {
+                    try {
+                      await ref.read(goalsApiProvider).deleteGoal(goal.id);
+                      ref.invalidate(goalsProvider);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                      }
+                    }
+                  },
                 );
               // Sort filtered goals: priority 0 first, then by targetDate ascending.
               final sortedGoals = List<SavingGoal>.from(filtered)
@@ -761,22 +786,23 @@ extension _GoalsViewLogic on _GoalsViewState {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       SizedBox(
-                        width: 250,
+                        width: 520,
                         child: GoalsTabBar(
-                          selectedIndex: _isDebtType(_activeType) ? 1 : 0,
+                          selectedIndex: _activeType == 'savings' ? 0 : (_activeType == 'debt' ? 1 : (_activeType == 'completed' ? 2 : 3)),
                           onChanged: (index) {
                             _withState(() {
-                              _activeType = index == 0 ? 'savings' : 'debt';
+                              _activeType = index == 0 ? 'savings' : (index == 1 ? 'debt' : (index == 2 ? 'completed' : 'archived'));
                             });
                           },
-                          tabs: const ['Objectifs', 'Remboursements'],
+                          tabs: const ['Objectifs', 'Remboursements', 'Terminés', 'Archivés'],
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () => _showGoalEditor(forcedType: _activeType),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: Text(_isDebtType(_activeType) ? AppStrings.goals.newDebtTitle : AppStrings.goals.newGoalTitle),
-                      ),
+                      if (_activeType != 'completed' && _activeType != 'archived')
+                        ElevatedButton.icon(
+                          onPressed: () => _showGoalEditor(forcedType: _activeType),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: Text(_isDebtType(_activeType) ? AppStrings.goals.newDebtTitle : AppStrings.goals.newGoalTitle),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),

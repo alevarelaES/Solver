@@ -191,6 +191,10 @@ class GoalsApi {
     );
   }
 
+  Future<void> deleteGoal(String id) async {
+    await _client.delete<Map<String, dynamic>>('/api/goals/$id');
+  }
+
   Future<List<SavingGoalEntry>> fetchEntries(String goalId) async {
     final response = await _client.get<List<dynamic>>(
       '/api/goals/$goalId/entries',
@@ -227,7 +231,7 @@ final goalsApiProvider = Provider<GoalsApi>((ref) {
 
 final goalsProvider = FutureProvider<List<SavingGoal>>((ref) async {
   final api = ref.watch(goalsApiProvider);
-  return api.fetchGoals();
+  return api.fetchGoals(includeArchived: true);
 });
 
 final goalEntriesProvider =

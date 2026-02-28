@@ -22,10 +22,10 @@ class GoalsTabBar extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceMuted : Colors.grey.shade200,
+        color: isDark ? Colors.white.withAlpha(14) : Colors.grey.shade200,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isDark ? AppColors.borderSubtle : Colors.grey.shade300,
+          color: isDark ? Colors.white.withAlpha(22) : Colors.grey.shade300,
         ),
       ),
       child: LayoutBuilder(
@@ -42,11 +42,11 @@ class GoalsTabBar extends StatelessWidget {
                 width: tabWidth,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceMuted : Colors.white,
+                    color: isDark ? Colors.white.withAlpha(22) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withAlpha(isDark ? 10 : 20),
+                        color: Colors.black.withAlpha(isDark ? 40 : 20),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
