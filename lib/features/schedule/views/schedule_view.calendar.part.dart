@@ -237,126 +237,149 @@ class _CalendarViewState extends ConsumerState<_CalendarView> {
     }
 
     var loadingAction = false;
-    await showModalBottomSheet<void>(
+    await showDialog<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final sheetBg = isDark ? const Color(0xFF1A2616) : Colors.white;
-        final titleColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final titleColor =
+            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
         return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Container(
-              decoration: BoxDecoration(
-                color: sheetBg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          builder: (ctx, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.xxl),
               ),
-              child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.xl,
-                  AppSpacing.xl,
-                  AppSpacing.lg,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transaction.accountName ?? transaction.accountId,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: titleColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$dateLabel · $stateLabel',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isOverdue
-                            ? _overdueColor
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      AppFormats.formatFromChf(transaction.amount),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: titleColor,
-                      ),
-                    ),
-                    if ((transaction.note ?? '').trim().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        transaction.note!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        if (transaction.isPending && !transaction.isAuto) ...[
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: 48,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: loadingAction
-                                  ? null
-                                  : () async {
-                                      setSheetState(() => loadingAction = true);
-                                      try {
-                                        await _markAsPaid(transaction);
-                                        if (!context.mounted) return;
-                                        Navigator.of(context).pop();
-                                      } finally {
-                                        if (context.mounted) {
-                                          setSheetState(
-                                            () => loadingAction = false,
-                                          );
-                                        }
-                                      }
-                                    },
-                              child: loadingAction
-                                  ? const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text('Valider'),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  transaction.accountName ??
+                                      transaction.accountId,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: titleColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$dateLabel · $stateLabel',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isOverdue
+                                        ? _overdueColor
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          IconButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            visualDensity: VisualDensity.compact,
+                            color: AppColors.textSecondary,
+                          ),
                         ],
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: loadingAction
-                                ? null
-                                : () async {
-                                    Navigator.of(context).pop();
-                                    await _openEditDialog(transaction);
-                                  },
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            label: const Text('Modifier'),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      const Divider(color: AppColors.borderSubtle),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        AppFormats.formatFromChf(transaction.amount),
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: titleColor,
+                        ),
+                      ),
+                      if ((transaction.note ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          transaction.note!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        children: [
+                          if (transaction.isPending &&
+                              !transaction.isAuto) ...[
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: loadingAction
+                                    ? null
+                                    : () async {
+                                        setDialogState(
+                                          () => loadingAction = true,
+                                        );
+                                        try {
+                                          await _markAsPaid(transaction);
+                                          if (!dialogContext.mounted) return;
+                                          Navigator.of(dialogContext).pop();
+                                        } finally {
+                                          if (ctx.mounted) {
+                                            setDialogState(
+                                              () => loadingAction = false,
+                                            );
+                                          }
+                                        }
+                                      },
+                                child: loadingAction
+                                    ? const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Payer'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                          ],
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: loadingAction
+                                  ? null
+                                  : () async {
+                                      Navigator.of(dialogContext).pop();
+                                      await _openEditDialog(transaction);
+                                    },
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                              ),
+                              label: const Text('Modifier'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             );
           },
         );

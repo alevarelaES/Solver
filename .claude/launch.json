@@ -4,8 +4,8 @@
     {
       "name": "Flutter Web",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "C:\\Users\\41786\\flutter\\bin\\flutter.bat", "run", "-d", "web-server", "--web-port", "8080", "--web-hostname", "127.0.0.1"],
-      "port": 8080,
+      "runtimeArgs": ["/c", "C:\\Users\\41786\\flutter\\bin\\flutter.bat", "run", "-d", "web-server", "--web-port", "9090", "--web-hostname", "127.0.0.1"],
+      "port": 9090,
       "autoPort": false
     },
     {

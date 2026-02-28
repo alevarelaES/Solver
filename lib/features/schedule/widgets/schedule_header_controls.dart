@@ -1,97 +1,108 @@
 import 'package:flutter/material.dart';
-import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
-import 'package:solver/shared/widgets/chart_tab_switcher.dart';
 
-enum ScheduleViewType { list, calendar }
 enum SchedulePeriodScope { month, all }
 
+/// Period selector with the same pill/segmented design as _ViewTabSwitcher.
 class ScheduleHeaderControls extends StatelessWidget {
-  final ScheduleViewType viewType;
-  final ValueChanged<ScheduleViewType> onViewChanged;
   final SchedulePeriodScope periodScope;
   final ValueChanged<SchedulePeriodScope> onPeriodChanged;
 
   const ScheduleHeaderControls({
     super.key,
-    required this.viewType,
-    required this.onViewChanged,
     required this.periodScope,
     required this.onPeriodChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Vue Control
-        _ControlGroup(
-          label: 'Vue',
-          child: ChartTabSwitcher(
-            tabs: const ['Liste', 'Calendrier'],
-            selectedIndex: viewType == ScheduleViewType.list ? 0 : 1,
-            onChanged: (idx) {
-              onViewChanged(idx == 0 ? ScheduleViewType.list : ScheduleViewType.calendar);
-            },
-          ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final current = periodScope == SchedulePeriodScope.month ? 0 : 1;
+
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withAlpha(13)
+            : Colors.black.withAlpha(8),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withAlpha(20)
+              : Colors.black.withAlpha(15),
         ),
-        const SizedBox(width: AppSpacing.md),
-        // Période Control
-        _ControlGroup(
-          label: 'Période',
-          child: ChartTabSwitcher(
-            tabs: const ['Mois', 'Toutes'],
-            selectedIndex: periodScope == SchedulePeriodScope.month ? 0 : 1,
-            onChanged: (idx) {
-              onPeriodChanged(idx == 0 ? SchedulePeriodScope.month : SchedulePeriodScope.all);
-            },
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PeriodTab(
+            label: 'Mois',
+            index: 0,
+            current: current,
+            isDark: isDark,
+            onTap: () => onPeriodChanged(SchedulePeriodScope.month),
           ),
-        ),
-      ],
+          const SizedBox(width: 2),
+          _PeriodTab(
+            label: 'Toutes',
+            index: 1,
+            current: current,
+            isDark: isDark,
+            onTap: () => onPeriodChanged(SchedulePeriodScope.all),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ControlGroup extends StatelessWidget {
+class _PeriodTab extends StatelessWidget {
   final String label;
-  final Widget child;
+  final int index;
+  final int current;
+  final bool isDark;
+  final VoidCallback onTap;
 
-  const _ControlGroup({
+  const _PeriodTab({
     required this.label,
-    required this.child,
+    required this.index,
+    required this.current,
+    required this.isDark,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final p = theme.extension<PremiumThemeExtension>()!;
-    
-    return Container(
-      padding: const EdgeInsets.only(top: 4, left: 6, right: 6, bottom: 6),
-      decoration: BoxDecoration(
-        color: p.glassSurface,
-        borderRadius: BorderRadius.circular(AppRadius.lg + 2),
-        border: Border.all(color: p.glassBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 6, bottom: 4),
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
+    final isSelected = index == current;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 5,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
           ),
-          child,
-        ],
+        ),
       ),
     );
   }

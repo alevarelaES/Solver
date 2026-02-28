@@ -3,20 +3,16 @@ import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
-import 'package:solver/shared/widgets/mini_sparkline.dart';
-import 'package:solver/shared/widgets/overdue_badge.dart';
 import 'package:solver/shared/widgets/premium_amount_text.dart';
 import 'package:solver/shared/widgets/premium_card_base.dart';
 
 /// Hero card for the schedule page.
-/// Shows: total due, period label, overdue badge, sparkline.
-/// Gradient switches to warmthGradient when hasOverdue = true.
+/// Shows total to pay + overdue badge. No sparkline (removed per design).
 class ScheduleHeroCard extends StatelessWidget {
   final double totalDue;
   final String period;
   final int overdueCount;
   final bool hasOverdue;
-  final List<double> sparklineData;
   final String currencyCode;
 
   const ScheduleHeroCard({
@@ -25,7 +21,6 @@ class ScheduleHeroCard extends StatelessWidget {
     required this.period,
     required this.overdueCount,
     required this.hasOverdue,
-    required this.sparklineData,
     required this.currencyCode,
   });
 
@@ -45,68 +40,79 @@ class ScheduleHeroCard extends StatelessWidget {
       overrideGradient: gradient,
       showGlow: hasOverdue,
       glowColor: glowColor,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xxl,
-        vertical: AppSpacing.xl,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        // mainAxisSize.min est obligatoire dans un contexte scrollable.
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Left: label + amount + badge ──────────────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${AppStrings.schedule.totalToPay} – $period',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: (isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight)
-                        .withAlpha(140),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                PremiumAmountText(
-                  amount: totalDue,
-                  currency: currencyCode,
-                  variant: PremiumAmountVariant.hero,
-                  overrideColor: textPrimary,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  AppStrings.schedule.monthInvoices,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                if (overdueCount > 0) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  OverdueBadge(count: overdueCount),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          // ── Right: sparkline ──────────────────────────────────────────────
-          if (sparklineData.length >= 2)
-            SizedBox(
-              width: 90,
-              height: 48,
-              child: MiniSparkline(
-                data: sparklineData,
-                color: hasOverdue
-                    ? AppColors.danger.withAlpha(200)
-                    : AppColors.primary.withAlpha(200),
-                strokeWidth: 2.0,
+          // ── Overdue badge (top) ──────────────────────────────────────────
+          if (hasOverdue) ...[
+            Align(
+              alignment: Alignment.topRight,
+              child: _HeroBadge(
+                monthLabel: AppStrings.schedule.monthInvoices,
+                overdueCount: overdueCount,
               ),
             ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          // ── Amount ────────────────────────────────────────────────────────
+          PremiumAmountText(
+            amount: totalDue,
+            currency: currencyCode,
+            variant: PremiumAmountVariant.hero,
+            overrideColor: textPrimary,
+          ),
+          const SizedBox(height: 4),
+          // ── Period label ─────────────────────────────────────────────────
+          Text(
+            'TOTAL À PAYER – $period',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textPrimary.withAlpha(140),
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroBadge extends StatelessWidget {
+  final String monthLabel;
+  final int overdueCount;
+
+  const _HeroBadge({required this.monthLabel, required this.overdueCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.danger.withAlpha(28),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        border: Border.all(color: AppColors.danger.withAlpha(80)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 12,
+            color: AppColors.danger,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '$monthLabel · $overdueCount en retard',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.danger,
+            ),
+          ),
         ],
       ),
     );

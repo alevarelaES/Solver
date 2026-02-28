@@ -12,6 +12,9 @@ import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 import 'package:solver/shared/widgets/page_header.dart';
 import 'package:solver/shared/widgets/page_scaffold.dart';
+import 'package:solver/shared/widgets/goal_progress_donut.dart';
+import 'package:solver/features/goals/widgets/goals_dashboard.dart';
+import 'package:solver/features/goals/widgets/goals_tab_bar.dart';
 
 part 'goals_view.logic.part.dart';
 part 'goals_view.widgets.part.dart';
@@ -211,84 +214,6 @@ DateTime? _projectedDate(double remaining, double monthlyAmount) {
 
 int _monthIndex(DateTime d) => d.year * 12 + d.month;
 
-class _DebtRiskAssessment {
-  final String label;
-  final Color color;
-  final int? projectedDelayMonths;
-  final double? marginAfterPayment;
-
-  const _DebtRiskAssessment({
-    required this.label,
-    required this.color,
-    required this.projectedDelayMonths,
-    required this.marginAfterPayment,
-  });
-}
-
-_DebtRiskAssessment _assessDebtRisk(SavingGoal goal, double? monthlyMargin) {
-  int score = 0;
-
-  int? delayMonths;
-  if (goal.remainingAmount <= 0) {
-    delayMonths = 0;
-  } else if (goal.projectedDate != null) {
-    final delay =
-        _monthIndex(goal.projectedDate!) - _monthIndex(goal.targetDate);
-    delayMonths = delay > 0 ? delay : 0;
-  }
-
-  if (goal.remainingAmount > 0) {
-    if (goal.projectedDate == null) {
-      score += 70;
-    } else if ((delayMonths ?? 0) >= 6) {
-      score += 70;
-    } else if ((delayMonths ?? 0) >= 3) {
-      score += 50;
-    } else if ((delayMonths ?? 0) >= 1) {
-      score += 30;
-    }
-
-    if (goal.recommendedMonthly > 0 &&
-        goal.monthlyContribution + 0.01 < goal.recommendedMonthly) {
-      score += 20;
-    }
-  }
-
-  double? marginAfterPayment;
-  if (monthlyMargin != null) {
-    marginAfterPayment = monthlyMargin - goal.monthlyContribution;
-    if (marginAfterPayment < 0) {
-      score += 35;
-    } else if (marginAfterPayment < 100) {
-      score += 20;
-    } else if (marginAfterPayment < 250) {
-      score += 10;
-    }
-  }
-
-  if (score >= 70) {
-    return _DebtRiskAssessment(
-      label: AppStrings.goals.statusUrgent,
-      color: AppColors.danger,
-      projectedDelayMonths: delayMonths,
-      marginAfterPayment: marginAfterPayment,
-    );
-  }
-  if (score >= 40) {
-    return _DebtRiskAssessment(
-      label: AppStrings.goals.statusLate,
-      color: AppColors.warningStrong,
-      projectedDelayMonths: delayMonths,
-      marginAfterPayment: marginAfterPayment,
-    );
-  }
-  return _DebtRiskAssessment(
-    label: AppStrings.goals.statusOnTrack,
-    color: AppColors.primary,
-    projectedDelayMonths: delayMonths,
-    marginAfterPayment: marginAfterPayment,
-  );
-}
 
 class GoalsView extends ConsumerStatefulWidget {
   const GoalsView({super.key});

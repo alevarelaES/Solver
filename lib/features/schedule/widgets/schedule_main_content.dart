@@ -8,6 +8,7 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_premium_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/schedule/widgets/schedule_empty_state.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 import 'package:solver/features/transactions/models/transaction.dart';
 import 'package:solver/features/transactions/providers/transaction_refresh.dart';
 import 'package:solver/features/schedule/widgets/schedule_header_controls.dart';
@@ -16,8 +17,8 @@ import 'package:solver/features/schedule/widgets/schedule_header_controls.dart';
 // ScheduleMainContent
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Main content column for the schedule tab.
-/// Shows View/Period toggles + two invoice sections.
+/// Main content column for the schedule Stat tab.
+/// Shows period toggle + two invoice sections (manual + auto).
 class ScheduleMainContent extends ConsumerWidget {
   final List<Transaction> autoList;
   final List<Transaction> manualList;
@@ -26,8 +27,6 @@ class ScheduleMainContent extends ConsumerWidget {
   final String currencyCode;
   final VoidCallback onChanged;
 
-  final ScheduleViewType viewType;
-  final ValueChanged<ScheduleViewType> onViewChanged;
   final SchedulePeriodScope periodScope;
   final ValueChanged<SchedulePeriodScope> onPeriodChanged;
 
@@ -39,8 +38,6 @@ class ScheduleMainContent extends ConsumerWidget {
     required this.totalManual,
     required this.currencyCode,
     required this.onChanged,
-    required this.viewType,
-    required this.onViewChanged,
     required this.periodScope,
     required this.onPeriodChanged,
   });
@@ -52,20 +49,18 @@ class ScheduleMainContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Controls header ────────────────────────────────────────────────
+        // ── Period control ─────────────────────────────────────────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             ScheduleHeaderControls(
-              viewType: viewType,
-              onViewChanged: onViewChanged,
               periodScope: periodScope,
               onPeriodChanged: onPeriodChanged,
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
-        // ── Invoices sections ──────────────────────────────────────────────
+        // ── Invoice sections ───────────────────────────────────────────────
         if (isWide)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,8 +124,6 @@ class ScheduleMainContent extends ConsumerWidget {
   }
 }
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Invoice section
 // ─────────────────────────────────────────────────────────────────────────────
@@ -158,71 +151,89 @@ class _InvoiceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: accentColor, size: 16),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: accentColor,
-                  ),
-                ),
-                if (transactions.isNotEmpty) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: accentColor.withAlpha(25),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${transactions.length}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: accentColor,
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
+      padding: AppSpacing.paddingCardCompact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Section header ───────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(icon, color: accentColor, size: 16),
+                    const SizedBox(width: AppSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: accentColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                ],
-              ],
-            ),
-            Text(
-              AppFormats.formatFromCurrency(totalAmount, currencyCode),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: accentColor,
+                    if (transactions.isNotEmpty) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withAlpha(25),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${transactions.length}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: accentColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        if (transactions.isEmpty)
-          ScheduleEmptyState(accentColor: accentColor)
-        else
-          ...transactions.map(
-            (t) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: _InvoiceCard(
-                transaction: t,
-                accentColor: accentColor,
-                showValidate: showValidate,
-                currencyCode: currencyCode,
-                onChanged: onChanged,
+              const SizedBox(width: AppSpacing.md),
+              Text(
+                AppFormats.formatFromCurrency(totalAmount, currencyCode),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                ),
               ),
-            ),
+            ],
           ),
-      ],
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1, color: AppColors.borderSubtle),
+          const SizedBox(height: AppSpacing.md),
+          // ── Invoice list or empty state ───────────────────────────────────
+          if (transactions.isEmpty)
+            ScheduleEmptyState(accentColor: accentColor)
+          else
+            ...transactions.map(
+              (t) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: ScheduleInvoiceCard(
+                  transaction: t,
+                  accentColor: accentColor,
+                  showValidate: showValidate,
+                  currencyCode: currencyCode,
+                  onChanged: onChanged,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -231,14 +242,15 @@ class _InvoiceSection extends StatelessWidget {
 // Invoice card
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _InvoiceCard extends ConsumerStatefulWidget {
+class ScheduleInvoiceCard extends ConsumerStatefulWidget {
   final Transaction transaction;
   final Color accentColor;
   final bool showValidate;
   final String currencyCode;
   final VoidCallback onChanged;
 
-  const _InvoiceCard({
+  const ScheduleInvoiceCard({
+    super.key,
     required this.transaction,
     required this.accentColor,
     required this.showValidate,
@@ -247,10 +259,10 @@ class _InvoiceCard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_InvoiceCard> createState() => _InvoiceCardState();
+  ConsumerState<ScheduleInvoiceCard> createState() => _ScheduleInvoiceCardState();
 }
 
-class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
+class _ScheduleInvoiceCardState extends ConsumerState<ScheduleInvoiceCard> {
   bool _loading = false;
   bool _isHovering = false;
 
@@ -411,6 +423,8 @@ class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
                             children: [
                               Text(
                                 _tx.accountName ?? _tx.accountId,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -425,6 +439,8 @@ class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
                               const SizedBox(height: 3),
                               Text(
                                 '${DateFormat('dd MMM yyyy', 'fr_FR').format(_tx.date)} · $_timingLabel',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: _isUrgent
@@ -486,8 +502,7 @@ class _InvoiceCardState extends ConsumerState<_InvoiceCard> {
                                           ),
                                           side: WidgetStatePropertyAll(
                                             BorderSide(
-                                              color:
-                                                  cardColor.withAlpha(70),
+                                              color: cardColor.withAlpha(70),
                                             ),
                                           ),
                                           padding: const WidgetStatePropertyAll(

@@ -132,11 +132,11 @@ class PremiumThemeExtension extends ThemeExtension<PremiumThemeExtension> {
     return PremiumThemeExtension(
       canvasDeep: const Color(0xFFF7F8F6),
       canvasMid: const Color(0xFFF0F7EE),
-      glassSurface: Colors.white.withValues(alpha: 0.50),
-      glassSurfaceHero: Colors.white.withValues(alpha: 0.65),
-      glassBorder: const Color(0xFFE5E7EB).withValues(alpha: 0.7),
-      glassBorderActive: const Color(0xFF689E28).withValues(alpha: 0.6),
-      glassBorderAccent: const Color(0xFF689E28).withValues(alpha: 0.6),
+      glassSurface: Colors.white.withValues(alpha: 0.65),
+      glassSurfaceHero: Colors.white.withValues(alpha: 0.85),
+      glassBorder: Colors.white.withValues(alpha: 0.90),
+      glassBorderActive: const Color(0xFF689E28).withValues(alpha: 0.5),
+      glassBorderAccent: const Color(0xFF689E28).withValues(alpha: 0.5),
       glassOverlay: Colors.black.withValues(alpha: 0.04),
       glowGreenOpacity: 0.08,
       glowGreenRadius: 30.0,
@@ -149,8 +149,8 @@ class PremiumThemeExtension extends ThemeExtension<PremiumThemeExtension> {
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          const Color(0xFF689E28).withValues(alpha: 0.08),
-          Colors.white.withValues(alpha: 0.40),
+          const Color(0xFF689E28).withValues(alpha: 0.12),
+          Colors.white.withValues(alpha: 0.75),
         ],
       ),
       accentLineGradient: const LinearGradient(

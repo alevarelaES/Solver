@@ -13,6 +13,7 @@ class PremiumAmountText extends StatelessWidget {
   final bool colorCoded;
   final Color? overrideColor;
   final String? overrideFontFamily;
+  final bool compact;
 
   const PremiumAmountText({
     super.key,
@@ -23,6 +24,7 @@ class PremiumAmountText extends StatelessWidget {
     this.colorCoded = false,
     this.overrideColor,
     this.overrideFontFamily,
+    this.compact = false,
   });
 
   @override
@@ -62,7 +64,7 @@ class PremiumAmountText extends StatelessWidget {
       }
     }
 
-    String formatted = AppFormats.formatFromCurrency(amount, currency);
+    String formatted = AppFormats.formatFromCurrency(amount, currency, compact: compact);
     if (showSign && amount > 0) {
       if (!formatted.startsWith('+')) {
         formatted = '+$formatted';

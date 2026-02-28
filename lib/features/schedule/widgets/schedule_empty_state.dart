@@ -27,8 +27,10 @@ class ScheduleEmptyState extends StatelessWidget {
         vertical: AppSpacing.xxl,
         horizontal: AppSpacing.md,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 32, color: color.withAlpha(100)),
           const SizedBox(height: AppSpacing.sm),
@@ -53,6 +55,8 @@ class ScheduleEmptyState extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
+

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:solver/core/theme/app_premium_theme.dart';
-import 'package:flutter_glass_morphism/flutter_glass_morphism.dart';
+import 'dart:ui';
 
 enum PremiumCardVariant { hero, standard, kpi, listItem, chip, sidebar }
 
@@ -106,7 +106,7 @@ class _PremiumCardBaseState extends State<PremiumCardBase> {
     }
     if (widget.borderRadius != null) resolvedRadius = widget.borderRadius!;
 
-    Widget content = widget.onTap != null
+    Widget innerContent = widget.onTap != null
         ? Material(
             color: Colors.transparent,
             child: InkWell(
@@ -124,18 +124,38 @@ class _PremiumCardBaseState extends State<PremiumCardBase> {
             child: widget.child,
           );
 
+    Widget finalContent = innerContent;
+
     if (widget.enableBlur && p.blurEnabled) {
-      content = GlassMorphismMaterial(
-        blurIntensity: p.blurSigma,
-        opacity: theme.brightness == Brightness.dark
-            ? (_isHovered && widget.onTap != null ? 0.16 : 0.08)
-            : (_isHovered && widget.onTap != null ? 0.25 : 0.15),
-        glassThickness: 2.0,
-        tintColor: resolvedSurface,
-        borderRadius: BorderRadius.circular(resolvedRadius),
-        enableBackgroundDistortion: false,
-        enableGlassBorder: false, // Custom borders already applied by AnimatedContainer
-        child: content,
+      Color finalSurface = resolvedSurface;
+      if (widget.onTap != null && _isHovered) {
+        if (theme.brightness == Brightness.dark) {
+          finalSurface = Colors.white.withValues(alpha: 0.12);
+        } else {
+          finalSurface = Colors.white.withValues(alpha: 0.85); 
+        }
+      }
+
+      finalContent = Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(resolvedRadius),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: p.blurSigma, sigmaY: p.blurSigma),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: resolvedGradient == null ? finalSurface : null,
+                    gradient: resolvedGradient,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          innerContent,
+        ],
       );
     }
 
@@ -149,15 +169,13 @@ class _PremiumCardBaseState extends State<PremiumCardBase> {
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(
-          color: (widget.enableBlur && p.blurEnabled)
-              ? Colors.transparent
-              : (resolvedGradient == null ? resolvedSurface : null),
-          gradient: resolvedGradient,
+          color: (widget.enableBlur && p.blurEnabled) ? null : (resolvedGradient == null ? resolvedSurface : null),
+          gradient: (widget.enableBlur && p.blurEnabled) ? null : resolvedGradient,
           borderRadius: BorderRadius.circular(resolvedRadius),
           border: resolvedBorder,
           boxShadow: widget.showGlow ? _buildGlow(p) : null,
         ),
-        child: content,
+        child: finalContent,
       ),
     );
   }

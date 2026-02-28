@@ -1,0 +1,16 @@
+﻿Analyzing Solver...                                             
+
+warning - Unused import: 'package:solver/shared/widgets/status_chip_row.dart' - lib\features\goals\views\goals_view.dart:18:8 - unused_import
+  error - The method 'GoalsTabBar' isn't defined for the type '_GoalsViewState' - lib\features\goals\views\goals_view.logic.part.dart:813:34 - undefined_method
+warning - The declaration '_OverviewMetric' isn't referenced - lib\features\goals\views\goals_view.widgets.part.dart:3:7 - unused_element
+warning - The declaration '_TypeButton' isn't referenced - lib\features\goals\views\goals_view.widgets.part.dart:67:7 - unused_element
+warning - The value of the local variable 'progress' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:149:11 - unused_local_variable
+warning - The value of the local variable 'projected' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:150:11 - unused_local_variable
+warning - The value of the local variable 'delayText' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:162:11 - unused_local_variable
+warning - The value of the local variable 'marginText' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:167:11 - unused_local_variable
+  error - The getter 'border' isn't defined for the type 'AppColors' - lib\features\goals\views\goals_view.widgets.part.dart:405:47 - undefined_getter
+  error - The getter 'surfaceNeutral' isn't defined for the type 'AppColors' - lib\features\goals\views\goals_view.widgets.part.dart:426:26 - undefined_getter
+warning - The value of the local variable 'isDark' isn't used - lib\features\goals\widgets\goals_stats_strip.dart:23:11 - unused_local_variable
+  error - The getter 'surfaceNeutral' isn't defined for the type 'AppColors' - lib\features\goals\widgets\goals_tab_bar.dart:45:47 - undefined_getter
+warning - Unused import: 'package:solver/core/theme/app_premium_theme.dart' - lib\shared\widgets\status_chip_row.dart:2:8 - unused_import
+

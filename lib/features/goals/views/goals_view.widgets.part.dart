@@ -1,108 +1,5 @@
 part of 'goals_view.dart';
 
-class _OverviewMetric extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color accent;
-
-  const _OverviewMetric({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.accent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(185),
-        borderRadius: BorderRadius.circular(AppRadius.r10),
-        border: Border.all(color: accent.withAlpha(60)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: accent.withAlpha(22),
-              borderRadius: BorderRadius.circular(AppRadius.r8),
-            ),
-            child: Icon(icon, size: 22, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-class _TypeButton extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  const _TypeButton({
-    required this.label,
-    required this.isActive,
-    required this.activeColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? activeColor.withAlpha(22) : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.r10),
-          border: Border.all(
-            color: isActive ? activeColor.withAlpha(80) : Colors.transparent,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? activeColor : AppColors.textSecondary,
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _GoalCard extends StatefulWidget {
   final SavingGoal goal;
@@ -132,6 +29,9 @@ class _GoalCardState extends State<_GoalCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final goal = widget.goal;
     final alert = widget.alert;
 
@@ -142,455 +42,357 @@ class _GoalCardState extends State<_GoalCard> {
         alert.level == _GoalAlertLevel.overdue ||
         alert.level == _GoalAlertLevel.critical;
     final isAttention = alert.level == _GoalAlertLevel.attention;
-    final statusColor = alert.color;
-    final progress = (goal.progressPercent / 100).clamp(0.0, 1.0);
-    final projected = goal.projectedDate;
-    final typeColor = isDebt ? AppColors.danger : AppColors.primary;
     final progressColor = isAchieved
         ? AppColors.primary
         : isCritical
         ? AppColors.danger
         : isAttention
         ? AppColors.warning
-        : typeColor;
-    final cardBackground = isAchieved
-        ? AppColors.surfaceSuccess
-        : isCritical
-        ? AppColors.surfaceDangerSoft
-        : isAttention
-        ? AppColors.surfaceWarningSoft
-        : AppColors.surfaceNeutralSoft;
-    final deadlineColor = isAchieved
-        ? AppColors.primary
-        : daysToTarget < 0
-        ? AppColors.danger
-        : daysToTarget <= 7
-        ? AppColors.danger
-        : daysToTarget <= 30
-        ? AppColors.warning
-        : AppColors.info;
-    final risk =
-        isDebt ? _assessDebtRisk(goal, widget.monthlyMarginAvailable) : null;
-    final delayText = risk == null
-        ? null
-        : risk.projectedDelayMonths == null
-        ? AppStrings.goals.delayUnknown
-        : AppStrings.goals.delayMonths(risk.projectedDelayMonths!);
-    final marginText = risk == null
-        ? null
-        : risk.marginAfterPayment == null
-        ? AppStrings.goals.marginUnavailable
-        : risk.marginAfterPayment! >= 0
-        ? AppStrings.goals.marginAfterPayment(
-            AppFormats.formatFromChfCompact(risk.marginAfterPayment!),
-          )
-        : AppStrings.goals.marginAfterPayment(
-            '-${AppFormats.formatFromChfCompact(risk.marginAfterPayment!.abs())}',
-          );
+        : (isDebt ? AppColors.danger : AppColors.primary);
 
-    // ── Reusable badge builder ────────────────────────────────────────────────
-    Widget badge(String text, Color color, {IconData? icon}) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withAlpha(16),
-          borderRadius: BorderRadius.circular(AppRadius.r6),
-          border: Border.all(color: color.withAlpha(55)),
+    final accentColor = progressColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(8) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12),
+          width: 1,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ── Icon-only button style ────────────────────────────────────────────────
-    final iconBtnStyle = OutlinedButton.styleFrom(
-      padding: const EdgeInsets.all(8),
-      minimumSize: const Size(36, 36),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.r6),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withAlpha(isDark ? 36 : 18),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-    );
-    final iconBtnDangerStyle = iconBtnStyle.copyWith(
-      foregroundColor: WidgetStatePropertyAll(AppColors.danger),
-      side: WidgetStatePropertyAll(
-        BorderSide(color: AppColors.danger.withAlpha(80)),
-      ),
-    );
-
-    return AppPanel(
-      backgroundColor: cardBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      radius: AppRadius.r12,
-      borderColor: progressColor.withAlpha(65),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Top row: icon + name + % ────────────────────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: progressColor.withAlpha(18),
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                ),
-                child: Icon(
-                  isDebt ? Icons.payments_rounded : Icons.savings_rounded,
-                  color: progressColor,
-                  size: 22,
-                ),
+          // ─── Top accent bar ────────────────────────────
+          Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accentColor, accentColor.withAlpha(80)],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── Title + icon row ───────────────────
+                Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         goal.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : Colors.black87,
+                          letterSpacing: -0.3,
                         ),
-                        overflow: TextOverflow.ellipsis,
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    badge(alert.label, statusColor, icon: alert.icon),
-                    const SizedBox(width: 6),
-                    badge(
-                      _deadlineLabel(goal),
-                      deadlineColor,
+                    Icon(
+                      isDebt ? Icons.credit_card_rounded : Icons.savings_rounded,
+                      size: 16,
+                      color: isDark ? Colors.white30 : Colors.black26,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // ─── Donut centré ───────────────────────
+                Center(
+                  child: GoalProgressDonut(
+                    percent: goal.progressPercent,
+                    size: 140,
+                    color: progressColor,
+                    strokeWidth: 11,
+                    centerLabel: '${goal.progressPercent.round()}%',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ─── Badges (alerte + deadline) ─────────
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _Badge(text: alert.label, color: accentColor, icon: alert.icon),
+                    _Badge(
+                      text: _deadlineLabel(goal),
+                      color: isAchieved
+                          ? AppColors.primary
+                          : (daysToTarget <= 7 ? AppColors.danger : Colors.amber),
                       icon: Icons.event_rounded,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${goal.progressPercent.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      color: progressColor,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      height: 1.0,
-                    ),
-                  ),
-                  Text(
-                    AppStrings.goals.completedLabel,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
-          // ── Amounts row ─────────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(140),
-              borderRadius: BorderRadius.circular(AppRadius.r8),
-              border: Border.all(color: AppColors.borderSubtle),
-            ),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                Text(
-                  AppStrings.goals.currentVsTarget(
-                    AppFormats.formatFromChfCompact(goal.currentAmount),
-                    AppFormats.formatFromChfCompact(goal.targetAmount),
-                  ),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  isDebt
-                      ? AppStrings.goals.remainingToRepay(
-                          AppFormats.formatFromChfCompact(goal.remainingAmount),
-                        )
-                      : AppStrings.goals.remainingGoal(
-                          AppFormats.formatFromChfCompact(goal.remainingAmount),
-                        ),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    color: isAchieved
-                        ? AppColors.primary
-                        : isDebt
-                        ? AppColors.danger
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 7),
-
-          // ── Progress bar ────────────────────────────────────────────────────
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.r6),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 5,
-              backgroundColor: AppColors.surfaceInfoSoft,
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // ── Action row ──────────────────────────────────────────────────────
-          Row(
-            children: [
-              // Secondary actions: icon-only with tooltip
-              Tooltip(
-                message: AppStrings.goals.historyAction,
-                child: OutlinedButton(
-                  onPressed: widget.onHistory,
-                  style: iconBtnStyle,
-                  child: const Icon(Icons.history_rounded, size: 18),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Tooltip(
-                message: AppStrings.common.edit,
-                child: OutlinedButton(
-                  onPressed: widget.onEdit,
-                  style: iconBtnStyle,
-                  child: const Icon(Icons.edit_rounded, size: 18),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Tooltip(
-                message: goal.isArchived
-                    ? AppStrings.goals.unarchiveAction
-                    : AppStrings.goals.archiveAction,
-                child: OutlinedButton(
-                  onPressed: widget.onArchive,
-                  style: iconBtnDangerStyle,
-                  child: Icon(
-                    goal.isArchived
-                        ? Icons.unarchive_rounded
-                        : Icons.archive_rounded,
-                    size: 18,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // "Voir détail" toggle
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _expanded = !_expanded),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _expanded ? 'Réduire' : 'Voir détail',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                // ─── Actuel / Cible / Reste ─────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${AppFormats.formatFromChfCompact(goal.currentAmount)} / ${AppFormats.formatFromChfCompact(goal.targetAmount)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? Colors.white38 : Colors.black45,
+                        fontSize: 11,
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _expanded
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                        size: 16,
-                        color: AppColors.textSecondary,
+                    ),
+                    Text(
+                      'Reste ${AppFormats.formatFromChfCompact(goal.remainingAmount)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? Colors.white70 : Colors.black.withAlpha(188),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const Spacer(),
-              // Primary deposit / payment (icon-only, right-aligned)
-              Tooltip(
-                message: isDebt
-                    ? AppStrings.goals.payment
-                    : AppStrings.goals.depositWithdraw,
-                child: ElevatedButton(
-                  onPressed: widget.onMove,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.r8),
-                    ),
-                  ),
-                  child: Icon(
-                    isDebt
-                        ? Icons.credit_score_rounded
-                        : Icons.sync_alt_rounded,
-                    size: 20,
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 8),
 
-          // ── Expandable detail section ───────────────────────────────────────
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            child: _expanded
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 10),
-                      const Divider(height: 1),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
+                // ─── Barre de progression linéaire ──────
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: (goal.progressPercent / 100).clamp(0.0, 1.0),
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withAlpha(25),
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                    minHeight: 5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // ─── Actions bar ─────────────────────────
+                Row(
+                  children: [
+                    _IconButton(icon: Icons.history_rounded, onTap: widget.onHistory),
+                    const SizedBox(width: 8),
+                    _IconButton(icon: Icons.edit_rounded, onTap: widget.onEdit),
+                    const SizedBox(width: 8),
+                    _IconButton(
+                      icon: goal.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded,
+                      onTap: widget.onArchive,
+                      isDanger: true,
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => setState(() => _expanded = !_expanded),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          badge(
-                            '${isDebt ? AppStrings.goals.monthlyRepayment : AppStrings.goals.monthlyCurrent}: ${AppFormats.formatFromChfCompact(goal.monthlyContribution)}',
-                            AppColors.textSecondary,
-                            icon: Icons.repeat_rounded,
-                          ),
-                          if (goal.autoContributionEnabled &&
-                              goal.monthlyContribution > 0)
-                            badge(
-                              goal.autoContributionStartDate == null
-                                  ? (isDebt
-                                        ? AppStrings.goals.autoPaymentActive
-                                        : AppStrings.goals.autoDepositActive)
-                                  : (isDebt
-                                        ? AppStrings.goals.autoPaymentDay(
-                                            goal
-                                                .autoContributionStartDate!.day,
-                                          )
-                                        : AppStrings.goals.autoDepositDay(
-                                            goal
-                                                .autoContributionStartDate!.day,
-                                          )),
-                              AppColors.primary,
-                              icon: Icons.bolt_rounded,
+                          Text(
+                            _expanded ? 'Moins' : 'Détails',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                              fontSize: 11,
                             ),
-                          badge(
-                            AppStrings.goals.recommended(
-                              AppFormats.formatFromChfCompact(
-                                goal.recommendedMonthly,
-                              ),
-                            ),
-                            AppColors.textPrimary,
-                            icon: Icons.calculate_rounded,
                           ),
-                          badge(
-                            AppStrings.goals.monthsRemainingCount(
-                              goal.monthsRemaining,
-                            ),
-                            AppColors.textSecondary,
-                            icon: Icons.date_range_rounded,
-                          ),
-                          badge(
-                            projected == null
-                                ? AppStrings.goals.projectionUnknown
-                                : AppStrings.goals.projection(
-                                    '${projected.month.toString().padLeft(2, '0')}.${projected.year}',
-                                  ),
-                            AppColors.textSecondary,
-                            icon: Icons.auto_graph_rounded,
+                          const SizedBox(width: 4),
+                          Icon(
+                            _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                            size: 14,
+                            color: isDark ? Colors.white54 : Colors.black45,
                           ),
                         ],
                       ),
-                      if (risk != null) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: risk.color.withAlpha(18),
-                            borderRadius: BorderRadius.circular(AppRadius.r10),
-                            border: Border.all(color: risk.color.withAlpha(80)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                risk.label,
-                                style: TextStyle(
-                                  color: risk.color,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                delayText!,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                marginText!,
-                                style: TextStyle(
-                                  color: risk.marginAfterPayment == null
-                                      ? AppColors.textSecondary
-                                      : (risk.marginAfterPayment! >= 0
-                                            ? AppColors.primary
-                                            : AppColors.danger),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: widget.onMove,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Icon(
+                        isDebt ? Icons.credit_score_rounded : Icons.sync_alt_rounded,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ─── DétailsExpandables ──────────────────
+                if (_expanded) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    height: 1,
+                    color: isDark ? Colors.white.withAlpha(14) : Colors.black.withAlpha(10),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _DetailBadge(
+                        label: '${isDebt ? AppStrings.goals.monthlyRepayment : AppStrings.goals.monthlyCurrent} ${AppFormats.formatFromChfCompact(goal.monthlyContribution)}',
+                        icon: Icons.repeat_rounded,
+                      ),
+                      if (goal.autoContributionEnabled && goal.monthlyContribution > 0)
+                        _DetailBadge(
+                          label: goal.autoContributionStartDate == null
+                              ? (isDebt ? AppStrings.goals.autoPaymentActive : AppStrings.goals.autoDepositActive)
+                              : (isDebt ? AppStrings.goals.autoPaymentDay(goal.autoContributionStartDate!.day) : AppStrings.goals.autoDepositDay(goal.autoContributionStartDate!.day)),
+                          icon: Icons.bolt_rounded,
+                          color: AppColors.primary,
                         ),
-                      ],
+                      _DetailBadge(
+                        label: AppStrings.goals.recommended(AppFormats.formatFromChfCompact(goal.recommendedMonthly)),
+                        icon: Icons.calculate_rounded,
+                      ),
+                      _DetailBadge(
+                        label: AppStrings.goals.monthsRemainingCount(goal.monthsRemaining),
+                        icon: Icons.date_range_rounded,
+                      ),
                     ],
-                  )
-                : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+class _GoalCardsGrid extends StatelessWidget {
+  final List<Widget> children;
+
+  const _GoalCardsGrid({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double spacing = 16.0;
+        const double maxCardWidth = 360.0;
+        
+        int columns = (constraints.maxWidth + spacing) ~/ (maxCardWidth + spacing);
+        if (columns < 1) columns = 1;
+        
+        final double itemWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: children.map((child) {
+            return SizedBox(
+              width: itemWidth,
+              child: child,
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String text;
+  final Color color;
+  final IconData? icon;
+
+  const _Badge({required this.text, required this.color, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withAlpha(80)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+          ],
+          Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDanger;
+
+  const _IconButton({required this.icon, required this.onTap, this.isDanger = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDanger ? AppColors.danger : AppColors.textSecondary;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDanger ? AppColors.danger.withAlpha(isDark ? 50 : 30) : Colors.transparent;
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: isDanger ? Colors.transparent : AppColors.borderSubtle),
+        ),
+        child: Icon(icon, size: 16, color: color),
+      ),
+    );
+  }
+}
+
+class _DetailBadge extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color? color;
+
+  const _DetailBadge({required this.label, required this.icon, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textSecondary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: c),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+

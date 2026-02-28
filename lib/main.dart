@@ -58,6 +58,25 @@ class SolverApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('fr', 'FR')],
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+        final mq = MediaQuery.of(context);
+        double scale = 1.0;
+        
+        // Ajustement de la taille du texte uniquement pour éviter l'effet "gros boutons" sans casser l'UI
+        if (mq.size.width >= 1024 && mq.size.width < 1600) {
+          scale = 0.90; 
+        } else if (mq.size.width >= 768 && mq.size.width < 1024) {
+          scale = 0.95; 
+        }
+
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: TextScaler.linear(scale),
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

@@ -653,489 +653,170 @@ extension _GoalsViewLogic on _GoalsViewState {
             subtitle: AppStrings.goals.subtitle,
           ),
           const SizedBox(height: AppSpacing.md),
-          AppPanel(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            radius: AppRadius.r20,
-            borderColor: AppColors.borderSubtle,
-            child: goalsAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(AppSpacing.lg),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Text(
-                AppStrings.goals.historyError(e),
-                style: const TextStyle(color: AppColors.danger),
-              ),
-              data: (goals) {
-                final filtered =
-                    goals
-                        .where((g) => g.goalType.toLowerCase() == _activeType)
-                        .toList()
-                      ..sort((a, b) {
-                        final aAchieved = _isAchievedStatus(a.status);
-                        final bAchieved = _isAchievedStatus(b.status);
-                        if (aAchieved != bAchieved) {
-                          return aAchieved ? 1 : -1;
-                        }
-                        final dateCmp = a.targetDate.compareTo(b.targetDate);
-                        if (dateCmp != 0) return dateCmp;
-                        return a.priority.compareTo(b.priority);
-                      });
-                final pending = filtered
-                    .where((g) => !_isAchievedStatus(g.status))
-                    .toList();
-                final achieved = filtered
-                    .where((g) => _isAchievedStatus(g.status))
-                    .toList();
-                final goalAlerts = <String, _GoalAlertAssessment>{
-                  for (final goal in filtered) goal.id: _assessGoalAlert(goal),
-                };
-                final urgent = pending
-                    .where(
-                      (g) =>
-                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).isPriority,
-                    )
-                    .toList();
-                final attention = pending
-                    .where(
-                      (g) =>
-                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).isAttention,
-                    )
-                    .toList();
-                final regular = pending.where((g) {
-                  final alert = goalAlerts[g.id] ?? _assessGoalAlert(g);
-                  return !alert.isPriority && !alert.isAttention;
-                }).toList();
-                final totalTarget = filtered.fold<double>(
-                  0,
-                  (sum, g) => sum + g.targetAmount,
-                );
-                final totalCurrent = filtered.fold<double>(
-                  0,
-                  (sum, g) => sum + g.currentAmount,
-                );
-                final totalMonthly = filtered.fold<double>(
-                  0,
-                  (sum, g) => sum + g.monthlyContribution,
-                );
-                final averageProgress = filtered.isEmpty
-                    ? 0.0
-                    : filtered.fold<double>(
-                            0,
-                            (sum, g) => sum + g.progressPercent,
-                          ) /
-                          filtered.length;
-                final overdueCount = pending
-                    .where(
-                      (g) =>
-                          (goalAlerts[g.id] ?? _assessGoalAlert(g)).level ==
-                          _GoalAlertLevel.overdue,
-                    )
-                    .length;
-                final typeColor = _isDebtType(_activeType)
-                    ? AppColors.danger
-                    : AppColors.primary;
-
-                Widget buildSection({
-                  required String title,
-                  required String subtitle,
-                  required IconData icon,
-                  required Color accent,
-                  required List<SavingGoal> sectionGoals,
-                }) {
-                  Widget buildCard(int i) => _GoalCard(
-                    goal: sectionGoals[i],
-                    alert:
-                        goalAlerts[sectionGoals[i].id] ??
-                        _assessGoalAlert(sectionGoals[i]),
-                    monthlyMarginAvailable: monthlyMarginAvailable,
-                    onEdit: () =>
-                        _showGoalEditor(goal: sectionGoals[i]),
-                    onMove: () =>
-                        _showGoalEntryEditor(sectionGoals[i]),
-                    onHistory: () =>
-                        _showGoalHistory(sectionGoals[i]),
-                    onArchive: () async {
-                      await ref
-                          .read(goalsApiProvider)
-                          .archiveGoal(
-                            id: sectionGoals[i].id,
-                            isArchived: !sectionGoals[i].isArchived,
-                          );
-                      ref.invalidate(goalsProvider);
-                    },
-                  );
-
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final useGrid =
-                          constraints.maxWidth >= 620 &&
-                          sectionGoals.length > 1;
-
-                      if (!useGrid) {
-                        return Column(
-                          children: [
-                            for (int i = 0; i < sectionGoals.length; i++)
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  bottom:
-                                      i == sectionGoals.length - 1 ? 0 : 10,
-                                ),
-                                child: buildCard(i),
-                              ),
-                          ],
-                        );
-                      }
-
-                      final rows = <Widget>[];
-                      for (int i = 0; i < sectionGoals.length; i += 2) {
-                        final isLastRow = i + 2 >= sectionGoals.length;
-                        rows.add(
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: isLastRow ? 0 : 10,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: buildCard(i)),
-                                const SizedBox(width: 10),
-                                if (i + 1 < sectionGoals.length)
-                                  Expanded(child: buildCard(i + 1))
-                                else
-                                  const Expanded(child: SizedBox()),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(children: rows);
-                    },
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxWidth < 980;
-                        final titleBlock = Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppStrings.goals.panelHeaderTitle,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textDisabled,
-                                fontSize: 11,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppStrings.goals.panelHeaderSubtitle,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        );
-                        final controls = Wrap(
-                          spacing: 10,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.s3),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceHeader,
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(AppRadius.r12),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _TypeButton(
-                                    label: AppStrings.goals.newGoalBtn,
-                                    isActive: !_isDebtType(_activeType),
-                                    activeColor: AppColors.primary,
-                                    onTap: () => _withState(
-                                      () => _activeType = 'savings',
-                                    ),
-                                  ),
-                                  _TypeButton(
-                                    label: AppStrings.goals.newDebtBtn,
-                                    isActive: _isDebtType(_activeType),
-                                    activeColor: AppColors.danger,
-                                    onTap: () =>
-                                        _withState(() => _activeType = 'debt'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () =>
-                                  _showGoalEditor(forcedType: _activeType),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: Text(
-                                _isDebtType(_activeType)
-                                    ? AppStrings.goals.newDebtTitle
-                                    : AppStrings.goals.newGoalTitle,
-                              ),
-                            ),
-                          ],
-                        );
-
-                        if (compact) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              titleBlock,
-                              const SizedBox(height: 10),
-                              controls,
-                            ],
-                          );
-                        }
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: titleBlock),
-                            const SizedBox(width: 14),
-                            Flexible(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: controls,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s14,
-                        AppSpacing.s14,
-                        AppSpacing.s14,
-                        AppSpacing.md,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            typeColor.withAlpha(24),
-                            AppColors.surfaceMuted,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.r16),
-                        border: Border.all(color: typeColor.withAlpha(70)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _isDebtType(_activeType)
-                                      ? AppStrings.goals.panelTitleDebts
-                                      : AppStrings.goals.panelTitleGoals,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 17,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: typeColor.withAlpha(26),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(AppRadius.r8),
-                                  ),
-                                ),
-                                child: Text(
-                                  AppStrings.goals.cardCount(filtered.length),
-                                  style: TextStyle(
-                                    color: typeColor,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _OverviewMetric(
-                                icon: Icons.flag_rounded,
-                                label: AppStrings.goals.metricTotalTarget,
-                                value: AppFormats.formatFromChfCompact(
-                                  totalTarget,
-                                ),
-                                accent: typeColor,
-                              ),
-                              _OverviewMetric(
-                                icon: Icons.account_balance_wallet_rounded,
-                                label: AppStrings.goals.metricCurrentCapital,
-                                value: AppFormats.formatFromChfCompact(
-                                  totalCurrent,
-                                ),
-                                accent: AppColors.successStrong,
-                              ),
-                              _OverviewMetric(
-                                icon: Icons.trending_up_rounded,
-                                label: AppStrings.goals.metricAverageProgress,
-                                value: '${averageProgress.toStringAsFixed(1)}%',
-                                accent: AppColors.info,
-                              ),
-                              _OverviewMetric(
-                                icon: Icons.payments_rounded,
-                                label: AppStrings.goals.metricMonthlyTotal,
-                                value: AppFormats.formatFromChfCompact(
-                                  totalMonthly,
-                                ),
-                                accent: AppColors.warning,
-                              ),
-                              _OverviewMetric(
-                                icon: Icons.notifications_active_rounded,
-                                label: AppStrings.goals.metricAlerts,
-                                value: AppStrings.goals.alertSummary(
-                                  overdueCount,
-                                  urgent.length,
-                                  attention.length,
-                                ),
-                                accent: urgent.isNotEmpty || overdueCount > 0
-                                    ? AppColors.danger
-                                    : AppColors.warning,
-                              ),
-                              _OverviewMetric(
-                                icon: Icons.task_alt_rounded,
-                                label: AppStrings.goals.metricAchieved,
-                                value: '${achieved.length}',
-                                accent: AppColors.primary,
-                              ),
-                            ],
-                          ),
-                          if (_isDebtType(_activeType)) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(170),
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(AppRadius.r10),
-                                ),
-                                border: Border.all(
-                                  color: AppColors.borderSubtle,
-                                ),
-                              ),
-                              child: Text(
-                                monthlyMarginAvailable == null
-                                    ? AppStrings.goals.marginUnavailableMsg
-                                    : AppStrings.goals.monthlyMarginMsg(
-                                        AppFormats.formatFromChfCompact(
-                                          monthlyMarginAvailable,
-                                        ),
-                                      ),
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (filtered.isEmpty)
-                      AppPanel(
-                        radius: AppRadius.r16,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 16,
-                        ),
-                        borderColor: AppColors.borderSubtle,
-                        child: Text(
-                          _isDebtType(_activeType)
-                              ? AppStrings.goals.noDebts
-                              : AppStrings.goals.noGoalsList,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    if (filtered.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (urgent.isNotEmpty)
-                            buildSection(
-                              title: AppStrings.goals.sectionUrgent,
-                              subtitle: AppStrings.goals.sectionUrgentDesc,
-                              icon: Icons.priority_high_rounded,
-                              accent: AppColors.danger,
-                              sectionGoals: urgent,
-                            ),
-                          if (attention.isNotEmpty) ...[
-                            if (urgent.isNotEmpty) const SizedBox(height: 10),
-                            buildSection(
-                              title: AppStrings.goals.sectionAttention,
-                              subtitle: AppStrings.goals.sectionAttentionDesc,
-                              icon: Icons.warning_amber_rounded,
-                              accent: AppColors.warning,
-                              sectionGoals: attention,
-                            ),
-                          ],
-                          if (regular.isNotEmpty) ...[
-                            if (urgent.isNotEmpty || attention.isNotEmpty)
-                              const SizedBox(height: 10),
-                            buildSection(
-                              title: AppStrings.goals.sectionInProgress,
-                              subtitle: AppStrings.goals.sectionInProgressDesc,
-                              icon: Icons.timelapse_rounded,
-                              accent: typeColor,
-                              sectionGoals: regular,
-                            ),
-                          ],
-                          if (achieved.isNotEmpty) ...[
-                            if (urgent.isNotEmpty ||
-                                attention.isNotEmpty ||
-                                regular.isNotEmpty)
-                              const SizedBox(height: 10),
-                            buildSection(
-                              title: AppStrings.goals.sectionAchieved,
-                              subtitle: AppStrings.goals.sectionAchievedDesc,
-                              icon: Icons.verified_rounded,
-                              accent: AppColors.primary,
-                              sectionGoals: achieved,
-                            ),
-                          ],
-                        ],
-                      ),
-                  ],
-                );
-              },
+          goalsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(AppSpacing.lg),
+              child: Center(child: CircularProgressIndicator()),
             ),
+            error: (e, _) => Text(
+              AppStrings.goals.historyError(e),
+              style: const TextStyle(color: AppColors.danger),
+            ),
+            data: (goals) {
+              final filtered =
+                  goals
+                      .where((g) => g.goalType.toLowerCase() == _activeType)
+                      .toList()
+                    ..sort((a, b) {
+                      final aAchieved = _isAchievedStatus(a.status);
+                      final bAchieved = _isAchievedStatus(b.status);
+                      if (aAchieved != bAchieved) {
+                        return aAchieved ? 1 : -1;
+                      }
+                      final dateCmp = a.targetDate.compareTo(b.targetDate);
+                      if (dateCmp != 0) return dateCmp;
+                      return a.priority.compareTo(b.priority);
+                    });
+              final pending = filtered
+                  .where((g) => !_isAchievedStatus(g.status))
+                  .toList();
+              final achieved = filtered
+                  .where((g) => _isAchievedStatus(g.status))
+                  .toList();
+              final goalAlerts = <String, _GoalAlertAssessment>{
+                for (final goal in filtered) goal.id: _assessGoalAlert(goal),
+              };
+              final urgent = pending
+                  .where(
+                    (g) =>
+                        (goalAlerts[g.id] ?? _assessGoalAlert(g)).isPriority,
+                  )
+                  .toList();
+              final attention = pending
+                  .where(
+                    (g) =>
+                        (goalAlerts[g.id] ?? _assessGoalAlert(g)).isAttention,
+                  )
+                  .toList();
+              final totalTarget = filtered.fold<double>(
+                0,
+                (sum, g) => sum + g.targetAmount,
+              );
+              final totalCurrent = filtered.fold<double>(
+                0,
+                (sum, g) => sum + g.currentAmount,
+              );
+              final totalMonthly = filtered.fold<double>(
+                0,
+                (sum, g) => sum + g.monthlyContribution,
+              );
+              final averageProgress = filtered.isEmpty
+                  ? 0.0
+                  : filtered.fold<double>(
+                          0,
+                          (sum, g) => sum + g.progressPercent,
+                        ) /
+                        filtered.length;
+              final overdueCount = pending
+                  .where(
+                    (g) =>
+                        (goalAlerts[g.id] ?? _assessGoalAlert(g)).level ==
+                        _GoalAlertLevel.overdue,
+                  )
+                  .length;
+
+              Widget buildCard(SavingGoal goal) => _GoalCard(
+                  goal: goal,
+                  alert: goalAlerts[goal.id] ?? _assessGoalAlert(goal),
+                  monthlyMarginAvailable: monthlyMarginAvailable,
+                  onEdit: () => _showGoalEditor(goal: goal),
+                  onMove: () => _showGoalEntryEditor(goal),
+                  onHistory: () => _showGoalHistory(goal),
+                  onArchive: () async {
+                    await ref.read(goalsApiProvider).archiveGoal(
+                          id: goal.id,
+                          isArchived: !goal.isArchived,
+                        );
+                    ref.invalidate(goalsProvider);
+                  },
+                );
+              // Sort filtered goals: priority 0 first, then by targetDate ascending.
+              final sortedGoals = List<SavingGoal>.from(filtered)
+                ..sort((a, b) {
+                  // Priority 0 comes first
+                  if (a.priority == 0 && b.priority != 0) return -1;
+                  if (b.priority == 0 && a.priority != 0) return 1;
+                  
+                  // Then by target date ascending (closest deadline first)
+                  if (a.targetDate == null && b.targetDate == null) return 0;
+                  if (a.targetDate == null) return 1;
+                  if (b.targetDate == null) return -1;
+                  return a.targetDate!.compareTo(b.targetDate!);
+                });
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                        width: 250,
+                        child: GoalsTabBar(
+                          selectedIndex: _isDebtType(_activeType) ? 1 : 0,
+                          onChanged: (index) {
+                            _withState(() {
+                              _activeType = index == 0 ? 'savings' : 'debt';
+                            });
+                          },
+                          tabs: const ['Objectifs', 'Remboursements'],
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _showGoalEditor(forcedType: _activeType),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: Text(_isDebtType(_activeType) ? AppStrings.goals.newDebtTitle : AppStrings.goals.newGoalTitle),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GoalsDashboard(
+                    cibleTotale: totalTarget,
+                    capitalActuel: totalCurrent,
+                    progressionPercent: averageProgress,
+                    mensuelCumule: totalMonthly,
+                    objectifsAtteints: achieved.length,
+                    alertCounts: {
+                      'Urgence': urgent.length + overdueCount,
+                      'Attention': attention.length,
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  if (filtered.isEmpty)
+                    AppPanel(
+                      radius: AppRadius.r16,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
+                      borderColor: AppColors.borderSubtle,
+                      child: Text(
+                        _isDebtType(_activeType)
+                            ? AppStrings.goals.noDebts
+                            : AppStrings.goals.noGoalsList,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  if (filtered.isNotEmpty)
+                    _GoalCardsGrid(
+                      children: sortedGoals.map((g) => buildCard(g)).toList(),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),

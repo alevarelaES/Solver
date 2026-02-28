@@ -1,0 +1,86 @@
+﻿Analyzing Solver...                                             
+
+warning - Unused import: 'package:solver/shared/widgets/status_chip_row.dart' - lib\features\goals\views\goals_view.dart:18:8 - unused_import
+  error - The method 'GoalsTabBar' isn't defined for the type '_GoalsViewState' - lib\features\goals\views\goals_view.logic.part.dart:813:34 - undefined_method
+  error - The named parameter 'capitalActuel' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:831:21 - missing_required_argument
+  error - The named parameter 'cibleTotale' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:831:21 - missing_required_argument
+  error - The named parameter 'totalAmount' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:832:23 - undefined_named_parameter
+  error - The named parameter 'targetAmount' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:833:23 - undefined_named_parameter
+  error - The named parameter 'monthlyContribution' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:834:23 - undefined_named_parameter
+  error - The named parameter 'activeGoalsCount' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:835:23 - undefined_named_parameter
+  error - The named parameter 'isDebt' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:836:23 - undefined_named_parameter
+  error - The named parameter 'mensuelCumule' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:839:21 - missing_required_argument
+  error - The named parameter 'objectifsCount' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:839:21 - missing_required_argument
+  error - The named parameter 'progressionPercent' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:839:21 - missing_required_argument
+  error - The named parameter 'statusCounts' is required, but there's no corresponding argument - lib\features\goals\views\goals_view.logic.part.dart:839:21 - missing_required_argument
+  error - The named parameter 'urgentAlerts' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:840:23 - undefined_named_parameter
+  error - The named parameter 'attentionAlerts' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:841:23 - undefined_named_parameter
+  error - The named parameter 'achievedGoals' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:842:23 - undefined_named_parameter
+  error - The named parameter 'averageProgress' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:843:23 - undefined_named_parameter
+  error - The named parameter 'marginAvailable' isn't defined - lib\features\goals\views\goals_view.logic.part.dart:844:23 - undefined_named_parameter
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:846:21 - expected_token
+  error - Expected to find ']' - lib\features\goals\views\goals_view.logic.part.dart:846:21 - expected_token
+warning - Dead code - lib\features\goals\views\goals_view.logic.part.dart:846:22 - dead_code
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:846:22 - missing_identifier
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:846:22 - unexpected_token
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:847:46 - expected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:847:47 - missing_identifier
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:847:47 - unexpected_token
+   info - Statements in an if should be enclosed in a block - lib\features\goals\views\goals_view.logic.part.dart:849:23 - curly_braces_in_flow_control_structures
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:865:23 - expected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:865:24 - missing_identifier
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:865:24 - unexpected_token
+   info - Statements in an if should be enclosed in a block - lib\features\goals\views\goals_view.logic.part.dart:867:23 - curly_braces_in_flow_control_structures
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:913:23 - expected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:913:24 - missing_identifier
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:913:24 - unexpected_token
+  error - Expected to find ')' - lib\features\goals\views\goals_view.logic.part.dart:914:19 - expected_token
+  error - Expected to find '}' - lib\features\goals\views\goals_view.logic.part.dart:914:19 - expected_token
+  error - Expected to find ')' - lib\features\goals\views\goals_view.logic.part.dart:915:18 - expected_token
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:917:13 - expected_token
+warning - Dead code - lib\features\goals\views\goals_view.logic.part.dart:917:14 - dead_code
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:917:14 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:917:14 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:917:14 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:918:11 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:918:11 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:918:11 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:918:12 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:918:12 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:918:12 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:919:9 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:919:9 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:919:9 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:919:10 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:919:10 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:919:10 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:920:7 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:920:7 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:920:7 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:920:8 - missing_identifier
+  error - Expected to find ';' - lib\features\goals\views\goals_view.logic.part.dart:920:8 - expected_token
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:920:8 - unexpected_token
+  error - Expected an identifier - lib\features\goals\views\goals_view.logic.part.dart:921:5 - missing_identifier
+  error - Unexpected text ';' - lib\features\goals\views\goals_view.logic.part.dart:921:5 - unexpected_token
+   info - Unnecessary empty statement - lib\features\goals\views\goals_view.logic.part.dart:921:6 - empty_statements
+warning - The declaration '_OverviewMetric' isn't referenced - lib\features\goals\views\goals_view.widgets.part.dart:3:7 - unused_element
+warning - The declaration '_TypeButton' isn't referenced - lib\features\goals\views\goals_view.widgets.part.dart:67:7 - unused_element
+warning - The value of the local variable 'progress' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:149:11 - unused_local_variable
+warning - The value of the local variable 'projected' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:150:11 - unused_local_variable
+warning - The value of the local variable 'delayText' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:162:11 - unused_local_variable
+warning - The value of the local variable 'marginText' isn't used - lib\features\goals\views\goals_view.widgets.part.dart:167:11 - unused_local_variable
+  error - The method '_Badge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:202:15 - undefined_method
+  error - The method '_Badge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:219:15 - undefined_method
+  error - The method '_IconButton' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:254:24 - undefined_method
+  error - The method '_IconButton' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:259:24 - undefined_method
+  error - The method '_IconButton' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:264:24 - undefined_method
+  error - The method '_DetailBadge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:313:17 - undefined_method
+  error - The method '_DetailBadge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:318:19 - undefined_method
+  error - The method '_DetailBadge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:325:17 - undefined_method
+  error - The method '_DetailBadge' isn't defined for the type '_GoalCardState' - lib\features\goals\views\goals_view.widgets.part.dart:329:17 - undefined_method
+warning - The value of the local variable 'isDark' isn't used - lib\features\goals\widgets\goals_stats_strip.dart:23:11 - unused_local_variable
+  error - Undefined name 'AppColors' - lib\features\goals\widgets\goals_tab_bar.dart:25:25 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\goals\widgets\goals_tab_bar.dart:28:27 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\features\goals\widgets\goals_tab_bar.dart:45:37 - undefined_identifier
+warning - Unused import: 'package:solver/core/theme/app_premium_theme.dart' - lib\shared\widgets\status_chip_row.dart:2:8 - unused_import
+

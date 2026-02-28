@@ -82,8 +82,9 @@ class AppFormats {
 
   /// Converts and formats an amount from [sourceCurrencyCode] to the active currency.
   /// Returns '--' if [amount] is null.
-  static String formatFromCurrency(double? amount, String sourceCurrencyCode) {
+  static String formatFromCurrency(double? amount, String sourceCurrencyCode, {bool compact = false}) {
     if (amount == null) return '--';
-    return currency.format(convertFromCurrency(amount, sourceCurrencyCode));
+    final val = convertFromCurrency(amount, sourceCurrencyCode);
+    return compact ? currencyCompact.format(val) : currency.format(val);
   }
 }
