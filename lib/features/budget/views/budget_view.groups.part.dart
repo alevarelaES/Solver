@@ -5,12 +5,14 @@ class _CardsLayout extends StatelessWidget {
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
+  final void Function(_RenderedGroup row) onToggleLock;
 
   const _CardsLayout({
     required this.inputVersion,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
+    required this.onToggleLock,
   });
 
   @override
@@ -32,6 +34,7 @@ class _CardsLayout extends StatelessWidget {
                   row: row,
                   onModeChanged: onModeChanged,
                   onValueChanged: onValueChanged,
+                  onToggleLock: onToggleLock,
                 ),
               ),
           ],
@@ -46,12 +49,14 @@ class _ListLayout extends StatelessWidget {
   final List<_RenderedGroup> rows;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
+  final void Function(_RenderedGroup row) onToggleLock;
 
   const _ListLayout({
     required this.inputVersion,
     required this.rows,
     required this.onModeChanged,
     required this.onValueChanged,
+    required this.onToggleLock,
   });
 
   @override
@@ -67,6 +72,7 @@ class _ListLayout extends StatelessWidget {
               compact: true,
               onModeChanged: onModeChanged,
               onValueChanged: onValueChanged,
+              onToggleLock: onToggleLock,
             ),
           ),
       ],
@@ -80,12 +86,14 @@ class _GroupCard extends StatelessWidget {
   final bool compact;
   final void Function(_RenderedGroup row, String mode) onModeChanged;
   final void Function(_RenderedGroup row, String value) onValueChanged;
+  final void Function(_RenderedGroup row) onToggleLock;
 
   const _GroupCard({
     required this.inputVersion,
     required this.row,
     required this.onModeChanged,
     required this.onValueChanged,
+    required this.onToggleLock,
     this.compact = false,
   });
 
@@ -93,29 +101,26 @@ class _GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final hasEnvelope = row.plannedAmount > 0.0001;
     final paidAmount = row.group.spentActual;
     final pendingAmount = row.group.pendingAmount;
     final committedAmount = paidAmount + pendingAmount;
-    final usagePct = hasEnvelope
+    final hasEnvelope = row.plannedAmount > 0.0001 || committedAmount > 0.0001;
+    final usagePct = hasEnvelope && row.plannedAmount > 0
         ? (committedAmount / row.plannedAmount) * 100
-        : 0.0;
+        : (committedAmount > 0 ? 100.0 : 0.0);
     final overUsage = hasEnvelope && committedAmount > row.plannedAmount;
     final overflowAmount = hasEnvelope
         ? (committedAmount > row.plannedAmount
               ? committedAmount - row.plannedAmount
               : 0.0)
         : committedAmount;
-    final lockedByCommitted =
-        row.minAllowedAmount > 0 &&
-        row.plannedAmount <= row.minAllowedAmount + 0.0001;
-    final paidRatio = hasEnvelope
+    final paidRatio = hasEnvelope && row.plannedAmount > 0
         ? (paidAmount / row.plannedAmount).clamp(0.0, 1.0)
-        : 0.0;
-    final pendingRatio = hasEnvelope
+        : (paidAmount > 0 ? 1.0 : 0.0);
+    final pendingRatio = hasEnvelope && row.plannedAmount > 0
         ? (pendingAmount / row.plannedAmount).clamp(0.0, 1.0 - paidRatio)
-        : 0.0;
-    final freeRatio = hasEnvelope
+        : (pendingAmount > 0 ? (1.0 - paidRatio).clamp(0.0, 1.0) : 0.0);
+    final freeRatio = hasEnvelope && row.plannedAmount > 0
         ? (1.0 - paidRatio - pendingRatio).clamp(0.0, 1.0)
         : 0.0;
     final spentDelta = row.plannedAmount - committedAmount;
@@ -135,309 +140,199 @@ class _GroupCard extends StatelessWidget {
                 : row.plannedPercent)
             .clamp(0, safeSliderMax);
 
-    return AppPanel(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 14 : 16,
         vertical: compact ? 12 : 14,
       ),
-      radius: AppRadius.r16,
-      borderColor: AppColors.borderSubtle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  row.group.groupName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    AppStrings.budget.paidLabel(
-                      AppFormats.formatFromChfCompact(paidAmount),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            row.group.groupName,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          row.draft.inputMode == 'amount'
+                              ? '${row.plannedPercent.toStringAsFixed(1)}%'
+                              : AppFormats.formatFromChfCompact(row.plannedAmount),
+                          style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.textPrimary, fontSize: 13),
+                        ),
+                        if (row.isLocked || overUsage) ...[
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: row.isLocked ? 'Objectif dépassé (cliquez pour déverrouiller)' : 'Verrouillé',
+                            child: InkWell(
+                              onTap: overUsage ? () => onToggleLock(row) : null,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Icon(
+                                row.isLocked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
+                                size: 16,
+                                color: row.isLocked ? AppColors.danger : AppColors.textDisabled,
+                              ),
+                            ),
+                          ),
+                        ]
+                      ],
                     ),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                  if (pendingAmount > 0)
+                    const SizedBox(height: 2),
                     Text(
-                      AppStrings.budget.pendingLabel(
-                        AppFormats.formatFromChfCompact(pendingAmount),
-                      ),
-                      style: TextStyle(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
+                      AppStrings.budget.categoriesInfo(row.group.categories.length, row.group.isFixedGroup),
+                      style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 11),
                     ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            AppStrings.budget.categoriesInfo(
-              row.group.categories.length,
-              row.group.isFixedGroup,
-            ),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                  border: Border.all(color: AppColors.borderSubtle),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(AppRadius.r8),
+                            border: Border.all(color: AppColors.borderSubtle),
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _SegmentOption(label: '%', isSelected: row.draft.inputMode == 'percent', onTap: () => onModeChanged(row, 'percent'), isDark: isDark),
+                              _SegmentOption(label: AppStrings.budget.amountChipLabel, isSelected: row.draft.inputMode == 'amount', onTap: () => onModeChanged(row, 'amount'), isDark: isDark),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IgnorePointer(
+                          ignoring: row.isLocked,
+                          child: Container(
+                            width: 110,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadius.r8),
+                              border: Border.all(color: row.isLocked ? AppColors.danger : AppColors.borderSubtle),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            child: _SyncedNumericField(
+                              key: ValueKey('$inputVersion-${row.group.groupId}-${row.draft.inputMode}'),
+                              valueText: row.draft.inputMode == 'amount'
+                                  ? _editableInputValue(row.plannedAmount, maxDecimals: 0)
+                                  : _editableInputValue(row.plannedPercent, maxDecimals: 1),
+                              onChanged: (v) => onValueChanged(row, v),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))],
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                isDense: true,
+                                hintText: '0',
+                                suffixText: row.draft.inputMode == 'amount' ? AppFormats.currencyCode : '%',
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              style: TextStyle(
+                                color: row.isLocked ? AppColors.textDisabled : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                padding: const EdgeInsets.all(2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              ),
+              if (hasEnvelope) ...[
+                const SizedBox(width: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _SegmentOption(
-                      label: '%',
-                      isSelected: row.draft.inputMode == 'percent',
-                      onTap: () => onModeChanged(row, 'percent'),
-                      isDark: isDark,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (paidAmount > 0)
+                          Text('Payé : ${AppFormats.formatFromChfCompact(paidAmount)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.danger)),
+                        if (pendingAmount > 0)
+                          Text('À payer : ${AppFormats.formatFromChfCompact(pendingAmount)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.warning)),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Dispo : ${AppFormats.formatFromChfCompact(spentDelta < 0 ? 0 : spentDelta)}', 
+                          style: TextStyle(
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w800, 
+                            color: spentDelta < 0 ? AppColors.danger : AppColors.success
+                          )
+                        ),
+                      ],
                     ),
-                    _SegmentOption(
-                      label: AppStrings.budget.amountChipLabel,
-                      isSelected: row.draft.inputMode == 'amount',
-                      onTap: () => onModeChanged(row, 'amount'),
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 140,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.r8),
-                  border: Border.all(color: AppColors.borderSubtle),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                child: _SyncedNumericField(
-                  key: ValueKey(
-                    '$inputVersion-${row.group.groupId}-${row.draft.inputMode}',
-                  ),
-                  valueText: row.draft.inputMode == 'amount'
-                      ? _editableInputValue(row.plannedAmount, maxDecimals: 0)
-                      : _editableInputValue(row.plannedPercent, maxDecimals: 1),
-                  onChanged: (v) => onValueChanged(row, v),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                  ],
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    isDense: true,
-                    hintText: '0',
-                    suffixText: row.draft.inputMode == 'amount'
-                        ? AppFormats.currencyCode
-                        : '%',
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                row.draft.inputMode == 'amount'
-                    ? '${row.plannedPercent.toStringAsFixed(1)}%'
-                    : AppFormats.formatFromChfCompact(row.plannedAmount),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Slider(
-            value: sliderValue.toDouble(),
-            min: 0,
-            max: safeSliderMax,
-            onChanged: (value) {
-              onValueChanged(
-                row,
-                row.draft.inputMode == 'amount'
-                    ? value.toStringAsFixed(0)
-                    : value.toStringAsFixed(1),
-              );
-            },
-          ),
-          Row(
-            children: [
-              Text(
-                row.draft.inputMode == 'amount'
-                    ? AppFormats.formatFromChfCompact(row.minAllowedAmount)
-                    : '${row.minAllowedPercent.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textDisabled,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                row.draft.inputMode == 'amount'
-                    ? AppFormats.formatFromChfCompact(safeSliderMax)
-                    : '${row.maxAllowedPercent.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textDisabled,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                !hasEnvelope && committedAmount > 0
-                    ? AppStrings.budget.committedThisMonth(
-                        AppFormats.formatFromChfCompact(committedAmount),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 0,
+                          centerSpaceRadius: 16,
+                          sections: [
+                            if (paidRatio > 0) PieChartSectionData(color: AppColors.danger, value: paidRatio * 100, radius: 6, showTitle: false),
+                            if (pendingRatio > 0) PieChartSectionData(color: AppColors.warning, value: pendingRatio * 100, radius: 6, showTitle: false),
+                            if (freeRatio > 0) PieChartSectionData(color: AppColors.success, value: freeRatio * 100, radius: 6, showTitle: false),
+                            if (paidRatio == 0 && pendingRatio == 0 && freeRatio == 0) PieChartSectionData(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.surfaceInfoSoft, value: 100, radius: 6, showTitle: false),
+                          ]
+                        )
                       )
-                    : !hasEnvelope
-                    ? AppStrings.budget.noExpenses
-                    : AppStrings.budget.committedPct(
-                        usagePct.toStringAsFixed(0),
-                      ),
-                style: TextStyle(
-                  color: overUsage && hasEnvelope
-                      ? AppColors.danger
-                      : AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                !hasEnvelope
-                    ? AppStrings.budget.noBudgetPlanned
-                    : spentDelta >= 0
-                    ? AppStrings.budget.freeRemaining(
-                        AppFormats.formatFromChfCompact(spentDelta),
-                      )
-                    : AppStrings.budget.overdraftEngaged(
-                        AppFormats.formatFromChfCompact(-spentDelta),
-                      ),
-                style: TextStyle(
-                  color: hasEnvelope && spentDelta < 0
-                      ? AppColors.danger
-                      : AppColors.textSecondary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          if (hasEnvelope) ...[
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.r8),
-              child: SizedBox(
-                height: 10,
-                child: Row(
-                  children: [
-                    if (paidRatio > 0)
-                      Expanded(
-                        flex: ((paidRatio * 1000).round())
-                            .clamp(1, 1000)
-                            .toInt(),
-                        child: const ColoredBox(color: AppColors.danger),
-                      ),
-                    if (pendingRatio > 0)
-                      Expanded(
-                        flex: ((pendingRatio * 1000).round())
-                            .clamp(1, 1000)
-                            .toInt(),
-                        child: const ColoredBox(color: AppColors.warning),
-                      ),
-                    if (freeRatio > 0)
-                      Expanded(
-                        flex: ((freeRatio * 1000).round())
-                            .clamp(1, 1000)
-                            .toInt(),
-                        child: const ColoredBox(color: AppColors.primary),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StatusBadge(
-                  label: AppStrings.budget.redLabel(
-                    AppFormats.formatFromChfCompact(paidAmount),
-                  ),
-                  color: AppColors.danger,
-                ),
-                _StatusBadge(
-                  label: AppStrings.budget.yellowLabel(
-                    AppFormats.formatFromChfCompact(pendingAmount),
-                  ),
-                  color: AppColors.warning,
-                ),
-                _StatusBadge(
-                  label: AppStrings.budget.greenLabel(
-                    AppFormats.formatFromChfCompact(
-                      spentDelta > 0 ? spentDelta : 0,
                     ),
-                  ),
-                  color: AppColors.primary,
+                  ],
                 ),
               ],
-            ),
-          ],
-          if (lockedByCommitted) ...[
-            const SizedBox(height: 6),
-            Text(
-              AppStrings.budget.lockedByCommittedMin(
-                AppFormats.formatFromChfCompact(row.minAllowedAmount),
+            ],
+          ),
+          const SizedBox(height: 4),
+          IgnorePointer(
+            ignoring: row.isLocked,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: row.isLocked ? AppColors.borderSubtle : (overUsage ? AppColors.danger : AppColors.primary),
+                thumbColor: row.isLocked ? AppColors.textDisabled : (overUsage ? AppColors.danger : AppColors.primary),
               ),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
+              child: Slider(
+                value: sliderValue.toDouble(),
+                min: 0,
+                max: safeSliderMax,
+                onChanged: (value) {
+                  onValueChanged(row, row.draft.inputMode == 'amount' ? value.toStringAsFixed(0) : value.toStringAsFixed(1));
+                },
               ),
             ),
-          ],
+          ),
+          Row(
+            children: [
+              Text(
+                row.draft.inputMode == 'amount' ? AppFormats.formatFromChfCompact(row.minAllowedAmount) : '${row.minAllowedPercent.toStringAsFixed(1)}%',
+                style: const TextStyle(fontSize: 11, color: AppColors.textDisabled, fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              Text(
+                row.draft.inputMode == 'amount' ? AppFormats.formatFromChfCompact(safeSliderMax) : '${row.maxAllowedPercent.toStringAsFixed(1)}%',
+                style: const TextStyle(fontSize: 11, color: AppColors.textDisabled, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+
           if (overflowAmount > 0 && hasEnvelope) ...[
             const SizedBox(height: 4),
-            Text(
-              AppStrings.budget.overflowEngaged(
-                AppFormats.formatFromChfCompact(overflowAmount),
-              ),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.danger,
-              ),
-            ),
+            Text(AppStrings.budget.overflowEngaged(AppFormats.formatFromChfCompact(overflowAmount)), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.danger)),
           ],
         ],
       ),
@@ -451,6 +346,7 @@ class _SyncedNumericField extends StatefulWidget {
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final InputDecoration? decoration;
+  final TextStyle? style;
 
   const _SyncedNumericField({
     super.key,
@@ -459,6 +355,7 @@ class _SyncedNumericField extends StatefulWidget {
     this.keyboardType = TextInputType.number,
     this.inputFormatters,
     this.decoration,
+    this.style,
   });
 
   @override
@@ -502,6 +399,7 @@ class _SyncedNumericFieldState extends State<_SyncedNumericField> {
       keyboardType: widget.keyboardType,
       inputFormatters: widget.inputFormatters,
       decoration: widget.decoration,
+      style: widget.style,
     );
   }
 }

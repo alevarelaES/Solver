@@ -5,7 +5,7 @@ import 'package:solver/core/l10n/app_strings.dart';
 import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/core/theme/app_tokens.dart';
 import 'package:solver/features/dashboard/models/dashboard_data.dart';
-import 'package:solver/shared/widgets/glass_container.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 class ExpenseBreakdown extends StatelessWidget {
   final DashboardData data;
@@ -51,7 +51,8 @@ class ExpenseBreakdown extends StatelessWidget {
         cursor: groups.isEmpty
             ? SystemMouseCursors.basic
             : SystemMouseCursors.click,
-        child: GlassContainer(
+        child: PremiumCardBase(
+          variant: PremiumCardVariant.standard,
           padding: AppSpacing.paddingCardCompact,
           child: groups.isEmpty
               ? _EmptyContent(isDark: isDark, totalMonth: totalMonth)
@@ -261,19 +262,32 @@ class _CardContent extends StatelessWidget {
             SizedBox(
               width: AppSizes.donutSize,
               height: AppSizes.donutSize,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 0,
-                  centerSpaceRadius: AppSizes.donutCutout,
-                  sections: List.generate(groups.length, (i) {
-                    return PieChartSectionData(
-                      value: groups[i].total,
-                      color: colors[i % colors.length],
-                      radius: AppSizes.donutRingWidth,
-                      showTitle: false,
-                    );
-                  }),
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sectionsSpace: 0,
+                      centerSpaceRadius: AppSizes.donutCutout,
+                      sections: List.generate(groups.length, (i) {
+                        return PieChartSectionData(
+                          value: groups[i].total,
+                          color: colors[i % colors.length],
+                          radius: AppSizes.donutRingWidth,
+                          showTitle: false,
+                        );
+                      }),
+                    ),
+                  ),
+                  Text(
+                    AppFormats.formatFromChfCompact(totalMonth),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: AppSpacing.xl),

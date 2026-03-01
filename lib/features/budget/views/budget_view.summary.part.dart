@@ -2,6 +2,60 @@ part of 'budget_view.dart';
 
 
 
+class _HalfDonutGauge extends StatelessWidget {
+  final double ratio;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  const _HalfDonutGauge({super.key, required this.ratio, required this.activeColor, required this.inactiveColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(160, 80),
+      painter: _HalfDonutPainter(ratio: ratio, activeColor: activeColor, inactiveColor: inactiveColor),
+    );
+  }
+}
+
+class _HalfDonutPainter extends CustomPainter {
+  final double ratio;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _HalfDonutPainter({required this.ratio, required this.activeColor, required this.inactiveColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 14.0;
+    final rect = Rect.fromLTWH(
+      strokeWidth / 2,
+      strokeWidth / 2,
+      size.width - strokeWidth,
+      (size.height * 2) - strokeWidth,
+    );
+
+    final bgPaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final fgPaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, 3.141592653589793, 3.141592653589793, false, bgPaint);
+    canvas.drawArc(rect, 3.141592653589793, 3.141592653589793 * ratio.clamp(0.001, 1.0), false, fgPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HalfDonutPainter old) =>
+      ratio != old.ratio || activeColor != old.activeColor || inactiveColor != old.inactiveColor;
+}
+
 class _PlannerHero extends StatelessWidget {
   final String inputVersion;
   final double disposable;
@@ -19,6 +73,10 @@ class _PlannerHero extends StatelessWidget {
   final double remainingPercent;
   final double remainingAmount;
   final BudgetPlanCopySource? copiedFrom;
+  final bool hasTemplate;
+  final bool saveAsTemplate;
+  final ValueChanged<bool> onSaveAsTemplateChanged;
+  final VoidCallback onDeleteTemplate;
   final ValueChanged<bool> onUseGrossIncomeBaseChanged;
   final ValueChanged<String> onDisposableChanged;
   // Top-bar
@@ -47,6 +105,9 @@ class _PlannerHero extends StatelessWidget {
     required this.remainingPercent,
     required this.remainingAmount,
     required this.copiedFrom,
+    required this.hasTemplate,
+    required this.saveAsTemplate,
+    required this.onSaveAsTemplateChanged,
     required this.onUseGrossIncomeBaseChanged,
     required this.onDisposableChanged,
     required this.selectedMonth,
@@ -56,6 +117,7 @@ class _PlannerHero extends StatelessWidget {
     required this.onNextMonth,
     required this.onSave,
     required this.onReset,
+    required this.onDeleteTemplate,
   });
 
   @override
@@ -109,247 +171,275 @@ class _PlannerHero extends StatelessWidget {
       ),
     );
 
-    return AppPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      radius: AppRadius.r24,
-      borderColor: AppColors.borderSubtle,
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              monthNav,
-              const Spacer(),
-              if (dirty)
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text(
-                    AppStrings.budget.unsavedChanges,
-                    style: const TextStyle(
-                      color: AppColors.warningStrong,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              OutlinedButton(
-                onPressed: onReset,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(AppStrings.budget.reload, style: const TextStyle(fontSize: 13)),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: saving ? null : onSave,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: saving
-                    ? const SizedBox(
-                        width: 13,
-                        height: 13,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined, size: 16),
-                label: Text(
-                  saving ? AppStrings.budget.saving : AppStrings.budget.save,
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.budget.basePlan,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 260,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
-                      borderRadius: BorderRadius.circular(AppRadius.r12),
-                      border: Border.all(color: AppColors.borderSubtle),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: _SyncedNumericField(
-                      key: ValueKey('disposable-$inputVersion'),
-                      valueText: _editableInputValue(disposable, maxDecimals: 0),
-                      onChanged: onDisposableChanged,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]')),
-                      ],
-                      decoration: InputDecoration(
-                        prefixText: '${AppFormats.currencySymbol} ',
-                        prefixStyle: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                        hintText: '0',
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ],
+              monthNav,
+              const SizedBox(width: 20),
+              Text(
+                AppStrings.budget.basePlan,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
               ),
+              const SizedBox(width: 8),
+              Container(
+                width: 160,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
+                  border: Border.all(color: AppColors.borderSubtle),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                child: _SyncedNumericField(
+                  key: ValueKey('disposable-$inputVersion'),
+                  valueText: _editableInputValue(disposable, maxDecimals: 0),
+                  onChanged: onDisposableChanged,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9., ]'))],
+                  decoration: InputDecoration(
+                    prefixText: '${AppFormats.currencySymbol} ',
+                    prefixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    hintText: '0',
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              if (copiedFrom != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceWarningSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.r12),
+                  ),
+                  child: Text(
+                    AppStrings.budget.copiedFrom(AppStrings.common.monthsFull[copiedFrom!.month - 1], copiedFrom!.year),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.warningStrong),
+                  ),
+                ),
+              ],
               const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                   Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppStrings.budget.showGross,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: useGrossIncomeBase,
-                        onChanged: onUseGrossIncomeBaseChanged,
-                        activeTrackColor: AppColors.primary,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ],
+                  Text(AppStrings.budget.showGross, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 6),
+                  Switch(
+                    value: useGrossIncomeBase,
+                    onChanged: onUseGrossIncomeBaseChanged,
+                    activeTrackColor: AppColors.primary,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  const SizedBox(height: 8),
-                  if (copiedFrom != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceWarningSoft,
-                        borderRadius: BorderRadius.circular(AppRadius.r20),
-                      ),
-                      child: Text(
-                        AppStrings.budget.copiedFrom(
-                          AppStrings.common.monthsFull[copiedFrom!.month - 1],
-                          copiedFrom!.year,
-                        ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.warningStrong,
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
+              const SizedBox(width: 16),
+              if (dirty)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(AppStrings.budget.unsavedChanges, style: const TextStyle(color: AppColors.warningStrong, fontWeight: FontWeight.w700, fontSize: 11)),
+                ),
+              Tooltip(
+                message: 'Modifications non enregistrées – rechargez pour annuler',
+                child: IconButton(
+                  onPressed: onReset,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(),
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const SizedBox(width: 8),
+              if (hasTemplate)
+                Tooltip(
+                  message: 'Supprimer le modèle récurrent actuel',
+                  child: IconButton(
+                    onPressed: onDeleteTemplate,
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    color: AppColors.danger,
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(4),
+                  ),
+                ),
+              // Template checkbox
+              Tooltip(
+                message: hasTemplate
+                    ? 'Un modèle récurrent est déjà actif ⭐. Cochez pour le mettre à jour avec ce plan.'
+                    : 'Cochez pour utiliser ce plan comme point de départ pour les prochains mois.',
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '${totalPercent.toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w900,
-                        height: 1.0,
-                        letterSpacing: -1,
-                        color: overLimit ? AppColors.danger : AppColors.primary,
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Checkbox(
+                        value: saveAsTemplate,
+                        onChanged: (v) => onSaveAsTemplateChanged(v ?? false),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        activeColor: AppColors.primary,
+                        side: BorderSide(
+                          color: saveAsTemplate ? AppColors.primary : AppColors.borderSubtle,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        AppStrings.budget.alreadyAllocated,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                        ),
+                    const SizedBox(width: 5),
+                    Text(
+                      hasTemplate ? '⭐ Modèle' : 'Définir modèle',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: saveAsTemplate ? AppColors.primary : AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    AppStrings.budget.alreadyDistributed(
-                      AppFormats.formatFromChfCompact(totalAmount),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    AppStrings.budget.stillFree(
-                      remainingAmount >= 0
-                          ? AppFormats.formatFromChfCompact(remainingAmount)
-                          : '0',
-                    ),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: remainingAmount >= 0 ? AppColors.success : AppColors.danger,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: saving
+                    ? Container(
+                        key: const ValueKey('saving'),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withAlpha(80),
+                          borderRadius: BorderRadius.circular(AppRadius.r10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                            const SizedBox(width: 8),
+                            Text(AppStrings.budget.saving, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ],
+                        ),
+                      )
+                    : GestureDetector(
+                        key: const ValueKey('save'),
+                        onTap: onSave,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: onSave == null ? AppColors.textDisabled : AppColors.primary,
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            boxShadow: onSave == null ? null : [
+                              BoxShadow(color: AppColors.primary.withAlpha(80), blurRadius: 8, offset: const Offset(0, 2)),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.save_alt_rounded, size: 14, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(AppStrings.budget.save, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.r12),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 16,
-              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surfaceInfoSoft,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                overLimit ? AppColors.danger : AppColors.primary,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: autoAmount > 0 ? Tooltip(
+                  message: 'Prélèvements automatiques planifiés : factures récurrentes déjà payées ou en attente de paiement ce mois-ci.',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceWarningSoft,
+                          borderRadius: BorderRadius.circular(AppRadius.r8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bolt_rounded, size: 13, color: AppColors.warningStrong),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${AppFormats.formatFromChfCompact(autoAmount)} déjà engagés',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.warningStrong),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.info_outline_rounded, size: 13, color: AppColors.textSecondary),
+                    ],
+                  ),
+                ) : const SizedBox(),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    _HalfDonutGauge(
+                      ratio: ratio, 
+                      activeColor: overLimit ? AppColors.danger : AppColors.primary,
+                      inactiveColor: isDark ? Colors.white.withAlpha(20) : AppColors.surfaceInfoSoft,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${totalPercent.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                              letterSpacing: -1,
+                              color: overLimit ? AppColors.danger : AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            AppStrings.budget.alreadyAllocated,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      AppStrings.budget.alreadyDistributed(AppFormats.formatFromChfCompact(totalAmount)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      AppStrings.budget.stillFree(remainingAmount >= 0 ? AppFormats.formatFromChfCompact(remainingAmount) : '0'),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: remainingAmount >= 0 ? AppColors.success : AppColors.danger),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (autoAmount > 0) ...[
-            const SizedBox(height: 16),
-            Text(
-              AppStrings.budget.autoReservedAmount(
-                AppFormats.formatFromChfCompact(autoAmount),
-                autoPercent.toStringAsFixed(1),
-              ),
-              style: TextStyle(
-                fontSize: 13,
-                color: autoPercent > 100 ? AppColors.danger : AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -371,11 +461,11 @@ class _SavingsQuickCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final canCreate = disposableIncome > 0;
 
-    return AppPanel(
+    return PremiumCardBase(
+      variant: PremiumCardVariant.standard,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: AppRadius.r16,
-      borderColor: AppColors.borderSuccess,
-      backgroundColor: AppColors.surfaceSuccess,
+      overrideBorder: AppColors.borderSuccess,
+      overrideSurface: AppColors.surfaceSuccess.withValues(alpha: 0.1),
       child: Row(
         children: [
           const Icon(
@@ -427,109 +517,3 @@ class _SavingsQuickCard extends StatelessWidget {
   }
 }
 
-class _AutoReserveCard extends StatelessWidget {
-  final double autoAmount;
-  final double autoPercent;
-  final List<BudgetPlanGroup> groups;
-
-  const _AutoReserveCard({
-    required this.autoAmount,
-    required this.autoPercent,
-    required this.groups,
-  });
-
-  Widget _buildAutoBadge(
-    String text, {
-    Color textColor = AppColors.textPrimary,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.r10),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final visible = groups.take(6).toList();
-    final remaining = groups.length - visible.length;
-
-    return AppPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: AppRadius.r16,
-      borderColor: AppColors.borderSuccessSoft,
-      backgroundColor: AppColors.surfaceSuccessSoft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.bolt_rounded,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  AppStrings.budget.autoReserved,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              Text(
-                '${AppFormats.formatFromChfCompact(autoAmount)} - ${autoPercent.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            AppStrings.budget.autoReservedDesc,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          if (visible.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final g in visible)
-                  _buildAutoBadge(
-                    '${g.groupName}: ${AppFormats.formatFromChfCompact(g.autoPlannedAmount)}',
-                  ),
-                if (remaining > 0)
-                  _buildAutoBadge(
-                    AppStrings.budget.moreOthers(remaining),
-                    textColor: AppColors.textSecondary,
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}

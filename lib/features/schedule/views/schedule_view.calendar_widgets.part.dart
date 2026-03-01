@@ -100,7 +100,7 @@ class _CalendarGrid extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A2616) : Colors.white,
+        color: isDark ? const Color(0xFF1E2D18) : Colors.white,
         border: Border.all(color: AppColors.borderStrong, width: 1.15),
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         boxShadow: const [
@@ -225,8 +225,8 @@ class _CalendarGrid extends StatelessWidget {
             Text(
               displayDay,
               style: TextStyle(
-                fontSize: isToday ? 16 : 13,
-                fontWeight: isToday ? FontWeight.w800 : FontWeight.w500,
+                fontSize: isToday ? 17 : 14,
+                fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
                 color: isCurrentMonth
                     ? (isToday
                         ? _calendarAccent
@@ -278,19 +278,19 @@ class _EventChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.r6),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 2),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        margin: const EdgeInsets.only(bottom: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
-          color: color.withAlpha(24),
+          color: color.withAlpha(55),
           borderRadius: BorderRadius.circular(AppRadius.r6),
-          border: Border.all(color: color.withAlpha(70)),
+          border: Border.all(color: color.withAlpha(130), width: 1.2),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 4,
-              height: 4,
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 4),
@@ -300,7 +300,7 @@ class _EventChip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: 8,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
                   color: color,
                   letterSpacing: 0.3,

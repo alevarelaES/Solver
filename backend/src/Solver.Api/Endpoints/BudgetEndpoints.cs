@@ -19,6 +19,19 @@ public static class BudgetEndpoints
             UpsertBudgetPlanDto dto,
             BudgetService service,
             HttpContext ctx) => service.UpsertBudgetPlanAsync(year, month, dto, ctx));
+
+        app.MapGet("/api/budget/template", (
+            BudgetService service,
+            HttpContext ctx) => service.GetBudgetTemplateAsync(ctx));
+
+        app.MapPut("/api/budget/template", (
+            UpsertBudgetPlanDto dto,
+            BudgetService service,
+            HttpContext ctx) => service.UpsertBudgetTemplateAsync(dto, ctx));
+
+        app.MapDelete("/api/budget/template", (
+            BudgetService service,
+            HttpContext ctx) => service.DeleteBudgetTemplateAsync(ctx));
     }
 
     public sealed record UpsertBudgetPlanDto(

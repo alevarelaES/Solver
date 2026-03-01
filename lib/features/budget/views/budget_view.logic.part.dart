@@ -34,6 +34,16 @@ extension _BudgetViewLogic on _BudgetViewState {
     });
   }
 
+  void _toggleLock(_RenderedGroup row) {
+    _withState(() {
+      if (_unlockedGroupIds.contains(row.group.groupId)) {
+        _unlockedGroupIds.remove(row.group.groupId);
+      } else {
+        _unlockedGroupIds.add(row.group.groupId);
+      }
+    });
+  }
+
   void _syncDraft(BudgetStats stats, {bool force = false}) {
     final token =
         '${stats.selectedYear}-${stats.selectedMonth}-${stats.budgetPlan.id}';
@@ -94,9 +104,7 @@ extension _BudgetViewLogic on _BudgetViewState {
           final plannedAmountRaw = draft.inputMode == 'amount'
               ? draft.amount
               : disposable * draft.percent / 100;
-          final plannedAmount = plannedAmountRaw > paidAmount
-              ? plannedAmountRaw
-              : paidAmount;
+          final plannedAmount = plannedAmountRaw;
           final plannedPercent = disposable > 0
               ? (plannedAmount / disposable) * 100
               : (plannedAmount > 0 ? 100.0 : 0.0);
@@ -104,17 +112,19 @@ extension _BudgetViewLogic on _BudgetViewState {
               ? (paidAmount / disposable) * 100
               : (paidAmount > 0 ? 100.0 : 0.0);
 
-          return _RenderedGroup(
+        return _RenderedGroup(
             group: group,
             draft: draft,
             plannedPercent: plannedPercent.clamp(0, double.infinity),
             plannedAmount: plannedAmount.clamp(0, double.infinity),
-            minAllowedPercent: minAllowedPercent.clamp(0, double.infinity),
-            minAllowedAmount: paidAmount,
+            minAllowedPercent: 0.0,
+            minAllowedAmount: 0.0,
             maxAllowedPercent: 100,
             maxAllowedAmount: disposable > committedAmount
                 ? disposable
                 : committedAmount,
+            isLocked: (paidAmount > plannedAmount) &&
+                !_unlockedGroupIds.contains(group.groupId),
           );
         })
         .toList();
@@ -128,7 +138,7 @@ extension _BudgetViewLogic on _BudgetViewState {
       (sum, r) => sum + r.plannedAmount,
     );
 
-    final rows = baseRows.map((row) {
+    final rows = baseRows.map<_RenderedGroup>((row) {
       final dynamicMaxPercent =
           (manualCapacityPercent - (totalPercent - row.plannedPercent))
               .clamp(0, double.infinity)
@@ -151,6 +161,7 @@ extension _BudgetViewLogic on _BudgetViewState {
         maxAllowedAmount: dynamicMaxAmount > row.minAllowedAmount
             ? dynamicMaxAmount
             : row.minAllowedAmount,
+        isLocked: row.isLocked,
       );
     }).toList();
 
@@ -276,43 +287,71 @@ extension _BudgetViewLogic on _BudgetViewState {
       final month = _monthStart(ref.read(selectedBudgetMonthProvider));
       final rows = _buildRenderedGroups(stats);
       final api = ref.read(budgetPlanApiProvider);
+      final groups = rows
+          .map(
+            (r) => BudgetPlanGroupUpdate(
+              groupId: r.group.groupId,
+              inputMode: r.draft.inputMode,
+              plannedPercent: r.plannedPercent,
+              plannedAmount: r.plannedAmount,
+              priority: r.draft.priority,
+            ),
+          )
+          .toList();
+      final forecastIncome =
+          (_draftDisposableIncome ?? stats.budgetPlan.forecastDisposableIncome)
+              .toDouble();
+
+      // Save the month plan
       await api.upsertPlan(
         year: month.year,
         month: month.month,
-        forecastDisposableIncome:
-            (_draftDisposableIncome ??
-                    stats.budgetPlan.forecastDisposableIncome)
-                .toDouble(),
+        forecastDisposableIncome: forecastIncome,
         useGrossIncomeBase: _useGrossIncomeBase,
-        groups: rows
-            .map(
-              (r) => BudgetPlanGroupUpdate(
-                groupId: r.group.groupId,
-                inputMode: r.draft.inputMode,
-                plannedPercent: r.plannedPercent,
-                plannedAmount: r.plannedAmount,
-                priority: r.draft.priority,
-              ),
-            )
-            .toList(),
+        groups: groups,
       );
 
-      ref.invalidate(
-        budgetStatsProvider(
-          BudgetMonthKey(year: month.year, month: month.month),
-        ),
-      );
+      // Optionally save as template
+      if (_saveAsTemplateChecked) {
+        await api.saveAsTemplate(
+          forecastDisposableIncome: forecastIncome,
+          useGrossIncomeBase: _useGrossIncomeBase,
+          groups: groups,
+        );
+      }
+
+      if (_saveAsTemplateChecked) {
+        ref.invalidate(budgetStatsProvider);
+      } else {
+        ref.invalidate(
+          budgetStatsProvider(
+            BudgetMonthKey(year: month.year, month: month.month),
+          ),
+        );
+      }
+      final wasTemplate = _saveAsTemplateChecked;
       _withState(() {
         _dirty = false;
+        _saveAsTemplateChecked = false;
       });
       if (mounted) {
         FocusManager.instance.primaryFocus?.unfocus();
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.budget.planSaved)),
+          SnackBar(
+            content: Text(
+              wasTemplate
+                  ? '${AppStrings.budget.planSaved} · Défini comme modèle récurrent ⭐'
+                  : AppStrings.budget.planSaved,
+            ),
+          ),
         );
       }
-    } catch (error) {
+    } catch (error, stack) {
+      debugPrint('Erreur lors de la sauvegarde: $error\n$stack');
+      if (error is DioException) {
+        debugPrint('Détail Dio: ${error.response?.data}');
+      }
       _withState(() {
         _draftError = _saveErrorMessage(error);
       });
@@ -321,6 +360,47 @@ extension _BudgetViewLogic on _BudgetViewState {
         _withState(() {
           _savingPlan = false;
         });
+      }
+    }
+  }
+
+  Future<void> _deleteTemplate(BudgetStats stats) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer le modèle récurrent'),
+        content: const Text(
+          'Le modèle sera supprimé. Les mois déjà configurés ne seront pas affectés, mais les nouveaux mois ne seront plus initialisés automatiquement.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppStrings.common.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final api = ref.read(budgetPlanApiProvider);
+      await api.deleteTemplate();
+      ref.invalidate(budgetStatsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Modèle récurrent supprimé')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la suppression du modèle')),
+        );
       }
     }
   }

@@ -130,8 +130,8 @@ class PremiumThemeExtension extends ThemeExtension<PremiumThemeExtension> {
 
   factory PremiumThemeExtension.light() {
     return PremiumThemeExtension(
-      canvasDeep: const Color(0xFFF7F8F6),
-      canvasMid: const Color(0xFFF0F7EE),
+      canvasDeep: const Color(0xFFEBEDEA),
+      canvasMid: const Color(0xFFE4EBE0),
       glassSurface: Colors.white.withValues(alpha: 0.65),
       glassSurfaceHero: Colors.white.withValues(alpha: 0.85),
       glassBorder: Colors.white.withValues(alpha: 0.90),

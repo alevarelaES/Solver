@@ -37,6 +37,7 @@ class _RenderedGroup {
   final double minAllowedAmount;
   final double maxAllowedPercent;
   final double maxAllowedAmount;
+  final bool isLocked;
 
   const _RenderedGroup({
     required this.group,
@@ -47,6 +48,7 @@ class _RenderedGroup {
     required this.minAllowedAmount,
     required this.maxAllowedPercent,
     required this.maxAllowedAmount,
+    required this.isLocked,
   });
 }
 

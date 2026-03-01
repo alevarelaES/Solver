@@ -133,9 +133,9 @@ class _MiniMonthCalendarState extends State<MiniMonthCalendar> {
                       child: Text(
                         label,
                         style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDisabled,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -237,10 +237,10 @@ class _DayCell extends StatelessWidget {
             child: Text(
               '$day',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: isToday || isSelected
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                    ? FontWeight.w800
+                    : FontWeight.w600,
                 color: textColor,
               ),
             ),
@@ -249,11 +249,14 @@ class _DayCell extends StatelessWidget {
         if (dotColor != null) ...[
           const SizedBox(height: 1),
           Container(
-            width: 4,
-            height: 4,
+            width: 6,
+            height: 6,
             decoration: BoxDecoration(
               color: dotColor,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: dotColor!.withAlpha(120), blurRadius: 4, spreadRadius: 1),
+              ],
             ),
           ),
         ],

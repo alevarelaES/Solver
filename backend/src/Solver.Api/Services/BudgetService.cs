@@ -98,7 +98,12 @@ public sealed class BudgetService
             selectedMonth,
             defaultDisposableIncome,
             defaultUseGrossIncomeBase: false,
-            reusePlan);
+            reusePlan,
+            dbOverride: null,
+            saveToDb: false);
+
+        var hasTemplate = await _db.BudgetPlanTemplates
+            .AnyAsync(t => t.UserId == userId);
 
         var categoriesByGroup = expenseAccounts
             .Where(a => a.GroupId.HasValue)
@@ -205,9 +210,109 @@ public sealed class BudgetService
                     year = copiedFrom.Value.year,
                     month = copiedFrom.Value.month
                 },
+                hasTemplate,
                 groups
             }
         });
+    }
+
+    public async Task<IResult> GetBudgetTemplateAsync(HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var template = await _db.BudgetPlanTemplates
+            .Include(t => t.GroupAllocations)
+            .FirstOrDefaultAsync(t => t.UserId == userId);
+
+        if (template is null) return Results.Ok((object?)null);
+
+        return Results.Ok(new
+        {
+            id = template.Id,
+            forecastDisposableIncome = template.ForecastDisposableIncome,
+            useGrossIncomeBase = template.UseGrossIncomeBase,
+            groups = template.GroupAllocations.Select(a => new
+            {
+                groupId = a.GroupId,
+                inputMode = a.InputMode,
+                plannedPercent = a.PlannedPercent,
+                plannedAmount = a.PlannedAmount,
+                priority = a.Priority,
+            })
+        });
+    }
+
+    public async Task<IResult> UpsertBudgetTemplateAsync(
+        BudgetEndpoints.UpsertBudgetPlanDto dto,
+        HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var now = DateTime.UtcNow;
+
+        var template = await _db.BudgetPlanTemplates
+            .Include(t => t.GroupAllocations)
+            .FirstOrDefaultAsync(t => t.UserId == userId);
+
+        if (template is null)
+        {
+            template = new BudgetPlanTemplate
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                ForecastDisposableIncome = dto.ForecastDisposableIncome ?? 0,
+                UseGrossIncomeBase = dto.UseGrossIncomeBase ?? false,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            _db.BudgetPlanTemplates.Add(template);
+        }
+        else
+        {
+            template.ForecastDisposableIncome = dto.ForecastDisposableIncome ?? template.ForecastDisposableIncome;
+            template.UseGrossIncomeBase = dto.UseGrossIncomeBase ?? template.UseGrossIncomeBase;
+            template.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Replace allocations
+        var existing = await _db.BudgetPlanTemplateGroupAllocations
+            .Where(a => a.UserId == userId && a.TemplateId == template.Id)
+            .ToListAsync();
+        _db.BudgetPlanTemplateGroupAllocations.RemoveRange(existing);
+
+        var newAllocations = (dto.Groups ?? [])
+            .Select(g => new BudgetPlanTemplateGroupAllocation
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                TemplateId = template.Id,
+                GroupId = g.GroupId,
+                InputMode = string.Equals(g.InputMode?.Trim(), "amount", StringComparison.OrdinalIgnoreCase) ? "amount" : "percent",
+                PlannedPercent = Math.Round(g.PlannedPercent ?? 0, 4),
+                PlannedAmount = Math.Round(g.PlannedAmount ?? 0, 2),
+                Priority = g.Priority ?? 0,
+                CreatedAt = now,
+                UpdatedAt = now,
+            }).ToList();
+
+        _db.BudgetPlanTemplateGroupAllocations.AddRange(newAllocations);
+        await _db.SaveChangesAsync();
+
+        return Results.Ok(new { isTemplate = true, id = template.Id });
+    }
+
+    public async Task<IResult> DeleteBudgetTemplateAsync(HttpContext ctx)
+    {
+        var userId = GetUserId(ctx);
+        var template = await _db.BudgetPlanTemplates
+            .FirstOrDefaultAsync(t => t.UserId == userId);
+
+        if (template is null) return Results.NotFound(new { error = "No template found" });
+
+        _db.BudgetPlanTemplates.Remove(template);
+        await _db.SaveChangesAsync();
+
+        return Results.Ok(new { deleted = true });
     }
 
     public async Task<IResult> UpsertBudgetPlanAsync(
@@ -419,7 +524,8 @@ public sealed class BudgetService
         decimal defaultDisposableIncome,
         bool defaultUseGrossIncomeBase,
         bool reusePreviousMonth,
-        SolverDbContext? dbOverride = null)
+        SolverDbContext? dbOverride = null,
+        bool saveToDb = true)
     {
         var db = dbOverride ?? _db;
         var existing = await db.BudgetPlanMonths
@@ -444,18 +550,16 @@ public sealed class BudgetService
 
         if (reusePreviousMonth)
         {
-            var previous = await db.BudgetPlanMonths
-                .Include(p => p.GroupAllocations)
-                .Where(p => p.UserId == userId && (p.Year < year || (p.Year == year && p.Month < month)))
-                .OrderByDescending(p => p.Year)
-                .ThenByDescending(p => p.Month)
-                .FirstOrDefaultAsync();
+            // Priority 1: use the template if one exists
+            var template = await db.BudgetPlanTemplates
+                .Include(t => t.GroupAllocations)
+                .FirstOrDefaultAsync(t => t.UserId == userId);
 
-            if (previous is not null)
+            if (template is not null)
             {
-                created.ForecastDisposableIncome = previous.ForecastDisposableIncome;
-                created.UseGrossIncomeBase = previous.UseGrossIncomeBase;
-                created.GroupAllocations = previous.GroupAllocations.Select(a => new BudgetPlanGroupAllocation
+                created.ForecastDisposableIncome = template.ForecastDisposableIncome;
+                created.UseGrossIncomeBase = template.UseGrossIncomeBase;
+                created.GroupAllocations = template.GroupAllocations.Select(a => new BudgetPlanGroupAllocation
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
@@ -468,12 +572,16 @@ public sealed class BudgetService
                     CreatedAt = now,
                     UpdatedAt = now,
                 }).ToList();
-                copiedFrom = (previous.Year, previous.Month);
+                // copiedFrom stays null – copied from template, not a specific month
             }
+            // Retrait de la Priority 2: Ne pas copier le mois passé si le template n'existe plus (volonté de remise à zéro).
         }
 
-        db.BudgetPlanMonths.Add(created);
-        await db.SaveChangesAsync();
+        if (saveToDb)
+        {
+            db.BudgetPlanMonths.Add(created);
+            await db.SaveChangesAsync();
+        }
         return (created, copiedFrom);
     }
 

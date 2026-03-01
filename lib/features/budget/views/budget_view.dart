@@ -13,6 +13,9 @@ import 'package:solver/features/budget/providers/goals_provider.dart';
 import 'package:solver/shared/widgets/app_panel.dart';
 import 'package:solver/shared/widgets/page_header.dart';
 import 'package:solver/shared/widgets/page_scaffold.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
+import 'package:solver/shared/widgets/page_scaffold.dart';
 
 part 'budget_view.models.part.dart';
 part 'budget_view.summary.part.dart';
@@ -39,6 +42,9 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
   bool _useGrossIncomeBase = false;
   double? _draftDisposableIncome;
   String? _draftError;
+  bool _saveAsTemplateChecked = false;
+  Set<String> _unlockedGroupIds = {};
+  
   void _withState(VoidCallback cb) => setState(cb);
 
   @override
@@ -84,7 +90,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
           ..removeWhere((g) => g.autoPlannedAmount <= 0)
           ..sort((a, b) => b.autoPlannedAmount.compareTo(a.autoPlannedAmount));
         final inputVersion =
-            _draftToken ?? '${stats.selectedYear}-${stats.selectedMonth}';
+            '${_draftToken ?? '${stats.selectedYear}-${stats.selectedMonth}'}-${_useGrossIncomeBase ? 'gross' : 'net'}';
         final disposableForSavings = totals.manualCapacityAmount
             .clamp(0, double.infinity)
             .toDouble();
@@ -121,6 +127,10 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                 grossReferenceIncome: grossReferenceIncome,
                 manualCommittedAmount: manualCommittedAmount,
                 useGrossIncomeBase: _useGrossIncomeBase,
+                hasTemplate: stats.budgetPlan.hasTemplate,
+                saveAsTemplate: _saveAsTemplateChecked,
+                onSaveAsTemplateChanged: (v) => setState(() => _saveAsTemplateChecked = v),
+                onDeleteTemplate: () => _deleteTemplate(stats),
                 onUseGrossIncomeBaseChanged: (value) =>
                     _applyDisposablePreset(stats, grossMode: value),
                 onDisposableChanged: (raw) {
@@ -152,14 +162,6 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                 ),
                 onOpenGoals: () => context.go('/goals'),
               ),
-              if (totals.autoAmount > 0) ...[
-                const SizedBox(height: 10),
-                _AutoReserveCard(
-                  autoAmount: totals.autoAmount,
-                  autoPercent: totals.autoPercent,
-                  groups: autoByGroups,
-                ),
-              ],
               if (_draftError != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -234,6 +236,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                   rows: rows,
                   onModeChanged: _setGroupMode,
                   onValueChanged: _setGroupValue,
+                  onToggleLock: _toggleLock,
                 )
               else
                 _ListLayout(
@@ -241,6 +244,7 @@ class _BudgetViewState extends ConsumerState<BudgetView> {
                   rows: rows,
                   onModeChanged: _setGroupMode,
                   onValueChanged: _setGroupValue,
+                  onToggleLock: _toggleLock,
                 ),
             ],
           ),

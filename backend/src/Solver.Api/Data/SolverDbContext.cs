@@ -13,6 +13,8 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<BudgetPlanMonth> BudgetPlanMonths => Set<BudgetPlanMonth>();
     public DbSet<BudgetPlanGroupAllocation> BudgetPlanGroupAllocations => Set<BudgetPlanGroupAllocation>();
+    public DbSet<BudgetPlanTemplate> BudgetPlanTemplates => Set<BudgetPlanTemplate>();
+    public DbSet<BudgetPlanTemplateGroupAllocation> BudgetPlanTemplateGroupAllocations => Set<BudgetPlanTemplateGroupAllocation>();
     public DbSet<SavingGoal> SavingGoals => Set<SavingGoal>();
     public DbSet<SavingGoalEntry> SavingGoalEntries => Set<SavingGoalEntry>();
     public DbSet<PortfolioHolding> PortfolioHoldings => Set<PortfolioHolding>();
@@ -162,6 +164,49 @@ public class SolverDbContext(DbContextOptions<SolverDbContext> options) : DbCont
             entity.HasOne(e => e.PlanMonth)
                 .WithMany(m => m.GroupAllocations)
                 .HasForeignKey(e => e.PlanMonthId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Group)
+                .WithMany()
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BudgetPlanTemplate>(entity =>
+        {
+            entity.ToTable("budget_plan_templates");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ForecastDisposableIncome).HasColumnName("forecast_disposable_income");
+            entity.Property(e => e.UseGrossIncomeBase).HasColumnName("use_gross_income_base");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        modelBuilder.Entity<BudgetPlanTemplateGroupAllocation>(entity =>
+        {
+            entity.ToTable("budget_plan_template_group_allocations");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.TemplateId).HasColumnName("template_id");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.InputMode).HasColumnName("input_mode");
+            entity.Property(e => e.PlannedPercent).HasColumnName("planned_percent");
+            entity.Property(e => e.PlannedAmount).HasColumnName("planned_amount");
+            entity.Property(e => e.Priority).HasColumnName("priority");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.TemplateId, e.GroupId }).IsUnique();
+
+            entity.HasOne(e => e.Template)
+                .WithMany(m => m.GroupAllocations)
+                .HasForeignKey(e => e.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Group)

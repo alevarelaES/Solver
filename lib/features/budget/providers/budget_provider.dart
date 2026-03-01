@@ -150,6 +150,7 @@ class BudgetPlan {
   final double remainingPercent;
   final double remainingAmount;
   final BudgetPlanCopySource? copiedFrom;
+  final bool hasTemplate;
   final List<BudgetPlanGroup> groups;
 
   const BudgetPlan({
@@ -174,6 +175,7 @@ class BudgetPlan {
     required this.remainingPercent,
     required this.remainingAmount,
     required this.copiedFrom,
+    required this.hasTemplate,
     required this.groups,
   });
 
@@ -239,6 +241,7 @@ class BudgetPlan {
           : BudgetPlanCopySource.fromJson(
               json['copiedFrom'] as Map<String, dynamic>,
             ),
+      hasTemplate: json['hasTemplate'] as bool? ?? false,
       groups: (json['groups'] as List)
           .map((g) => BudgetPlanGroup.fromJson(g as Map<String, dynamic>))
           .toList(),
@@ -352,6 +355,25 @@ class BudgetPlanApi {
         'groups': groups.map((g) => g.toJson()).toList(),
       },
     );
+  }
+
+  Future<void> saveAsTemplate({
+    required double forecastDisposableIncome,
+    required bool useGrossIncomeBase,
+    required List<BudgetPlanGroupUpdate> groups,
+  }) async {
+    await _client.put<Map<String, dynamic>>(
+      '/api/budget/template',
+      data: {
+        'forecastDisposableIncome': forecastDisposableIncome,
+        'useGrossIncomeBase': useGrossIncomeBase,
+        'groups': groups.map((g) => g.toJson()).toList(),
+      },
+    );
+  }
+
+  Future<void> deleteTemplate() async {
+    await _client.delete<Map<String, dynamic>>('/api/budget/template');
   }
 }
 

@@ -221,8 +221,23 @@ class _TransactionTable extends StatelessWidget {
                         ),
                       ),
                     )
-                  : ListView.builder(
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                       itemCount: rows.length,
+                      separatorBuilder: (context, index) {
+                        // N'afficher un séparateur que si le suivant ou le précédent n'est pas un Header de mois
+                        if (rows[index].monthHeader != null ||
+                            (index + 1 < rows.length &&
+                                rows[index + 1].monthHeader != null)) {
+                          return const SizedBox.shrink();
+                        }
+                        return const Divider(
+                          height: 1,
+                          color: AppColors.borderSubtle,
+                          indent: 14,
+                          endIndent: 14,
+                        );
+                      },
                       itemBuilder: (context, index) {
                         final entry = rows[index];
                         if (entry.monthHeader != null) {
@@ -238,7 +253,6 @@ class _TransactionTable extends StatelessWidget {
                           transaction: tx,
                           isMobile: isMobile,
                           selected: tx.id == selectedId,
-                          isEven: index % 2 == 0,
                           onTap: () => onSelect(tx),
                         );
                       },
@@ -299,30 +313,32 @@ class _MonthHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final monthLabel = DateFormat('MMMM yyyy', 'fr_FR').format(monthDate);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(top: 16, bottom: 4),
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 14,
-        vertical: 10,
+        horizontal: isMobile ? 12 : 16,
+        vertical: 12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSuccessHeader,
-        border: const Border(
-          top: BorderSide(color: AppColors.borderSuccessSoft),
-          bottom: BorderSide(color: AppColors.borderSuccessSoft),
+        color: isDark ? AppColors.surfaceElevated.withAlpha(150) : AppColors.surfaceMuted,
+        border: const Border.symmetric(
+          horizontal: BorderSide(color: AppColors.borderSubtle),
         ),
       ),
       child: Row(
         children: [
-          Text(
-            monthLabel[0].toUpperCase() + monthLabel.substring(1),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primaryDark,
-              letterSpacing: 0.4,
+            Text(
+              monthLabel[0].toUpperCase() + monthLabel.substring(1),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                letterSpacing: 0.3,
+              ),
             ),
-          ),
           Expanded(
             child: Align(
               alignment: Alignment.centerRight,
@@ -380,7 +396,7 @@ class _TableHeader extends ConsumerWidget {
       letterSpacing: 0.9,
     );
     final headerDecoration = BoxDecoration(
-      color: AppColors.surfaceHeaderAlt,
+      color: isDark ? AppColors.surfaceElevated : AppColors.surfaceLight,
       border: const Border(bottom: BorderSide(color: AppColors.borderTable)),
     );
     if (isMobile) {
@@ -536,14 +552,12 @@ class _TransactionRow extends StatefulWidget {
   final Transaction transaction;
   final bool isMobile;
   final bool selected;
-  final bool isEven;
   final VoidCallback onTap;
 
   const _TransactionRow({
     required this.transaction,
     required this.isMobile,
     required this.selected,
-    this.isEven = false,
     required this.onTap,
   });
 
@@ -558,27 +572,20 @@ class _TransactionRowState extends State<_TransactionRow> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final p = theme.extension<PremiumThemeExtension>()!;
     final transaction = widget.transaction;
     final signedAmount = transaction.signedAmount;
     final amountPrefix = signedAmount >= 0 ? '+' : '-';
     final amountColor = signedAmount >= 0 ? AppColors.primary : AppColors.danger;
     final groupLabel = _transactionGroup(transaction);
     final isVoided = transaction.isVoided;
-    // Transparent overlays — preserves glassmorphism from PremiumCardBase.
-    final baseBg = widget.isMobile
-        ? Colors.transparent
-        : (widget.isEven ? p.glassOverlay : Colors.transparent);
+    final hoverColor = isDark ? AppColors.surfaceMuted : AppColors.primary;
+    final baseBg = hoverColor.withAlpha(0);
     final rowBg = widget.selected
-        ? AppColors.primary.withAlpha(_hovered ? 52 : 34)
+        ? AppColors.primary.withAlpha(isDark ? 40 : 20)
         : _hovered
-        ? AppColors.primary.withAlpha(14)
+        ? hoverColor.withAlpha(isDark ? 80 : 12)
         : baseBg;
-    final leftBorderColor = isVoided
-        ? AppColors.textDisabled.withAlpha(60)
-        : transaction.isIncome
-        ? AppColors.primary.withAlpha(200)
-        : AppColors.danger.withAlpha(200);
+
     final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
     final accountSubtitle = (transaction.accountName ?? '').trim();
@@ -589,20 +596,16 @@ class _TransactionRowState extends State<_TransactionRow> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: InkWell(
+      child: GestureDetector(
         onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: const Duration(milliseconds: 80),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: rowBg,
-            border: Border(
-              left: widget.isMobile
-                  ? BorderSide.none
-                  : BorderSide(color: leftBorderColor, width: 3),
-              bottom: const BorderSide(color: AppColors.borderTableRow),
-            ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: widget.isMobile
               ? Row(
                   children: [
