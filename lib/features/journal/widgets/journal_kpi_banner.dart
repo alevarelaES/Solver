@@ -115,10 +115,14 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceAlpha = isDark ? 40 : 18;
+    final borderAlpha = isDark ? 90 : 46;
+
     return PremiumCardBase(
       variant: PremiumCardVariant.kpi,
-      overrideSurface: accentColor.withAlpha(18),
-      overrideBorder: accentColor.withAlpha(46),
+      overrideSurface: accentColor.withAlpha(surfaceAlpha),
+      overrideBorder: accentColor.withAlpha(borderAlpha),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s14,
         vertical: AppSpacing.sm,

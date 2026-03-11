@@ -10,6 +10,7 @@ import 'package:solver/core/theme/app_theme.dart';
 import 'package:solver/features/spreadsheet/providers/spreadsheet_provider.dart';
 import 'package:solver/shared/widgets/page_header.dart';
 import 'package:solver/shared/widgets/page_scaffold.dart';
+import 'package:solver/shared/widgets/premium_card_base.dart';
 
 part 'spreadsheet_view.widgets.part.dart';
 
@@ -167,9 +168,6 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentYear = DateTime.now().year;
-    final surfaceColor = isDark
-        ? AppColors.surfaceDark
-        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final textColor = isDark
         ? AppColors.textPrimaryDark
@@ -205,7 +203,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Expanded(
+          Flexible(
             child: dataAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
@@ -224,41 +222,41 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                   ],
                 ),
               ),
-              data: (data) => Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  border: Border.all(color: borderColor),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  boxShadow: isDark
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 8,
-                          ),
-                        ],
-                ),
+              data: (data) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  child: Column(
-                    children: [
-                      _ProjectionHint(
-                        mode: mode,
-                        isDark: isDark,
-                        borderColor: borderColor,
-                      ),
-                      Expanded(
-                        child: _buildTable(
-                          data,
-                          mode,
-                          isDark,
-                          borderColor,
-                          textColor,
-                          mutedColor,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceDark : Colors.white,
+                      border: Border.all(color: borderColor),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _ProjectionHint(
+                          mode: mode,
+                          isDark: isDark,
+                          borderColor: borderColor,
                         ),
-                      ),
-                    ],
+                        Flexible(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return _buildTable(
+                                data,
+                                mode,
+                                isDark,
+                                borderColor,
+                                textColor,
+                                mutedColor,
+                                constraints.maxWidth,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -276,16 +274,20 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
     Color borderColor,
     Color textColor,
     Color mutedColor,
+    double maxWidth,
   ) {
-    const catWidth = 230.0;
-    const cellWidth = 96.0;
-    const totalWidth = 112.0;
-    const headerHeight = 42.0;
+    const catWidth = 240.0;
+    const minCellWidth = 100.0;
+    const totalWidth = 120.0;
+    const headerHeight = 50.0;
+
+    final cellWidth = (maxWidth - catWidth - totalWidth) / 12;
+    final finalCellWidth = cellWidth < minCellWidth ? minCellWidth : cellWidth;
 
     final headerBg = isDark
-        ? AppColors.primaryDarker.withValues(alpha: 0.35)
+        ? AppColors.primaryDarker.withValues(alpha: 0.25)
         : AppColors.surfaceTableHeader;
-    final tableWidth = catWidth + (cellWidth * 12) + totalWidth;
+    final tableWidth = catWidth + (finalCellWidth * 12) + totalWidth;
 
     return Stack(
       children: [
@@ -321,7 +323,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                         ...List.generate(12, (i) {
                           return _HeaderCell(
                             text: AppStrings.common.monthsShort[i],
-                            width: cellWidth,
+                            width: finalCellWidth,
                             alignment: Alignment.center,
                             isDark: isDark,
                             borderColor: borderColor,
@@ -352,9 +354,10 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                       ],
                     ),
                   ),
-                  Expanded(
+                  Flexible(
                     child: ListView(
                       controller: _verticalController,
+                      shrinkWrap: true,
                       children: [
                         for (final section in data.sections) ...[
                           ...() {
@@ -382,7 +385,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                   rowIndex: entry.key,
                                   isDark: isDark,
                                   catWidth: catWidth,
-                                  cellWidth: cellWidth,
+                                  cellWidth: finalCellWidth,
                                   totalWidth: totalWidth,
                                   borderColor: borderColor,
                                   textColor: textColor,
@@ -408,7 +411,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                   mode,
                                 ),
                                 catWidth: catWidth,
-                                cellWidth: cellWidth,
+                                cellWidth: finalCellWidth,
                                 totalWidth: totalWidth,
                                 borderColor: borderColor,
                                 isDark: isDark,
@@ -419,7 +422,7 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                   monthIndex: m,
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              
                             ];
                           }(),
                         ],
@@ -427,10 +430,10 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                           monthValues: data.netCashFlowMonths(mode),
                           grandTotal: data.netCashFlowTotal(mode),
                           catWidth: catWidth,
-                          cellWidth: cellWidth,
+                          cellWidth: finalCellWidth,
                           totalWidth: totalWidth,
                         ),
-                        const SizedBox(height: 18),
+                        
                       ],
                     ),
                   ),
@@ -476,10 +479,11 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                       ascending: _ascending,
                     ),
                   ),
-                  Expanded(
+                  Flexible(
                     child: ListView(
                       controller: _pinnedVerticalController,
                       physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
                       children: [
                         for (final section in data.sections) ...[
                           ...() {
@@ -513,12 +517,12 @@ class _SpreadsheetViewState extends ConsumerState<SpreadsheetView> {
                                 isDark: isDark,
                                 isIncome: section.isIncome,
                               ),
-                              const SizedBox(height: 12),
+                              
                             ];
                           }(),
                         ],
                         const _PinnedNetCell(),
-                        const SizedBox(height: 18),
+                        
                       ],
                     ),
                   ),

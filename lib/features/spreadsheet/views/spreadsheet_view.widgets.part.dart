@@ -215,13 +215,13 @@ class _HeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = isPrimary
         ? AppColors.primary
-        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight);
+        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight);
 
     return InkWell(
       onTap: onTap,
       child: Container(
         width: width,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         alignment: alignment,
         decoration: BoxDecoration(
           color:
@@ -230,33 +230,33 @@ class _HeaderCell extends StatelessWidget {
                   ? AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.05)
                   : null),
           border: Border(
-            right: BorderSide(color: borderColor.withValues(alpha: 0.6)),
+            right: BorderSide(color: borderColor.withValues(alpha: 0.4)),
           ),
         ),
         child: Row(
           mainAxisAlignment: _resolveMainAxisAlignment(alignment),
           children: [
             Text(
-              text,
+              text.toUpperCase(),
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
-                color: fg,
-                letterSpacing: 0.5,
+                fontSize: 12,
+                fontWeight: isPrimary ? FontWeight.w800 : FontWeight.w700,
+                color: isActive ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight) : fg,
+                letterSpacing: 0.8,
               ),
             ),
             const SizedBox(width: 4),
             if (isActive)
               Icon(
                 ascending ? Icons.arrow_upward : Icons.arrow_downward,
-                size: 12,
-                color: fg,
+                size: 14,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
               )
-            else
+            else if (onTap != null)
               Icon(
                 Icons.unfold_more,
-                size: 12,
-                color: fg.withValues(alpha: 0.55),
+                size: 14,
+                color: fg.withValues(alpha: 0.4),
               ),
           ],
         ),
@@ -289,39 +289,39 @@ class _SectionHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36,
+      height: 44,
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border(bottom: BorderSide(color: borderColor)),
+        border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.4))),
       ),
       child: Row(
         children: [
           Container(
             width: catWidth,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: borderColor)),
+              border: Border(right: BorderSide(color: borderColor.withValues(alpha: 0.4))),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Flexible(
                   child: Text(
-                    label,
+                    label.toUpperCase(),
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
                       color: color,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.6,
                     ),
                   ),
                 ),
@@ -380,22 +380,22 @@ class _DataRow extends StatelessWidget {
               : AppColors.surfaceTableRowAccent);
 
     return Container(
-      height: 40,
+      height: 48,
       decoration: BoxDecoration(
         color: baseRowColor,
         border: Border(
-          bottom: BorderSide(color: borderColor.withValues(alpha: 0.8)),
+          bottom: BorderSide(color: borderColor.withValues(alpha: 0.4)),
         ),
       ),
       child: Row(
         children: [
           Container(
             width: catWidth,
-            padding: const EdgeInsets.only(left: 36, right: 12),
+            padding: const EdgeInsets.only(left: 40, right: 14),
             decoration: BoxDecoration(
               color: categoryCellColor,
               border: Border(
-                right: BorderSide(color: borderColor.withValues(alpha: 0.95)),
+                right: BorderSide(color: borderColor.withValues(alpha: 0.4)),
               ),
             ),
             alignment: Alignment.centerLeft,
@@ -418,7 +418,7 @@ class _DataRow extends StatelessWidget {
               isEstimated: isEstimated,
             );
             final cellColor = value == 0
-                ? mutedColor.withValues(alpha: 0.9)
+                ? mutedColor.withValues(alpha: 0.6)
                 : (isEstimated
                       ? AppColors.warningStrong
                       : (row.isIncome
@@ -428,7 +428,7 @@ class _DataRow extends StatelessWidget {
                             : AppColors.danger));
             return Container(
               width: cellWidth,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.centerRight,
               decoration: BoxDecoration(
                 color: Color.alphaBlend(
@@ -436,7 +436,7 @@ class _DataRow extends StatelessWidget {
                   baseRowColor,
                 ),
                 border: Border(
-                  right: BorderSide(color: borderColor.withValues(alpha: 0.65)),
+                  right: BorderSide(color: borderColor.withValues(alpha: 0.2)),
                 ),
               ),
               child: Text(
@@ -451,7 +451,7 @@ class _DataRow extends StatelessWidget {
           }),
           Container(
             width: totalWidth,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             color: totalColBg,
             alignment: Alignment.centerRight,
             child: Text(
@@ -461,7 +461,7 @@ class _DataRow extends StatelessWidget {
                 isEstimated: row.totalUsesEstimate(mode),
               ),
               style: GoogleFonts.robotoMono(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: row.totalUsesEstimate(mode)
                     ? AppColors.warningStrong
@@ -513,7 +513,7 @@ class _TotalRow extends StatelessWidget {
         : (isIncome ? AppColors.primaryDarker : AppColors.danger);
 
     return Container(
-      height: 40,
+      height: 48,
       decoration: BoxDecoration(
         color: bg,
         border: Border(bottom: BorderSide(color: base.withValues(alpha: 0.3))),
@@ -522,7 +522,7 @@ class _TotalRow extends StatelessWidget {
         children: [
           Container(
             width: catWidth,
-            padding: const EdgeInsets.only(left: 36, right: 12),
+            padding: const EdgeInsets.only(left: 40, right: 14),
             decoration: BoxDecoration(
               border: Border(
                 right: BorderSide(color: base.withValues(alpha: 0.35)),
@@ -530,19 +530,20 @@ class _TotalRow extends StatelessWidget {
             ),
             alignment: Alignment.centerLeft,
             child: Text(
-              label,
+              label.toUpperCase(),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: textColor,
+                letterSpacing: 0.5,
               ),
             ),
           ),
           ...List.generate(12, (monthIndex) {
             return Container(
               width: cellWidth,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.centerRight,
               decoration: BoxDecoration(
                 color: Color.alphaBlend(
@@ -565,13 +566,13 @@ class _TotalRow extends StatelessWidget {
           }),
           Container(
             width: totalWidth,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             alignment: Alignment.centerRight,
             color: base.withValues(alpha: isDark ? 0.42 : 0.26),
             child: Text(
               _formatSignedAmount(grandTotal, isIncome: isIncome),
               style: GoogleFonts.robotoMono(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
                 color: textColor,
               ),
@@ -601,27 +602,28 @@ class _NetCashFlowRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
+      height: 52,
       decoration: const BoxDecoration(color: AppColors.primaryDarker),
       child: Row(
         children: [
           Container(
             width: catWidth,
-            padding: const EdgeInsets.only(left: 16, right: 12),
+            padding: const EdgeInsets.only(left: 20, right: 14),
             alignment: Alignment.centerLeft,
             child: Text(
-              AppStrings.spreadsheet.netCashFlow,
+              AppStrings.spreadsheet.netCashFlow.toUpperCase(),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: Colors.white,
+                letterSpacing: 0.8,
               ),
             ),
           ),
           ...List.generate(12, (m) {
             return Container(
               width: cellWidth,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               alignment: Alignment.centerRight,
               decoration: BoxDecoration(
                 border: Border(
@@ -680,29 +682,29 @@ class _PinnedSectionCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border(bottom: BorderSide(color: borderColor)),
+        border: Border(bottom: BorderSide(color: borderColor.withValues(alpha: 0.4))),
       ),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              label,
+              label.toUpperCase(),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
                 color: color,
-                letterSpacing: 0.5,
+                letterSpacing: 0.6,
               ),
             ),
           ),
@@ -743,12 +745,12 @@ class _PinnedDataCell extends StatelessWidget {
               : AppColors.surfaceTableRowAccent);
 
     return Container(
-      height: 40,
-      padding: const EdgeInsets.only(left: 36, right: 12),
+      height: 48,
+      padding: const EdgeInsets.only(left: 40, right: 14),
       decoration: BoxDecoration(
         color: Color.alphaBlend(categoryCellColor, baseRowColor),
         border: Border(
-          bottom: BorderSide(color: borderColor.withValues(alpha: 0.8)),
+          bottom: BorderSide(color: borderColor.withValues(alpha: 0.4)),
         ),
       ),
       alignment: Alignment.centerLeft,
@@ -785,20 +787,21 @@ class _PinnedTotalCell extends StatelessWidget {
     final textColor = isDark ? Colors.white : base;
 
     return Container(
-      height: 40,
-      padding: const EdgeInsets.only(left: 36, right: 12),
+      height: 48,
+      padding: const EdgeInsets.only(left: 40, right: 14),
       decoration: BoxDecoration(
         color: bg,
         border: Border(bottom: BorderSide(color: base.withValues(alpha: 0.3))),
       ),
       alignment: Alignment.centerLeft,
       child: Text(
-        label,
+        label.toUpperCase(),
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: textColor,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -811,16 +814,17 @@ class _PinnedNetCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
-      padding: const EdgeInsets.only(left: 16, right: 12),
+      height: 52,
+      padding: const EdgeInsets.only(left: 20, right: 14),
       color: AppColors.primaryDarker,
       alignment: Alignment.centerLeft,
       child: Text(
         'NET CASH FLOW',
         style: GoogleFonts.plusJakartaSans(
           fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: Colors.white,
+          letterSpacing: 0.8,
         ),
       ),
     );

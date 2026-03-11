@@ -20,12 +20,13 @@ class _JournalFilterBar extends ConsumerWidget {
     final amountLabel = _amountFilterLabel(columnFilters);
     final activeCount = _activeColumnFiltersCount(columnFilters);
     final accountsAsync = ref.watch(accountsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceTableHeader,
-        border: Border(bottom: BorderSide(color: AppColors.borderTable)),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceTableHeader,
+        border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderTable)),
       ),
       child: isMobile
           ? SingleChildScrollView(
@@ -789,7 +790,7 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chipBg = isDark ? const Color(0xFF1E2A1A) : Colors.white;
+    final chipBg = isDark ? AppColors.surfaceElevated.withAlpha(30) : Colors.white;
     final labelColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     return InkWell(
       onTap: onTap,

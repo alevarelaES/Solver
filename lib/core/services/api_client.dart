@@ -29,6 +29,15 @@ class ApiClient {
           }
           handler.next(options);
         },
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401) {
+            // Session expired or invalid — sign out to clear local state.
+            // This fires onAuthStateChange → authStateProvider invalidates
+            // → routerProvider rebuilds → redirect to /login.
+            await Supabase.instance.client.auth.signOut();
+          }
+          handler.next(e);
+        },
       ),
     );
   }

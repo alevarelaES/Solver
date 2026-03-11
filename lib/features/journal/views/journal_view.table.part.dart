@@ -396,8 +396,8 @@ class _TableHeader extends ConsumerWidget {
       letterSpacing: 0.9,
     );
     final headerDecoration = BoxDecoration(
-      color: isDark ? AppColors.surfaceElevated : AppColors.surfaceLight,
-      border: const Border(bottom: BorderSide(color: AppColors.borderTable)),
+      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+      border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderTable)),
     );
     if (isMobile) {
       return Container(
